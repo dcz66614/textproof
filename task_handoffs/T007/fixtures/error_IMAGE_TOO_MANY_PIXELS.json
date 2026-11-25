@@ -1,0 +1,15 @@
+{
+  "request": {
+    "image_mime": "image/png",
+    "image_base64": "iVBORw0KGgoAAAANSUhEUgAAH0AAABdwCAIAAAC+BnNpAAAAAElFTkSuQmCC",
+    "expected_text": "限时优惠"
+  },
+  "response_status": 400,
+  "response": {
+    "error": {
+      "code": "IMAGE_TOO_MANY_PIXELS",
+      "message": "Input failed validation.",
+      "detail": "too_many_pixels"
+    }
+  }
+}

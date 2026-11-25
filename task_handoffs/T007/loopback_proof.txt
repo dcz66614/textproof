@@ -1,0 +1,15 @@
+# loopback proof — server on 127.0.0.1:37503
+# date: 2026-11-25 07:35:59 UTC
+
+$ ss -tln
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess
+LISTEN 0      0          127.0.0.1:37503      0.0.0.0:*          
+LISTEN 0      0          127.0.0.1:8322       0.0.0.0:*          
+
+
+$ grep :927F /proc/net/tcp (LISTEN=0A)
+   0: 0100007F:927F 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 449318 1 0000000000000000 100 0 0 10 0                    
+
+connect 127.0.0.1:37503: OK (local ('127.0.0.1', 47636))
+
+NOTE: connect_ex to the non-loopback IP is NOT used as proof on this VM: outbound TCP is intercepted by the egress proxy (198.19.0.1:3128) and returns success even for unlistened ports. The /proc/net/tcp + ss LISTEN table above is the proof: the port listens on 127.0.0.1 only.

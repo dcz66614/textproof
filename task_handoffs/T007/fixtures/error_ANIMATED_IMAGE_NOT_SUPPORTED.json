@@ -1,0 +1,15 @@
+{
+  "request": {
+    "image_mime": "image/webp",
+    "image_base64": "UklGRuYAAABXRUJQVlA4WAoAAAACAAAAYwAAMQAAQU5JTQYAAAAAAAAAAABBTk1GWgAAAAAAAAAAAGMAADEAAGQAAAJWUDggQgAAADAFAJ0BKmQAMgAuTTabTaEkJCQEAExLSDODNAvAH6AACVmUM4w2Gk7E++dj987H750QAP789OP5gnFZ9KArp4LAAEFOTUZYAAAAAAAAAAAAYwAAMQAAZAAAAFZQOCBAAAAA1AQAnQEqZAAyAC5NNptNgAAExLSDODNAvAH6AACVmUM4w2Gk7E++dj987H750QAA/v03HmtEMS1ohiWtEGgAAA==",
+    "expected_text": "限时优惠"
+  },
+  "response_status": 400,
+  "response": {
+    "error": {
+      "code": "ANIMATED_IMAGE_NOT_SUPPORTED",
+      "message": "Input failed validation.",
+      "detail": "animated_webp"
+    }
+  }
+}

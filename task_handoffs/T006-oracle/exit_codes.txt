@@ -1,0 +1,5 @@
+command 1 (acceptance, tests/oracle/test_reference_compare.py -q): exit 0 — 43 passed
+command 2 (tests/unit -q): exit 0 — 155 passed, 2 warnings
+command 3 (tests/unit/test_core + tests/oracle -q): exit 0 — 138 passed
+command 4 (full suite, pytest -q): exit 0 — 217 passed, 2 warnings
+command 5 (JSON spot check): exit 0 — report serialises, verdict MISMATCH as expected

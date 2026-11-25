@@ -1,0 +1,15 @@
+{
+  "request": {
+    "image_mime": "image/png",
+    "image_base64": "aGVsbG8gd29ybGQsIG5vdCBhbiBpbWFnZQ==",
+    "expected_text": "限时优惠"
+  },
+  "response_status": 400,
+  "response": {
+    "error": {
+      "code": "INVALID_IMAGE_FORMAT",
+      "message": "Input failed validation.",
+      "detail": "unsupported_format"
+    }
+  }
+}

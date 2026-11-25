@@ -1,0 +1,4 @@
+?? API_CONTRACT.md
+?? src/textproof/api/
+?? task_handoffs/T007/
+?? tests/integration/test_api.py

@@ -1,0 +1,5 @@
+cd ~/workspace/p033-textproof-t005
+/home/hatch/workspace/p033-textproof/.venv/bin/python scripts/generate_fixtures.py --verify-manifest tests/fixtures/s0/manifest.json
+/home/hatch/workspace/p033-textproof/.venv/bin/python -m pytest tests/unit/test_fixtures_s0.py -q
+/home/hatch/workspace/p033-textproof/.venv/bin/python -m pytest -q
+/home/hatch/workspace/p033-textproof/.venv/bin/python scripts/generate_fixtures.py --output-dir /tmp/t005-regen3

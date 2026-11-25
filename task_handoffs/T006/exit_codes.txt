@@ -1,0 +1,9 @@
+pytest -q: 0 (229 passed)
+verify_s0.py run2 (unshare -n, --force-live): 0 (S0 VERDICT: PASS)
+verify_s0.py run1 (unshare -n, --force-live): 1 (only the runner's own independence-check bug; fixed, no product code touched; metrics identical to run2)
+independent_verify.py --case TP-S0-ZH-001: 0
+independent_verify.py --case TP-S0-ZH-002: 0
+independent_verify.py --case TP-S0-ZH-003: 0
+independent_verify.py --case TP-S0-NUM-001: 0
+independent_verify.py --case TP-S0-NUM-001 --strict-live: 1 (by design: extra live SUBSTITUTION; see S0_REPORT.md section 6(a))
+parity_check.py: 0 (fixed 300/300; edge battery 13/26 diagnostic)

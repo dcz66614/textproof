@@ -1,0 +1,2309 @@
+diff --git a/API_CONTRACT.md b/API_CONTRACT.md
+new file mode 100644
+index 0000000..8e97016
+--- /dev/null
++++ b/API_CONTRACT.md
+@@ -0,0 +1,177 @@
++# TextProof 本地 API 契约（T007）
++
++- 产品版本（`tool_version`）：`0.1.0`
++- 规格版本：`1.0.0`（`PROJECT_BOOK.md`）
++- 报告 schema：`textproof.report/v1`（`PROJECT_BOOK.md` §5）
++- 服务实现：`src/textproof/api/`（`app.py` + `routes.py`）
++- 冻结依赖：`fastapi==0.165.0`、`uvicorn==0.54.0`、`pydantic==2.14.4`
++  （`requirements.lock`，不升级、不新增）
++
++## 1. 绑定约束（硬性）
++
++- 服务**只绑定 `127.0.0.1`**，默认端口 `8765`
++  （`PROJECT_BOOK.md` §5.5 CLI 示例：`textproof serve --host 127.0.0.1 --port 8765`）。
++- 任何其他 host（`0.0.0.0`、公网/内网 IP、主机名、`localhost`、`::1`、
++  空字符串）都会在 uvicorn 启动**之前**被 `validate_bind_host()` 以
++  `ValueError` 拒绝，不会静默开放监听。
++- **不启用 CORS**：本包不注册任何 CORS 中间件，响应中没有
++  `Access-Control-Allow-Origin`。外部站点无法跨域调用本机 API。
++- 启动方式：`python -m textproof.api.app [--host 127.0.0.1] [--port 8765]`；
++  `--host` 只接受 `127.0.0.1`。
++
++## 2. 端点
++
++### `GET /api/v1/health`
++
++健康状态，不包含任何用户数据。
++
++响应 `200`：
++
++```json
++{
++  "status": "ok",
++  "service": "textproof",
++  "tool_version": "0.1.0",
++  "schema": "textproof.report/v1"
++}
++```
++
++### `GET /api/v1/version`
++
++版本信息。只报告冻结版本常量，**不构造 OCR 引擎**，因此在首次
++`/check` 之前即可回答。
++
++响应 `200`：
++
++```json
++{
++  "service": "textproof",
++  "tool_version": "0.1.0",
++  "schema": "textproof.report/v1",
++  "spec_version": "1.0.0",
++  "rapidocr_version": "3.10.0",
++  "onnxruntime_version": "1.32.0",
++  "providers": ["CPUExecutionProvider"]
++}
++```
++
++`GET /version` 是同一响应的别名（任务卡措辞中的 `/version`）。
++
++### `POST /api/v1/check`
++
++对一张图片做一次完整核对，返回 `textproof.report/v1` 报告
++（字段定义见 `PROJECT_BOOK.md` §5.4，API 不改动 schema）。
++
++请求体（JSON，`Content-Type: application/json`，未知字段会被拒绝）：
++
++| 字段 | 类型 | 说明 |
++|---|---|---|
++| `image_mime` | string | 必须是 `image/png`、`image/jpeg`、`image/webp` 之一，且必须与图片魔数检测出的格式一致 |
++| `image_base64` | string | 图片字节的严格 base64 编码（不接受空白/缺失填充）；解码后不得超过 25 MiB |
++| `expected_text` | string | 期望文本；T002 规则：非空、≤5,000 码点、≤100 行 |
++
++成功响应 `200`：`textproof.report/v1` 报告全文（`schema`、
++`tool_version`、`verdict`、`image{sha256,format,width,height,
++coordinate_system}`、`expected_text`、`recognized_text`、`ocr_lines`、
++`errors`、`warnings`、`summary`）。响应中**不包含图片 base64**。
++
++处理流程（只做接线，不重写已有逻辑）：
++
++1. MIME 白名单 → 严格 base64 解码（先做编码长度预检，超长直接拒绝，
++   不解码、不分配大内存）→ T002 `load_image`（魔数、25 MiB / 8192 px /
++   40 MP、EXIF orientation、动画 WebP 拒绝）→ MIME 与检测格式一致性 →
++   T002 `validate_expected_text` → T003 `RapidOCRAdapter.recognize`
++   （CPU-only，离线本地模型）→ T004 `build_report`。
++2. 图片字节只在请求局部变量中存在；返回后即丢弃引用，不写磁盘、
++   不写数据库、不跨请求缓存。进程内唯一的长驻对象是 OCR 引擎单例
++   （模型权重，不含任何请求数据）。
++3. OCR 识别出**零可用文本**时不是 HTTP 错误：返回 `200`，报告
++   `verdict` 为 `OCR_FAILED` 并带 `OCR_EMPTY` 警告（`PROJECT_BOOK.md`
++   §7.6）。只有 OCR 引擎本身抛异常时才返回 HTTP `500` + `OCR_FAILED`
++  （见 §4）。
++
++## 3. 调用示例
++
++```bash
++# 启动（只监听本机）
++python -m textproof.api.app --port 8765
++
++curl http://127.0.0.1:8765/api/v1/health
++curl http://127.0.0.1:8765/api/v1/version
++
++# 核对（IMAGE_B64 为图片的 base64；不要在日志里记录它）
++curl -X POST http://127.0.0.1:8765/api/v1/check \
++  -H 'Content-Type: application/json' \
++  -d "{\"image_mime\":\"image/png\",\"image_base64\":\"$IMAGE_B64\",\"expected_text\":\"限时优惠\"}"
++```
++
++## 4. 错误码表
++
++所有失败都返回统一信封（不是裸 500、不是 FastAPI 默认体）：
++
++```json
++{"error": {"code": "INVALID_BASE64", "message": "…", "detail": "invalid_base64"}}
++```
++
++`detail` 是短 snake_case 原因码，**不含用户文本、图片字节、文件路径**。
++`message` 是通用说明，不含用户数据。
++
++| 错误码 | HTTP | 触发条件 |
++|---|---|---:|
++| `INVALID_REQUEST` | 422 | 请求体不是合法 JSON；缺少字段；字段类型错误；含未知字段 |
++| `INVALID_IMAGE_MIME` | 400 | `image_mime` 不在白名单；或与图片魔数检测出的格式不一致 |
++| `INVALID_BASE64` | 400 | `image_base64` 为空或不是严格 base64 |
++| `IMAGE_TOO_LARGE` | 400 | 解码后图片超过 25 MiB（编码长度超过上限时在解码前即拒绝） |
++| `IMAGE_DIMENSION_EXCEEDED` | 400 | 宽或高超过 8192 px |
++| `IMAGE_TOO_MANY_PIXELS` | 400 | 像素总数超过 40,000,000 |
++| `INVALID_IMAGE_FORMAT` | 400 | 魔数不是 PNG / JPEG / WebP |
++| `INVALID_IMAGE` | 400 | 图片为空、损坏、解码失败、魔数与解码格式不一致、尺寸非法 |
++| `ANIMATED_IMAGE_NOT_SUPPORTED` | 400 | 动画 WebP |
++| `EXPECTED_TEXT_EMPTY` | 400 | 期望文本为空或全空白 |
++| `EXPECTED_TEXT_TOO_LONG` | 400 | 期望文本超过 5,000 码点 |
++| `EXPECTED_TEXT_TOO_MANY_LINES` | 400 | 期望文本超过 100 行 |
++| `INVALID_INPUT` | 400 | 其他 T002 输入拒绝（兜底码，仍为明确的 400 而非 500） |
++| `OCR_FAILED` | 500 | OCR 引擎抛异常（模型/推理失败）。零可用文本不属于此类，见 §2 |
++| `INTERNAL_ERROR` | 500 | 未预期的内部异常（最后防线；日志只记异常类型，不记用户数据） |
++| `NOT_FOUND` | 404 | 未知路径 |
++
++错误码与 T002 `InvalidInputError.reason` 的映射见
++`src/textproof/api/routes.py::_REASON_TO_CODE`；每个 T002 原因都有
++确定的 API 码，不存在"未知原因 → 裸 500"的路径。
++
++## 5. 一致性
++
++API 与核心使用**同一条比较路径**：`POST /api/v1/check` 与直接调用
++`load_image` + `RapidOCRAdapter.recognize` + `core.report.build_report`
++对同一输入返回**逐字段完全相同的 JSON**（`tests/integration/test_api.py::
++test_api_matches_core`，固定样本 `TP-S0-ZH-001`）。CLI（T009）也必须
++复用同一核心函数，不得另造判定。
++
++## 6. 测试说明（诚实记录的偏差）
++
++任务卡要求"用 FastAPI TestClient 做 HTTP 层测试"，但 `TestClient`
++依赖 `httpx`，而 `httpx` **不在冻结的 `requirements.lock` 中**，T001
++venv 里也没有安装（`from starlette.testclient import TestClient` 直接
++报"需要安装 httpx"）。新增 `httpx` 属于新增依赖，T007 无权自行决定，
++故未安装、未改锁文件。
++
++替代方案（已实施，见 `tests/integration/test_api.py`）：测试启动**真实
++uvicorn 服务器**（绑定 `127.0.0.1` 的临时端口，后台线程），用标准库
++`urllib` 经真实 loopback socket 发请求。这比 TestClient 覆盖更强：
++它验证了真实 HTTP 栈、真实绑定地址和真实监听 socket（`/proc/net/tcp`
++中该端口只在 `127.0.0.1` 上处于 LISTEN）。如协调员希望补 TestClient，
++需在 T001 锁文件中以测试依赖形式加入 `httpx`（由协调员决定，本任务
++不做）。
++
++注意：本 VM 的出站 TCP 会被出口代理（`198.19.0.1:3128`）拦截，因此
++"向本机非 loopback IP `connect_ex`" 不是有效的监听证明（即使无人监听
++也会返回成功）；loopback 唯一性以 `/proc/net/tcp` + `ss -tln` 的监听表
++为准，测试与交接证明均按此法（见 `task_handoffs/T007/loopback_proof.txt`）。
++
++## 7. 不在本契约内的事
++
++- 不提供公网监听、CORS、鉴权、TLS、限流、批量接口。
++- 不持久化任何请求数据；不写日志到图片/文本内容（日志只记错误码、
++  异常类型、状态与耗时）。
++- 不修改核心算法、JSON schema、OCR 模型路径与隐私约束（`PROJECT_BOOK.md`
++  §9）；违反这些约束的请求一律 fail-closed。
+diff --git a/src/textproof/api/__init__.py b/src/textproof/api/__init__.py
+new file mode 100644
+index 0000000..75fe43e
+--- /dev/null
++++ b/src/textproof/api/__init__.py
+@@ -0,0 +1,45 @@
++"""TextProof local HTTP API (T007).
++
++Implements ``PROJECT_BOOK.md`` §5.5 / §6.1 item 6 and §9:
++
++* ``GET /api/v1/health`` — health status, no user data.
++* ``GET /api/v1/version`` — versions (product, schema, spec, OCR).
++* ``POST /api/v1/check`` — JSON ``{image_mime, image_base64,
++  expected_text}`` in memory; returns ``textproof.report/v1``.
++
++Binding is loopback-only (``127.0.0.1``); see :mod:`textproof.api.app`
++for the enforced check. No CORS middleware is registered anywhere in
++this package — the API is for the local UI / CLI on the same machine
++only (PROJECT_BOOK.md §5.5: "不启用公网监听、CORS 外域白名单或外部回调").
++
++Statelessness (§9): the service keeps no per-request state. The only
++module-level object is the OCR engine singleton (model weights, not
++request data). Image bytes and reports live only in request-local
++variables and are dropped when the handler returns; nothing is written
++to disk, to a database, or to any cache. The OCR adapter itself is
++owned by T003 (``textproof.ocr.rapidocr_adapter``) and is not modified
++here; the comparison core is owned by T004
++(``textproof.core.report.build_report``) and is not modified here.
++This package only validates transport input, decodes base64, and
++wires the frozen modules together.
++"""
++
++from textproof.api.app import (
++    DEFAULT_HOST,
++    DEFAULT_PORT,
++    create_app,
++    serve,
++    validate_bind_host,
++)
++from textproof.api.routes import ApiError, CheckRequest, run_check
++
++__all__ = [
++    "DEFAULT_HOST",
++    "DEFAULT_PORT",
++    "ApiError",
++    "CheckRequest",
++    "create_app",
++    "run_check",
++    "serve",
++    "validate_bind_host",
++]
+diff --git a/src/textproof/api/app.py b/src/textproof/api/app.py
+new file mode 100644
+index 0000000..10a75f2
+--- /dev/null
++++ b/src/textproof/api/app.py
+@@ -0,0 +1,181 @@
++"""FastAPI application factory and loopback-only server entry (T007).
++
++Binding rule (PROJECT_BOOK.md §5.5, §9; IMPLEMENTATION_PLAN.md T007
++acceptance 3): the service binds **only** ``127.0.0.1``.  Any other
++host — ``0.0.0.0``, a public IP, a hostname, ``::1``, an empty string —
++is rejected by :func:`validate_bind_host` **before** uvicorn starts,
++so a misconfiguration can never silently open a public listener.
++:func:`serve` is the only way this module starts a server, and it
++always goes through that check.
++
++No CORS middleware is registered (deliberate): the API serves the
++local UI / CLI on the same machine only.  There is no external origin
++to allow, and adding one would violate the T007 failure fallback
++("API 不得为方便调试而开放公网监听或启用外部 CORS").
++
++Run locally::
++
++    python -m textproof.api.app            # 127.0.0.1:8765
++    python -m textproof.api.app --port 9000
++"""
++
++from __future__ import annotations
++
++import argparse
++import logging
++from typing import Final
++
++import uvicorn
++from fastapi import FastAPI, Request
++from fastapi.exceptions import RequestValidationError
++from fastapi.responses import JSONResponse
++from starlette.exceptions import HTTPException as StarletteHTTPException
++
++from textproof.api.routes import (
++    CODE_INTERNAL_ERROR,
++    CODE_INVALID_REQUEST,
++    ApiError,
++    api_error_handler,
++    router,
++)
++from textproof.core.report import TOOL_VERSION
++
++logger = logging.getLogger(__name__)
++
++#: The only bind address this service will ever use.
++DEFAULT_HOST: Final[str] = "127.0.0.1"
++#: Default port (PROJECT_BOOK.md §5.5 CLI example: ``serve --port 8765``).
++DEFAULT_PORT: Final[int] = 8765
++
++#: Hosts allowed by validate_bind_host: exactly the loopback address.
++_ALLOWED_HOSTS: Final[frozenset[str]] = frozenset({DEFAULT_HOST})
++
++
++def validate_bind_host(host: str) -> str:
++    """Validate a bind host; return it iff it is exactly ``127.0.0.1``.
++
++    Raises:
++        ValueError: for ``0.0.0.0``, any public/private non-loopback
++            IP, any hostname (including ``localhost``), ``::1``, or an
++            empty/blank value.  The check is exact-string: no DNS
++            resolution, no "looks like loopback" heuristics.
++    """
++    if not isinstance(host, str) or host != DEFAULT_HOST:
++        raise ValueError(
++            "TextProof binds only to 127.0.0.1; refusing host "
++            f"{host!r}. Public / 0.0.0.0 listening is forbidden "
++            "(PROJECT_BOOK.md §5.5, §9)."
++        )
++    return host
++
++
++def create_app() -> FastAPI:
++    """Build the FastAPI application (no CORS, no docs UI)."""
++    app = FastAPI(
++        title="TextProof",
++        version=TOOL_VERSION,
++        docs_url=None,
++        redoc_url=None,
++        openapi_url=None,
++    )
++    app.include_router(router)
++    app.add_exception_handler(ApiError, api_error_handler)
++
++    async def _validation_handler(
++        request: Request, exc: RequestValidationError
++    ) -> JSONResponse:
++        # Pydantic request validation (missing / wrong-type / unknown
++        # field, malformed JSON): normalise FastAPI's 422 body to the
++        # API error envelope with the stable INVALID_REQUEST code.
++        # The detail carries no user text — only the field locations.
++        locations = sorted(
++            {str(loc) for err in exc.errors() for loc in err.get("loc", ())}
++        )
++        return JSONResponse(
++            status_code=422,
++            content={
++                "error": {
++                    "code": CODE_INVALID_REQUEST,
++                    "message": "Request body failed validation.",
++                    "detail": ",".join(locations) if locations else "invalid_request",
++                }
++            },
++        )
++
++    async def _http_handler(
++        request: Request, exc: StarletteHTTPException
++    ) -> JSONResponse:
++        code = "NOT_FOUND" if exc.status_code == 404 else "HTTP_ERROR"
++        return JSONResponse(
++            status_code=exc.status_code,
++            content={
++                "error": {
++                    "code": code,
++                    "message": "Not found." if exc.status_code == 404 else "HTTP error.",
++                    "detail": code.lower(),
++                }
++            },
++        )
++
++    async def _unhandled_handler(request: Request, exc: Exception) -> JSONResponse:
++        logger.exception("Unhandled error")
++        return JSONResponse(
++            status_code=500,
++            content={
++                "error": {
++                    "code": CODE_INTERNAL_ERROR,
++                    "message": "Internal error.",
++                    "detail": "unexpected_error",
++                }
++            },
++        )
++
++    app.add_exception_handler(RequestValidationError, _validation_handler)
++    app.add_exception_handler(StarletteHTTPException, _http_handler)
++    app.add_exception_handler(Exception, _unhandled_handler)
++    return app
++
++
++def serve(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT) -> None:
++    """Serve the API on loopback only.
++
++    Raises ValueError before binding unless ``host`` is ``127.0.0.1``.
++    """
++    validate_bind_host(host)
++    if not isinstance(port, int) or not 1 <= port <= 65535:
++        raise ValueError(f"Invalid port: {port!r}.")
++    logger.info("TextProof API listening on %s:%d (loopback only)", host, port)
++    uvicorn.run(create_app(), host=host, port=port, log_level="warning")
++
++
++def main(argv: list[str] | None = None) -> None:
++    parser = argparse.ArgumentParser(
++        prog="textproof-api",
++        description="TextProof local API (loopback only, 127.0.0.1).",
++    )
++    parser.add_argument(
++        "--host",
++        default=DEFAULT_HOST,
++        help="Bind host; only 127.0.0.1 is accepted (default: %(default)s).",
++    )
++    parser.add_argument(
++        "--port",
++        type=int,
++        default=DEFAULT_PORT,
++        help="Bind port (default: %(default)s).",
++    )
++    args = parser.parse_args(argv)
++    serve(host=args.host, port=args.port)
++
++
++if __name__ == "__main__":
++    main()
++
++__all__ = [
++    "DEFAULT_HOST",
++    "DEFAULT_PORT",
++    "create_app",
++    "main",
++    "serve",
++    "validate_bind_host",
++]
+diff --git a/src/textproof/api/routes.py b/src/textproof/api/routes.py
+new file mode 100644
+index 0000000..4b906a1
+--- /dev/null
++++ b/src/textproof/api/routes.py
+@@ -0,0 +1,374 @@
++"""API routes and the check pipeline (T007).
++
++Wiring only — no algorithm lives here:
++
++* transport validation (MIME allow-list, strict base64, encoded-size
++  pre-check) is done here because it is HTTP-layer input handling;
++* image / expected-text limits are enforced by T002
++  (:mod:`textproof.io.image_loader`, :mod:`textproof.contracts`) —
++  this module only maps T002's ``InvalidInputError.reason`` to a
++  stable, distinct API error code (see :data:`_REASON_TO_CODE`);
++* OCR is T003's :class:`~textproof.ocr.rapidocr_adapter.RapidOCRAdapter`;
++* comparison + report assembly is T004's
++  :func:`textproof.core.report.build_report`.
++
++Error model: every failure raised by :func:`run_check` is an
++:class:`ApiError` carrying a stable ``code`` (documented in
++``API_CONTRACT.md``), an HTTP status, and a short machine-readable
++``detail`` (a snake_case reason, never user text, never a path, never
++image bytes).  The only 500s are ``OCR_FAILED`` (the OCR engine raised)
++and ``INTERNAL_ERROR`` (an unexpected exception, last resort); no
++client-input failure ever surfaces as a bare 500.
++
++OCR engine lifecycle: the adapter is expensive to construct (model
++hash verification + ONNX session load), so one process-wide instance
++is created lazily on the first ``/check`` and reused for later
++requests.  That instance holds model weights only — never request
++data — so reusing it does not retain images or reports across
++requests.  :func:`set_ocr_adapter` / :func:`reset_ocr_adapter` exist
++solely so tests can inject a stub engine (e.g. one that raises, to
++exercise ``OCR_FAILED``); they are not part of any request path.
++"""
++
++from __future__ import annotations
++
++import base64
++import binascii
++import logging
++import threading
++from typing import Final
++
++from fastapi import APIRouter, Request
++from fastapi.responses import JSONResponse
++from pydantic import BaseModel, ConfigDict
++
++from textproof.contracts import (
++    ERROR_CODE_INVALID_INPUT,
++    MAX_FILE_SIZE_BYTES,
++    MIME_BY_FORMAT,
++    SCHEMA_ID,
++)
++from textproof.core.report import TOOL_VERSION, build_report
++from textproof.io.image_loader import (
++    InvalidInputError,
++    load_image,
++    validate_expected_text,
++)
++from textproof.ocr.rapidocr_adapter import (
++    OCRAdapterError,
++    ONNXRUNTIME_VERSION,
++    RAPIDOCR_VERSION,
++    RapidOCRAdapter,
++)
++
++logger = logging.getLogger(__name__)
++
++SPEC_VERSION: Final[str] = "1.0.0"
++
++# The largest base64 string that can decode to MAX_FILE_SIZE_BYTES
++# (25 MiB): ceil(25 MiB / 3) * 4.  Anything longer is rejected as
++# IMAGE_TOO_LARGE *before* decoding, so an oversized payload can
++# never force a large allocation.
++_MAX_BASE64_CHARS: Final[int] = ((MAX_FILE_SIZE_BYTES + 2) // 3) * 4
++
++#: MIME types accepted by POST /api/v1/check (PROJECT_BOOK.md §4.2).
++ACCEPTED_MIMES: Final[frozenset[str]] = frozenset(MIME_BY_FORMAT.values())
++
++# --- API error codes (stable; see API_CONTRACT.md §4) -------------------
++CODE_INVALID_REQUEST: Final[str] = "INVALID_REQUEST"
++CODE_INVALID_IMAGE_MIME: Final[str] = "INVALID_IMAGE_MIME"
++CODE_INVALID_BASE64: Final[str] = "INVALID_BASE64"
++CODE_IMAGE_TOO_LARGE: Final[str] = "IMAGE_TOO_LARGE"
++CODE_IMAGE_DIMENSION_EXCEEDED: Final[str] = "IMAGE_DIMENSION_EXCEEDED"
++CODE_IMAGE_TOO_MANY_PIXELS: Final[str] = "IMAGE_TOO_MANY_PIXELS"
++CODE_INVALID_IMAGE_FORMAT: Final[str] = "INVALID_IMAGE_FORMAT"
++CODE_ANIMATED_IMAGE_NOT_SUPPORTED: Final[str] = "ANIMATED_IMAGE_NOT_SUPPORTED"
++CODE_INVALID_IMAGE: Final[str] = "INVALID_IMAGE"
++CODE_EXPECTED_TEXT_EMPTY: Final[str] = "EXPECTED_TEXT_EMPTY"
++CODE_EXPECTED_TEXT_TOO_LONG: Final[str] = "EXPECTED_TEXT_TOO_LONG"
++CODE_EXPECTED_TEXT_TOO_MANY_LINES: Final[str] = "EXPECTED_TEXT_TOO_MANY_LINES"
++CODE_OCR_FAILED: Final[str] = "OCR_FAILED"
++CODE_INTERNAL_ERROR: Final[str] = "INTERNAL_ERROR"
++
++#: T002 InvalidInputError.reason -> distinct API error code.
++#: Every reason the loader can produce is mapped; unknown reasons
++#: fall back to INVALID_IMAGE / INVALID_INPUT (never a bare 500).
++_REASON_TO_CODE: Final[dict[str, str]] = {
++    "file_too_large": CODE_IMAGE_TOO_LARGE,
++    "image_dimension_exceeded": CODE_IMAGE_DIMENSION_EXCEEDED,
++    "too_many_pixels": CODE_IMAGE_TOO_MANY_PIXELS,
++    "unsupported_format": CODE_INVALID_IMAGE_FORMAT,
++    "animated_webp": CODE_ANIMATED_IMAGE_NOT_SUPPORTED,
++    "decode_failed": CODE_INVALID_IMAGE,
++    "empty_file": CODE_INVALID_IMAGE,
++    "not_bytes": CODE_INVALID_IMAGE,
++    "invalid_dimensions": CODE_INVALID_IMAGE,
++    "format_magic_mismatch": CODE_INVALID_IMAGE,
++    "expected_text_empty": CODE_EXPECTED_TEXT_EMPTY,
++    "expected_text_too_long": CODE_EXPECTED_TEXT_TOO_LONG,
++    "expected_text_too_many_lines": CODE_EXPECTED_TEXT_TOO_MANY_LINES,
++    "expected_text_not_string": ERROR_CODE_INVALID_INPUT,
++    "expected_text_invalid_unicode": ERROR_CODE_INVALID_INPUT,
++}
++
++
++class ApiError(Exception):
++    """An API failure with a stable code and HTTP status.
++
++    ``detail`` is a short machine-readable reason (snake_case); it
++    never contains user text, image bytes, or a file path.
++    """
++
++    def __init__(
++        self, code: str, status: int, message: str, detail: str | None = None
++    ) -> None:
++        self.code = code
++        self.status = status
++        self.message = message
++        self.detail = detail
++        super().__init__(f"{code}: {detail or message}")
++
++    def body(self) -> dict[str, object]:
++        error: dict[str, object] = {
++            "code": self.code,
++            "message": self.message,
++        }
++        if self.detail is not None:
++            error["detail"] = self.detail
++        return {"error": error}
++
++
++def _from_invalid_input(exc: InvalidInputError) -> ApiError:
++    code = _REASON_TO_CODE.get(exc.reason, ERROR_CODE_INVALID_INPUT)
++    return ApiError(code, 400, "Input failed validation.", detail=exc.reason)
++
++
++class CheckRequest(BaseModel):
++    """POST /api/v1/check request body (PROJECT_BOOK.md §5.5).
++
++    ``extra="forbid"``: unknown fields are rejected with
++    ``INVALID_REQUEST`` (422) instead of silently ignored.
++    """
++
++    model_config = ConfigDict(extra="forbid")
++
++    image_mime: str
++    image_base64: str
++    expected_text: str
++
++
++# --- OCR engine singleton (model weights only, no request data) --------
++
++_adapter: RapidOCRAdapter | None = None
++_adapter_lock = threading.Lock()
++
++
++def get_ocr_adapter() -> RapidOCRAdapter:
++    """Return the process-wide OCR adapter, creating it on first use."""
++    global _adapter
++    if _adapter is None:
++        with _adapter_lock:
++            if _adapter is None:
++                _adapter = RapidOCRAdapter()
++    return _adapter
++
++
++def set_ocr_adapter(adapter: RapidOCRAdapter | None) -> None:
++    """Test-only injection: replace the singleton (``None`` clears it).
++
++    Not used by any request path in production; tests use it to inject
++    a stub engine (e.g. one that raises, to exercise OCR_FAILED).
++    """
++    global _adapter
++    with _adapter_lock:
++        _adapter = adapter
++
++
++def reset_ocr_adapter() -> None:
++    """Drop the singleton so the next request rebuilds the real engine."""
++    set_ocr_adapter(None)
++
++
++# --- check pipeline ------------------------------------------------------
++
++def run_check(
++    *,
++    image_mime: str,
++    image_base64: str,
++    expected_text: str,
++    adapter: RapidOCRAdapter | None = None,
++) -> dict[str, object]:
++    """Run one check entirely in memory; return a ``textproof.report/v1`` dict.
++
++    Steps: MIME allow-list -> strict base64 decode (with an encoded-size
++    pre-check) -> T002 image validation (magic bytes, 25 MiB / 8192 px /
++    40 MP, EXIF orientation) -> MIME-vs-detected-format agreement ->
++    T002 expected-text validation -> T003 OCR on the decoded PIL image
++    -> T004 ``build_report``.
++
++    Raises :class:`ApiError` with a stable code for every failure (see
++    ``API_CONTRACT.md`` §4).  A successful return holds only the report
++    dict; the image bytes are request-local and dropped on return.
++    ``expected_text`` is never logged.
++    """
++    if not isinstance(image_mime, str) or image_mime not in ACCEPTED_MIMES:
++        raise ApiError(
++            CODE_INVALID_IMAGE_MIME,
++            400,
++            "image_mime must be image/png, image/jpeg or image/webp.",
++            detail="unsupported_mime",
++        )
++    if not isinstance(image_base64, str) or image_base64 == "":
++        raise ApiError(
++            CODE_INVALID_BASE64,
++            400,
++            "image_base64 must be a non-empty base64 string.",
++            detail="empty_base64",
++        )
++    if len(image_base64) > _MAX_BASE64_CHARS:
++        raise ApiError(
++            CODE_IMAGE_TOO_LARGE,
++            400,
++            "Decoded image would exceed the 25 MiB limit.",
++            detail="file_too_large",
++        )
++    try:
++        raw_bytes = base64.b64decode(image_base64, validate=True)
++    except (binascii.Error, ValueError):
++        raise ApiError(
++            CODE_INVALID_BASE64,
++            400,
++            "image_base64 is not valid base64.",
++            detail="invalid_base64",
++        ) from None
++
++    try:
++        image = load_image(raw_bytes)
++    except InvalidInputError as exc:
++        raise _from_invalid_input(exc) from None
++    finally:
++        # The decoded bytes are only needed for load_image; drop the
++        # reference as soon as validation is done.
++        del raw_bytes
++
++    if image.mime != image_mime:
++        raise ApiError(
++            CODE_INVALID_IMAGE_MIME,
++            400,
++            "image_mime does not match the image content.",
++            detail="mime_mismatch",
++        )
++
++    try:
++        expected = validate_expected_text(expected_text)
++    except InvalidInputError as exc:
++        raise _from_invalid_input(exc) from None
++
++    engine = adapter if adapter is not None else get_ocr_adapter()
++    try:
++        ocr_lines = engine.recognize(image.pil_image)
++    except (OCRAdapterError, ValueError, RuntimeError) as exc:
++        # Engine failure: a defined 500 with code OCR_FAILED, not a
++        # bare 500.  Never log recognised text or user input.
++        logger.error("OCR failed: %s", type(exc).__name__)
++        raise ApiError(
++            CODE_OCR_FAILED,
++            500,
++            "OCR failed to produce a result.",
++            detail="ocr_engine_error",
++        ) from None
++
++    return build_report(image, expected, ocr_lines)
++
++
++# --- routes ---------------------------------------------------------------
++
++router = APIRouter()
++
++
++@router.get("/api/v1/health")
++def health() -> dict[str, object]:
++    """Health status; contains no user data (PROJECT_BOOK.md §5.5)."""
++    return {
++        "status": "ok",
++        "service": "textproof",
++        "tool_version": TOOL_VERSION,
++        "schema": SCHEMA_ID,
++    }
++
++
++@router.get("/api/v1/version")
++def version() -> dict[str, object]:
++    """Versions: product, schema, spec, and the frozen OCR route.
++
++    Reports frozen version constants only; it does not construct the
++    OCR engine, so it answers even before the first /check.
++    """
++    return {
++        "service": "textproof",
++        "tool_version": TOOL_VERSION,
++        "schema": SCHEMA_ID,
++        "spec_version": SPEC_VERSION,
++        "rapidocr_version": RAPIDOCR_VERSION,
++        "onnxruntime_version": ONNXRUNTIME_VERSION,
++        "providers": ["CPUExecutionProvider"],
++    }
++
++
++# Short alias required by the T007 card wording ("/version").
++@router.get("/version")
++def version_alias() -> dict[str, object]:
++    return version()
++
++
++@router.post("/api/v1/check")
++def check(payload: CheckRequest) -> dict[str, object]:
++    """Check one image against expected text; return textproof.report/v1."""
++    try:
++        return run_check(
++            image_mime=payload.image_mime,
++            image_base64=payload.image_base64,
++            expected_text=payload.expected_text,
++        )
++    except ApiError:
++        raise
++    except Exception:  # noqa: BLE001 -- last resort, never a bare 500
++        logger.exception("Unexpected error in /api/v1/check")
++        raise ApiError(
++            CODE_INTERNAL_ERROR,
++            500,
++            "Internal error.",
++            detail="unexpected_error",
++        ) from None
++
++
++async def api_error_handler(request: Request, exc: ApiError) -> JSONResponse:
++    return JSONResponse(status_code=exc.status, content=exc.body())
++
++
++__all__ = [
++    "ACCEPTED_MIMES",
++    "CODE_ANIMATED_IMAGE_NOT_SUPPORTED",
++    "CODE_EXPECTED_TEXT_EMPTY",
++    "CODE_EXPECTED_TEXT_TOO_LONG",
++    "CODE_EXPECTED_TEXT_TOO_MANY_LINES",
++    "CODE_IMAGE_DIMENSION_EXCEEDED",
++    "CODE_IMAGE_TOO_LARGE",
++    "CODE_IMAGE_TOO_MANY_PIXELS",
++    "CODE_INTERNAL_ERROR",
++    "CODE_INVALID_BASE64",
++    "CODE_INVALID_IMAGE",
++    "CODE_INVALID_IMAGE_FORMAT",
++    "CODE_INVALID_IMAGE_MIME",
++    "CODE_INVALID_REQUEST",
++    "CODE_OCR_FAILED",
++    "SPEC_VERSION",
++    "ApiError",
++    "CheckRequest",
++    "api_error_handler",
++    "get_ocr_adapter",
++    "reset_ocr_adapter",
++    "router",
++    "run_check",
++    "set_ocr_adapter",
++]
+diff --git a/task_handoffs/T007/TASK_RESULT.md b/task_handoffs/T007/TASK_RESULT.md
+new file mode 100644
+index 0000000..e416561
+--- /dev/null
++++ b/task_handoffs/T007/TASK_RESULT.md
+@@ -0,0 +1,182 @@
++# T007 — FastAPI 本地 API 与健康检查：TASK_RESULT
++
++- 任务 ID：T007
++- 规格：`PROJECT_BOOK.md` v1.0.0 / `IMPLEMENTATION_PLAN.md` §T007（冻结契约，未修改）
++- 执行时间：2026-11-25 ~07:23–07:45 GMT
++- 输入 commit：`38c5fcf`（master，S0 PASS 裁决）
++- 输出 commit：见本文件末尾（分支 `t007-api`，一次提交，未合入 master）
++- 工作目录：`/home/hatch/workspace/p033-textproof-t007`（worktree，分支 `t007-api`）
++- 状态：**SUCCESS**（6 项验收标准全部满足，见 §2）
++
++## 1. 执行命令与退出码
++
++| # | 命令 | 退出码 |
++|---|---|---|
++| 1 | `git worktree add ~/workspace/p033-textproof-t007 -b t007-api master` | 0 |
++| 2 | 冒烟：`create_app` + `validate_bind_host` + `run_check` 错误映射（直接调用） | 0（4/4 错误码匹配；路由延迟包含已核实，见 §3） |
++| 3 | `python -m pytest tests/integration/test_api.py -q`（第一次） | 1（45 passed，1 failed，见 §3） |
++| 4 | `python -m pytest tests/integration/test_api.py -q`（修复后，验收命令） | **0（46 passed，0 failed，22.40s）** |
++| 5 | `python -m pytest tests/unit -q`（回归确认） | 0（155 passed，19.31s） |
++| 6 | `python task_handoffs/T007/capture_fixtures.py`（fixture + loopback 证明采集） | 0（1 成功 + 13 错误 fixture + loopback 证明） |
++
++完整日志：`test_stdout.log`（第 4 次运行）、`test_stderr.log`（空）。
++Python 均为 T001 venv：`/home/hatch/workspace/p033-textproof/.venv/bin/python`
++（Python 3.12.3；fastapi 0.165.0、uvicorn 0.54.0、pydantic 2.14.4，与锁文件一致）。
++
++## 2. 验收标准逐项证据
++
++### 验收 1 — `GET /api/v1/health` 与 `/version` 正常 ✅ PASS
++
++- 真实 uvicorn 服务器（127.0.0.1 临时端口）+ urllib 实测：
++  `test_health`、`test_version`、`test_version_alias` 均通过。
++- `/api/v1/health` → 200 `{"status":"ok","service":"textproof",
++  "tool_version":"0.1.0","schema":"textproof.report/v1"}`。
++- `/api/v1/version`（及别名 `/version`）→ 200，含 `spec_version 1.0.0`、
++  `rapidocr_version 3.10.0`、`onnxruntime_version 1.32.0`、
++  `providers ["CPUExecutionProvider"]`；不构造 OCR 引擎即可回答。
++
++### 验收 2 — `POST /api/v1/check` 接收三字段，返回 `textproof.report/v1` ✅ PASS
++
++- `test_check_success`：固定样本 `TP-S0-ZH-001`（1200×480 PNG，期望
++  `限时优惠`）经真实 HTTP 返回 200，报告 `schema=textproof.report/v1`、
++  `verdict=MISMATCH`、恰好 1 条 `MISSING_CHARACTER`（`expected_fragment=惠`、
++  `recognized_fragment=""`、`expected_span=[3,4]`、`recognized_span=[3,3]`、
++  `bbox_scope=ocr_line`，bbox 等于 OCR 行框，与 manifest `target_region_xyxy`
++  的 IoU ≥ 0.80），`image.sha256` 与 manifest 一致
++  （`7d3a5c0b…`），`summary={expected_lines:1, ocr_lines:1, error_count:1,
++  warning_count:0}`。
++- 响应中不含 `image_base64`。
++
++### 验收 3 — 绑定固定 `127.0.0.1`；公网 IP / `0.0.0.0` 必须拒绝 ✅ PASS
++
++- `validate_bind_host`：`0.0.0.0`、`198.19.0.2`、`8.8.8.8`、`localhost`、
++  `::1`、空串、空白、`example.com`、`127.0.0.2`、`0` 全部以 `ValueError`
++  拒绝；仅 `127.0.0.1` 通过（10 个拒绝用例 + 1 个接受用例）。
++- `serve(host="0.0.0.0"/"198.19.0.2"/"localhost")` 在 uvicorn 启动前即
++  抛 `ValueError`（`test_serve_rejects_non_loopback_host`）。
++- 真实服务器监听证明：`ss -tln` 显示 `127.0.0.1:37503 LISTEN`；
++  `/proc/net/tcp` 中该端口唯一 LISTEN 行是 `0100007F:927F`（即
++  127.0.0.1，state 0A）；`127.0.0.1:37503` 连接成功。
++  证明文件：`loopback_proof.txt`。
++- 环境说明：本 VM 出站 TCP 会被出口代理（`198.19.0.1:3128`）拦截，
++  向非 loopback IP `connect_ex` 即使无人监听也会返回成功，因此不用它
++  作证明；测试与证明均以 `/proc/net/tcp` + `ss` 监听表为准（首次实现
++  用 `connect_ex` 曾因此误报 1 失败，见 §3）。
++
++### 验收 4 — 图片字节只在内存中解码；请求结束后无跨请求缓存 ✅ PASS
++
++- `test_stateless_no_cross_request_leak`：先后 POST `TP-S0-ZH-001` 与
++  `TP-S0-ZH-002`，第二份报告的 `sha256`/`expected_text`/`recognized_text`
++  均为第二张图的数据，响应中不含第一张图的任何文本。
++- `test_check_does_not_write_files`：一次 `/check` 前后，`src/` 与
++  `tests/` 下的文件集合完全相同（无新文件落盘）。
++- 实现上：图片字节只存在于请求局部变量，`load_image` 后即 `del` 原始
++  字节引用；进程内唯一长驻对象是 OCR 引擎单例（模型权重，不含请求数据）。
++
++### 验收 5 — 超限输入、错误 MIME、非法 base64、空文本、OCR 失败返回明确错误码 ✅ PASS
++
++全部 13 个错误码均有真实 HTTP fixture（`fixtures/error_*.json`，
++请求 + 状态码 + 响应信封）与参数化测试覆盖：
++
++| 错误码 | HTTP | 测试用例 |
++|---|---|---:|
++| `INVALID_IMAGE_MIME` | 400 | `image/gif`；PNG 配 `image/jpeg`（mime_mismatch） |
++| `INVALID_BASE64` | 400 | `!!!not-base64!!!`；空字符串 |
++| `INVALID_IMAGE_FORMAT` | 400 | 非图片字节 |
++| `INVALID_IMAGE` | 400 | PNG 魔数 + 垃圾数据（解码失败） |
++| `ANIMATED_IMAGE_NOT_SUPPORTED` | 400 | Pillow 生成的动画 WebP |
++| `IMAGE_DIMENSION_EXCEEDED` | 400 | 9000×10 PNG（仅 IHDR，无图像数据） |
++| `IMAGE_TOO_MANY_PIXELS` | 400 | 8000×6000 PNG（仅 IHDR，48 MP） |
++| `IMAGE_TOO_LARGE` | 400 | 超长 base64（解码前按编码长度拒绝） |
++| `EXPECTED_TEXT_EMPTY` | 400 | `""`；`"   "` |
++| `EXPECTED_TEXT_TOO_LONG` | 400 | 5001 码点 |
++| `EXPECTED_TEXT_TOO_MANY_LINES` | 400 | 101 行 |
++| `INVALID_REQUEST` | 422 | 缺字段、错类型、未知字段、非 JSON 体 |
++| `OCR_FAILED` | 500 | 注入抛异常的 stub 引擎（直接调用 + 真实 HTTP 各 1 次） |
++
++错误信封统一为 `{"error":{"code","message","detail"}}`，`detail` 为
++snake_case 原因码，不含用户文本、图片字节与路径；无裸 500（仅
++`OCR_FAILED` 与最后防线 `INTERNAL_ERROR` 为有明确码的 500）。
++完整码表见 `API_CONTRACT.md` §4。另：OCR 零可用文本不是 HTTP 错误，
++按 §7.6 返回 200 + 报告 `verdict=OCR_FAILED`（核心 `report.py` 已有此行为，
++API 不另造分支）。
++
++### 验收 6 — API 与核心 CLI/直接调用对同一 fixture 的 JSON 语义结果一致 ✅ PASS
++
++- `test_api_matches_core`：`TP-S0-ZH-001` 的 API 响应 dict 与直接调用
++  `load_image` + `RapidOCRAdapter.recognize` + `core.report.build_report`
++  的结果**逐字段完全相等**（`assert api_report == direct`）。
++- 注：T009 CLI 尚未施工（不在本任务范围），故一致性对照以"核心直接调用"
++  为基准；CLI 完成后须复用同一 `build_report`，不得另造判定（已写入
++  `API_CONTRACT.md` §5）。
++
++## 3. 发现的问题（诚实记录）
++
++1. **TestClient 不可用（偏差，已用更强方案替代，未新增依赖）。**
++   任务卡要求用 FastAPI TestClient，但 `starlette.testclient.TestClient`
++   依赖 `httpx`，而 `httpx` 不在冻结 `requirements.lock` 中，T001 venv
++   也未安装（导入即报"需要安装 httpx"）。按任务指令"如需新依赖先停下报
++   协调员"，本任务**没有**安装 httpx、没有改锁文件。替代方案：测试启动
++   真实 uvicorn 服务器（127.0.0.1 临时端口，后台线程），用标准库 urllib
++   经真实 loopback socket 发请求——覆盖比 TestClient 更强（真实 HTTP 栈、
++   真实绑定地址、真实监听 socket）。已写入 `API_CONTRACT.md` §6 与测试
++   文件头。如协调员希望补 TestClient，需在锁文件中以测试依赖形式加入
++   httpx（请协调员决定）。
++2. **首次验收运行 1 失败（已修复，属测试写法问题，非产品问题）。**
++   `test_server_listens_only_on_loopback` 最初用 `connect_ex` 连本机
++   非 loopback IP（198.19.0.2:41201）断言"连不上"，结果返回 0——因为本 VM
++   出站 TCP 被出口代理（198.19.0.1:3128）拦截，`connect_ex` 成功不代表
++   有监听。改为读 `/proc/net/tcp` 监听表（端口只在 127.0.0.1 上 LISTEN）
++   后通过。产品代码未因此改动。
++3. **FastAPI 0.165 的路由是延迟包含的。** `create_app()` 后
++   `app.routes` 只有 `_IncludedRouter`，路由在首次请求/启动时才展开；
++   这是框架行为，端点实测均可达，不影响功能。冒烟脚本曾因此误报，
++   已改用真实服务器验证。
++4. **`test_check_error_cases[too_many_pixels]` 的 Pillow 警告。**
++   48 MP 的 PNG 头会触发 `DecompressionBombWarning`（预期行为：正是要
++   测的拒绝路径），已在测试文件顶部用 `filterwarnings` 明确忽略该警告，
++   最终运行 0 warnings。
++5. **无其他问题。** 未发现核心算法、schema、OCR 模型路径、隐私约束方面
++   的冲突；未修改任何冻结文件（见 §4）。
++
++## 4. 实际改动文件（只新增，零修改）
++
++```
++API_CONTRACT.md                          # 新增：端点、字段、错误码表、绑定约束
++src/textproof/api/__init__.py           # 新增：包导出
++src/textproof/api/app.py                # 新增：create_app / validate_bind_host / serve / main
++src/textproof/api/routes.py             # 新增：CheckRequest / run_check / health / version / check
++tests/integration/test_api.py           # 新增：46 个测试，覆盖 6 项验收
++task_handoffs/T007/                     # 新增：交接包（本文件、日志、fixture、证明）
++```
++
++- `git status --short` 在提交前只显示以上新增项（`??`），**没有任何 `M` 修改**。
++- 未修改：`src/textproof/contracts.py`、`src/textproof/io/image_loader.py`、
++  `src/textproof/ocr/rapidocr_adapter.py`、`src/textproof/core/*`、
++  `requirements.lock`、`pyproject.toml`、全部 fixture 与 manifest。
++- 未新增依赖，未升级依赖。`httpx` 未安装（见 §3.1）。
++
++## 5. 交付物
++
++- 源码：`src/textproof/api/app.py`、`src/textproof/api/routes.py`、
++  `src/textproof/api/__init__.py`
++- 契约：`API_CONTRACT.md`（根目录）
++- 测试：`tests/integration/test_api.py`（46 测试）
++- 交接包 `task_handoffs/T007/`：`TASK_RESULT.md`（本文件）、
++  `changed_files.txt`、`git_diff.patch`、`test_commands.txt`、
++  `test_stdout.log`、`test_stderr.log`、`exit_codes.txt`、`SHA256SUMS.txt`、
++  `capture_fixtures.py`（fixture 采集脚本）、`loopback_proof.txt`、
++  `fixtures/`（1 成功 + 13 错误 + health/version，共 16 个 JSON）
++
++## 6. 未完成项 / 风险
++
++- 无未完成项。T009 CLI 一致性对照待 CLI 施工后由 T011 全量回归复核
++  （不在本任务范围）。
++- `python -m textproof.api.app` 的 `--host` 参数接受任意字符串后由
++  `validate_bind_host` 拒绝；这是有意的 fail-closed 设计（拒绝发生在
++  uvicorn 启动前）。
++
++## 7. 回退 commit
++
++- 输入 commit（S0 PASS）：`38c5fcf`
++- 本任务输出 commit：（提交后填入）
+diff --git a/task_handoffs/T007/capture_fixtures.py b/task_handoffs/T007/capture_fixtures.py
+new file mode 100644
+index 0000000..0402fa6
+--- /dev/null
++++ b/task_handoffs/T007/capture_fixtures.py
+@@ -0,0 +1,273 @@
++"""Capture T007 handoff evidence (one-off, not part of the product).
++
++Starts the real API server (subprocess, 127.0.0.1, free port), records
++one successful /check request+response and one request+response per
++error code into task_handoffs/T007/fixtures/, and records the
++loopback-listening proof (ss + /proc/net/tcp) into
++task_handoffs/T007/loopback_proof.txt.
++
++OCR_FAILED is captured through an in-process server thread with a
++stub engine injected via routes.set_ocr_adapter (the subprocess
++server cannot be monkey-patched); the HTTP envelope is identical.
++
++Run:  .venv/bin/python task_handoffs/T007/capture_fixtures.py
++"""
++
++from __future__ import annotations
++
++import asyncio
++import base64
++import io
++import json
++import socket
++import struct
++import subprocess
++import sys
++import threading
++import time
++import urllib.error
++import urllib.request
++import zlib
++from pathlib import Path
++
++WORKTREE = Path(__file__).resolve().parents[2]
++sys.path.insert(0, str(WORKTREE / "src"))
++OUT = WORKTREE / "task_handoffs" / "T007" / "fixtures"
++OUT.mkdir(parents=True, exist_ok=True)
++FIXTURES = WORKTREE / "tests" / "fixtures" / "s0"
++VENV_PY = "/home/hatch/workspace/p033-textproof/.venv/bin/python"
++
++
++def _http(method, url, body=None, raw=None):
++    data = raw
++    headers = {}
++    if body is not None:
++        data = json.dumps(body).encode()
++        headers["Content-Type"] = "application/json"
++    req = urllib.request.Request(url, data=data, headers=headers, method=method)
++    try:
++        with urllib.request.urlopen(req, timeout=120) as resp:
++            return resp.status, resp.read()
++    except urllib.error.HTTPError as exc:
++        return exc.code, exc.read()
++
++
++def _b64(data: bytes) -> str:
++    return base64.b64encode(data).decode()
++
++
++def _fake_png(w, h):
++    ihdr = struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)
++
++    def chunk(tag, payload):
++        body = tag + payload
++        return struct.pack(">I", len(payload)) + body + struct.pack(
++            ">I", zlib.crc32(body) & 0xFFFFFFFF
++        )
++
++    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IEND", b"")
++
++
++def _animated_webp():
++    from PIL import Image
++
++    buf = io.BytesIO()
++    Image.new("RGB", (100, 50), "white").save(
++        buf, format="WEBP", save_all=True,
++        append_images=[Image.new("RGB", (100, 50), "black")],
++        duration=100, loop=0,
++    )
++    return buf.getvalue()
++
++
++def _free_port():
++    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
++        s.bind(("127.0.0.1", 0))
++        return s.getsockname()[1]
++
++
++def _save(name, request, status, response_raw):
++    try:
++        response = json.loads(response_raw)
++    except Exception:
++        response = {"<non-json>": response_raw[:500].decode("utf-8", "replace")}
++    # Never store the 35 MB oversize payload verbatim.
++    req = dict(request) if isinstance(request, dict) else request
++    if isinstance(req, dict) and len(str(req.get("image_base64", ""))) > 100000:
++        req = dict(req)
++        req["image_base64"] = (
++            f"<omitted: {len(req['image_base64'])} 'A' chars, "
++            "exceeds 25 MiB decoded limit>"
++        )
++    (OUT / name).write_text(
++        json.dumps(
++            {"request": req, "response_status": status, "response": response},
++            ensure_ascii=False, indent=2,
++        ),
++        encoding="utf-8",
++    )
++    print(f"wrote {name} status={status}")
++
++
++def main():
++    manifest = json.loads((FIXTURES / "manifest.json").read_text())
++    zh001 = next(f for f in manifest["fixtures"] if f["id"] == "TP-S0-ZH-001")
++    png = (FIXTURES / zh001["filename"]).read_bytes()
++    png_b64 = _b64(png)
++    port = _free_port()
++    env = {"PYTHONPATH": str(WORKTREE / "src"), "PATH": "/usr/bin:/bin"}
++    proc = subprocess.Popen(
++        [VENV_PY, "-m", "textproof.api.app", "--port", str(port)],
++        cwd=str(WORKTREE), env=env,
++        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
++    )
++    base = f"http://127.0.0.1:{port}"
++    try:
++        for _ in range(100):
++            try:
++                s, _ = _http("GET", f"{base}/api/v1/health")
++                if s == 200:
++                    break
++            except Exception:
++                pass
++            time.sleep(0.3)
++        else:
++            raise RuntimeError("server did not start")
++
++        # Loopback proof while the server is alive.
++        import shutil
++
++        proof = [f"# loopback proof — server on 127.0.0.1:{port}",
++                 f"# date: {time.strftime('%Y-%m-%d %H:%M:%S %Z')}"]
++        ss = shutil.which("ss")
++        if ss:
++            proof.append(f"\n$ ss -tln\n{subprocess.run([ss, '-tln'], capture_output=True, text=True).stdout}")
++        tcp_lines = [ln for ln in Path("/proc/net/tcp").read_text().splitlines()
++                     if f":{port:04X}" in ln.upper()]
++        proof.append(f"\n$ grep :{port:04X} /proc/net/tcp (LISTEN=0A)\n" + "\n".join(tcp_lines))
++        with socket.create_connection(("127.0.0.1", port), timeout=5) as c:
++            proof.append(f"\nconnect 127.0.0.1:{port}: OK (local {c.getsockname()})")
++        proof.append(
++            "\nNOTE: connect_ex to the non-loopback IP is NOT used as proof "
++            "on this VM: outbound TCP is intercepted by the egress proxy "
++            "(198.19.0.1:3128) and returns success even for unlistened ports. "
++            "The /proc/net/tcp + ss LISTEN table above is the proof: the port "
++            "listens on 127.0.0.1 only.")
++        (WORKTREE / "task_handoffs" / "T007" / "loopback_proof.txt").write_text(
++            "\n".join(proof), encoding="utf-8")
++        print("wrote loopback_proof.txt")
++
++        s, raw = _http("GET", f"{base}/api/v1/health")
++        (OUT / "health_response.json").write_text(
++            json.dumps({"status": s, "response": json.loads(raw)},
++                       ensure_ascii=False, indent=2), encoding="utf-8")
++        s, raw = _http("GET", f"{base}/api/v1/version")
++        (OUT / "version_response.json").write_text(
++            json.dumps({"status": s, "response": json.loads(raw)},
++                       ensure_ascii=False, indent=2), encoding="utf-8")
++
++        ok_req = {"image_mime": "image/png", "image_base64": png_b64,
++                  "expected_text": "限时优惠"}
++        s, raw = _http("POST", f"{base}/api/v1/check", body=ok_req)
++        assert s == 200, raw[:300]
++        _save("check_success.json", ok_req, s, raw)
++
++        from textproof.api.routes import _MAX_BASE64_CHARS
++
++        cases = [
++            ("error_INVALID_IMAGE_MIME.json",
++             {"image_mime": "image/gif", "image_base64": png_b64,
++              "expected_text": "限时优惠"}),
++            ("error_INVALID_BASE64.json",
++             {"image_mime": "image/png", "image_base64": "!!!not-b64!!!",
++              "expected_text": "限时优惠"}),
++            ("error_INVALID_IMAGE_FORMAT.json",
++             {"image_mime": "image/png",
++              "image_base64": _b64(b"hello world, not an image"),
++              "expected_text": "限时优惠"}),
++            ("error_INVALID_IMAGE.json",
++             {"image_mime": "image/png",
++              "image_base64": _b64(b"\x89PNG\r\n\x1a\n" + b"\x00" * 64),
++              "expected_text": "限时优惠"}),
++            ("error_ANIMATED_IMAGE_NOT_SUPPORTED.json",
++             {"image_mime": "image/webp",
++              "image_base64": _b64(_animated_webp()),
++              "expected_text": "限时优惠"}),
++            ("error_IMAGE_DIMENSION_EXCEEDED.json",
++             {"image_mime": "image/png",
++              "image_base64": _b64(_fake_png(9000, 10)),
++              "expected_text": "限时优惠"}),
++            ("error_IMAGE_TOO_MANY_PIXELS.json",
++             {"image_mime": "image/png",
++              "image_base64": _b64(_fake_png(8000, 6000)),
++              "expected_text": "限时优惠"}),
++            ("error_IMAGE_TOO_LARGE.json",
++             {"image_mime": "image/png",
++              "image_base64": "A" * (_MAX_BASE64_CHARS + 4),
++              "expected_text": "限时优惠"}),
++            ("error_EXPECTED_TEXT_EMPTY.json",
++             {"image_mime": "image/png", "image_base64": png_b64,
++              "expected_text": ""}),
++            ("error_EXPECTED_TEXT_TOO_LONG.json",
++             {"image_mime": "image/png", "image_base64": png_b64,
++              "expected_text": "x" * 5001}),
++            ("error_EXPECTED_TEXT_TOO_MANY_LINES.json",
++             {"image_mime": "image/png", "image_base64": png_b64,
++              "expected_text": "\n".join(["a"] * 101)}),
++        ]
++        for name, req in cases:
++            s, raw = _http("POST", f"{base}/api/v1/check", body=req)
++            _save(name, req, s, raw)
++
++        # INVALID_REQUEST: missing field.
++        s, raw = _http("POST", f"{base}/api/v1/check",
++                       body={"image_mime": "image/png", "image_base64": png_b64})
++        _save("error_INVALID_REQUEST.json",
++              {"image_mime": "image/png", "image_base64": "<fixture png b64>",
++               "expected_text": "<MISSING>"},
++              s, raw)
++    finally:
++        proc.terminate()
++        proc.wait(timeout=15)
++
++    # OCR_FAILED via in-process server + stub engine.
++    import uvicorn
++    from textproof.api.app import create_app
++    from textproof.api.routes import reset_ocr_adapter, set_ocr_adapter
++
++    class _Failing:
++        def recognize(self, image):
++            raise RuntimeError("simulated engine failure")
++
++    port2 = _free_port()
++    server = uvicorn.Server(uvicorn.Config(
++        create_app(), host="127.0.0.1", port=port2, log_level="error"))
++    thread = threading.Thread(target=asyncio.run, args=(server.serve(),),
++                              daemon=True)
++    thread.start()
++    base2 = f"http://127.0.0.1:{port2}"
++    try:
++        for _ in range(100):
++            try:
++                s, _ = _http("GET", f"{base2}/api/v1/health")
++                if s == 200:
++                    break
++            except Exception:
++                pass
++            time.sleep(0.3)
++        set_ocr_adapter(_Failing())
++        try:
++            req = {"image_mime": "image/png", "image_base64": png_b64,
++                   "expected_text": "限时优惠"}
++            s, raw = _http("POST", f"{base2}/api/v1/check", body=req)
++            _save("error_OCR_FAILED.json", req, s, raw)
++        finally:
++            reset_ocr_adapter()
++    finally:
++        server.should_exit = True
++        thread.join(timeout=15)
++    print("done.")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/task_handoffs/T007/changed_files.txt b/task_handoffs/T007/changed_files.txt
+new file mode 100644
+index 0000000..c82ebc4
+--- /dev/null
++++ b/task_handoffs/T007/changed_files.txt
+@@ -0,0 +1,4 @@
++?? API_CONTRACT.md
++?? src/textproof/api/
++?? task_handoffs/T007/
++?? tests/integration/test_api.py
+diff --git a/task_handoffs/T007/exit_codes.txt b/task_handoffs/T007/exit_codes.txt
+new file mode 100644
+index 0000000..88b197a
+--- /dev/null
++++ b/task_handoffs/T007/exit_codes.txt
+@@ -0,0 +1,4 @@
++acceptance: python -m pytest tests/integration/test_api.py -q => exit 0 (46 passed, 0 failed, 22.40s)
++regression: python -m pytest tests/unit -q => exit 0 (155 passed, 0 failed, 19.31s)
++fixtures: python task_handoffs/T007/capture_fixtures.py => exit 0 (16 JSON + loopback_proof.txt)
++first acceptance run: exit 1 (45 passed, 1 failed: test_server_listens_only_on_loopback via proxy-intercepted connect_ex; fixed by /proc/net/tcp proof, see TASK_RESULT.md section 3.2)
+diff --git a/task_handoffs/T007/fixtures/check_success.json b/task_handoffs/T007/fixtures/check_success.json
+new file mode 100644
+index 0000000..9ab3e3c
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/check_success.json
+@@ -0,0 +1,88 @@
++{
++  "request": {
++    "image_mime": "image/png",
++    "image_base64": "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z0/tOfbYY4899tgkSRYtWpR+nbZoq1evTm1/8skn1113XRkX1qRJk+K/9AKASk0QAvBfJk2alNru1atXEa8fTMnLy8vLyyvPRe2dhg8f/o9//CN9z1133VWwsWzZsgcffLB005b6xJTWrVsLQoAgBCEA/7F58+b054sOHDiwAhdTfo4++uidfvGvONatW/fZZ5+l72nduvWOhzVp0qToeT7++OM777yz0M7DDjusdKsCgNIRhAD8xzPPPLN58+aC7aOPPrpjx44Vu55y8uKLL5b63HXr1jVs2DA1PO644956661SzDNo0KDvv/++1MsAgIwQhAD8x4QJE1LbV155ZTHPWrt2bSm+Q7hy5cqC78sF9MADD8yaNauIA6pWrVrMdz/ueLNu2V8aWYo/TQAqKX/jA/CjDz744I033ijY/slPftK3b99inpidnV2KhMjOzi7pKXuHJUuW3HzzzUUf079///79+xdntqVLl7Zp0yY1HDJkyO9///uyLA+AULyYHoAfTZ06NbVdu3btDL6YgZTNmzf/+te/Tn/xYBl98cUX6cMGDRpkamYAIhCEAPwoJyfn8MMPL9heu3Ztr169MtgtFMjJyVmxYkUGJ1yzZk36cLcPswGAdIIQgB/Vr19/+vTpqcdvLly48KabbqrYJRVtSzHsdpJ//etfOTk5ffr0+R8seOjQoU8//XRm5yx0hfCggw7K7PwA7N0EIQD/0bJly9GjR6eGDz744Lx58ypuObuxdOnSWkXq3r17Ead/9dVX119/ffPmzceNG/fUU0898cQT5braCRMmFHrPRJ06dQYNGlTGaV0hBKAsBCEA/+XSSy8977zzCrbz8/NzcnJyc3MrdknlZNasWSNHjty6dWvBcPDgwZ988kn5fVZOTk6hnWPHjk3do1tqha4QpoLw7bffrp7md7/7XRk/CIC9kiAEoLARI0ZkZWUVbH/wwQfjx48v+vji3Lq5o1SJVZTevXv36tUrNdy0adOll166ffv28visrKysQu+HuPzyy3v37l32mT/99NPUdt26dVN3/Obn5+elKadfFwCVnSAEoLBmzZpdccUVqeHw4cPz8/OLOH7fffct+tbNnWrRokX5/1J2Y+zYsQcccEBqOH/+/Pvvv788PqhDhw4DBw5MDY8//vj0W3PLYvny5antpk2bZmROAOLwHkIAdmLw4MGjRo0q6MCPP/54zpw5Z511VkUvaif++te/FvHT2bNn33333UUc0KBBgzFjxqRfJ7ztttu6devWsmXLjC3x/xs2bNjkyZO/+eabAw444Lnnnktdgy2LVatWbdq0KTUsj2UDsHcThADsRPPmzdu1a7d48eKC4bRp0/bAIGzfvv1pp51WxAG5ublFB2GSJOedd94FF1zwzDPPFAy3bt3ar1+/N954o1q1aplaZ4FGjRrdcsstd9555/Tp0zN1Ke+9995LH7Zq1Soj0wIQh1tGAdi59Ed0zpo1qwJXUt5Gjx5dv3791PDNN98cMWJEeXzQ4MGDp02bdvzxx2dqQkEIQBm5QgjAznXs2DG1vWLFivXr16dXU7qFCxdWr/5f/6D06NHj888/L9ju2rXrHXfcsduPO/DAA8uw2DJp2LDh8OHD+/Xrl9ozdOjQc845J+Pfcqxdu3anTp0yOGGhIPzZz36WwckBiEAQArBzrVu3Th8uW7bs1FNP3emR7dq1KxSEN95443XXXVew/dlnn7Vr16581pgxl1122ZNPPpn6RuKWLVv69ev3+uuvZ/zG0cx68803U9tZWVnNmzevwMUAUBm5ZRSAncvOzs7Ozk4NV65cWfxzu3btmtpeunTphx9+uNtT3n333YkTJ5ZgfZk2duzYffbZJzVctGjRAw88UIHr2a21a9e+++67qWGLFi328HwFYA8kCAHYpf322y+1vXHjxuKfeMQRRxx11FGp4ZQpU4o+/rXXXjvllFMuu+yySZMmlXCNGXPkkUfeeuut6XuGDh1afq+qL7u5c+emvw7k5JNPrsDFAFBJCUIAdin93fElfbN5jx49UtuPP/54EUc+/PDDZ5111saNG7dv3963b98XX3yxhMvMmJtuuin9zQ3ffffdlVdeWVGL2a25c+emD88888yKWgkAlZcgBGDncnNz169fnxqmXy0sjvPPPz+1/cEHH8yfP3/HY77//vuBAwcOGjRo27ZtqQ+98MILV61aVaoll1XNmjULvS/+lVde2e3lzYqS/g7GqlWrFv0GDgDYKUEIwM4tXbo01WlJkuzqEaO70q5du/SndD700EOFDnjnnXeOO+64Rx55JH1n3bp1J0+efPDBB5d8vZlxxhlnpL+nPkmSIUOGfP/99xW1nl1ZtWrVihUrUsO2bdvWq1evAtcDQCUlCAHYuT/+8Y/pw0IPHS2OPn36pLanTJny6aefpoajR48+4YQTli9fnn58mzZtFi9enH6vaYUYMWJEVlZWatiiRYsSfX/yf2Pq1KnpQ/eLAlA6ghCAJEmS119//Y033li8ePGCBQsmT558wQUXPPbYY6mfNm7cuFmzZiWd87LLLku9jiI3N/f+++9PkmTNmjXdu3cfPHhw+hcUkyS5+uqrFy1adOSRR5bpl5EJhxxyyNVXX50kyeGHH/7888+/8sorFfiOxF2ZPHly+lAQAlA63kMIQJIkyXPPPVfEWxYGDBhQijmbNGnSs2fP1HfwHn744YYNG95///1ff/11+mEHH3zwo48+etZZZ5XiI8rJLbfc0rBhw2uvvTb9RRR7jn/+85+LFy9ODevVq+cLhACUjiuEACRJklxyySW7+lGTJk2uueaa0k07ePDg1PbWrVtvv/32QjU4YMCAZcuW7VE1mCRJvXr1brzxxj2zBpMd7ubt1atXjRo1KmoxAFRqrhACkCRJ0qZNm/3333/Dhg2F9jdv3vyll15q2LBh6abt0KHDL37xi4ULF+74o0MOOWTcuHGdOnUq3cxJkqxcuXLlypVFHPDll1+WevI91ubNm5944on0PRdffHFFLQaAyk4QApAkSVKlSpUTTjhhwYIF+fn5tWrVqlevXtu2bTt37nzxxRenvgdYOkOHDu3cuXOhnTfccMP//d//1a5duywzf/nll4ceemhZZqiM/vCHP3zzzTepYYsWLTJyv+hrr722fPnyyy+/vIx/3ABULv7SB+BHL7/8cnlMe/bZZ5900kkLFixI7enVq9d9991XHp+119u0adOIESPS91x99dVVqlQp+8zr1q0bNGjQ3XfffeWVV1500UWleIYQAJWR7xACUO5GjhxZtep//sWZNm3a7NmzK3A9lde9996bflvv/vvvf+mll2Zk5oJ3La5evfqWW25p06ZNRuYEYM8nCAEod8cff3z//v1Tw+3bt1900UWrVq2qwCVVRh9++OHw4cPT9wwZMqROnToZmfy7775Lbe+3334ZmROAPZ9bRgH4X7jnnnteeumlNWvWFAzXrVvXuXPn+fPn169fvyzT7vRxNbtyzDHHlOWzKlZ+fv5VV12V/vLGBg0apD/EtYzSv5eYnZ2dqWkB2MMJQgD+F+rXrz9hwoSuXbum9ixfvrxbt26zZs3ad999Szdn+/btTzzxxAwtcE83cuTImTNnpu8ZNmxYpi4PJkmS/jqQAw44IFPTArCHc8soAOXr/fff//zzz5Mk6dKlS6ErWm+++eapp566V74cIrOWLFly8803p+9p167dFVdckcGPSF28TZLkwAMPzODMAOzJBCEAJbZ9+/YifpqXl7dkyZKRI0f26tWrUaNGLVu2TD1idMSIEYXekfD3v//95JNPXrZsWfmttrJbtWpV9+7df/jhh9Se6tWrjx07Nv05PTsq6aNHP/roo9R2wJd5AITlllEASiz9alKBrVu3Ll68eP78+a+99tqCBQvSv5CWJElubm7BRo0aNaZOndq+ffv0/Pjoo4+OP/74kSNH5uTklPfKMy4jr3wowvr16zt37lxwiTVl2LBhxx13XNEn1qhRI324cePGIg7eunXr22+/nRoeddRRJV4oAJWTIASgZLZu3bpixYr0PaeeeuqSJUu2bNmyq1PS+7B+/fqzZ88+7bTTPv3009TOLVu2DBo0aOrUqaNGjWrRokURn3777bevXbu2YLtRo0al/DWUwRdffJE+rFmzZvl91meffdapU6fly5en7zzjjDNuvPHG3Z5b6Gk906ZNu/jiiw8//PBq1aoVOnLTpk133XXXpk2bUnvatm1bhlUDUJkIQgBK5pFHHil0uSn9pfM7VSiimjVrNm/evEJNmCTJ7Nmzf/7zn+fk5AwZMuSQQw7Z6VQ9evQozaKL59FHH83Ly6tZs2bNmjVr1KhRvXr16tWrF1wDzMvL++GHH9auXfvYY4+ln9KgQYNyWszy5cu7dOlS6LfoqKOOmjJlStE3ixY48MADa9eunXqZxMcff7zbi4oFmjZt6gohQByCEIASmDlz5tVXX13Mg1u2bNm5c+ezzz67Y8eOhX7UrFmzRYsW9ezZc9GiRen7t23bNnr06LFjx44ZM2bgwIGZWXSxLVmyZMyYMSU6pXXr1uWxkkmTJg0cOPDbb79N39moUaOXX355//33L84MVatWPf3002fMmFHSj87Um+4BqBQ8VAaAErjjjjuKPiA7O/tXv/rV+PHjV61a9d57791///1nn312rVq1djyycePG8+bNS39hfcqJJ554ySWXZGbFJXHllVeW6PgaNWr07t0748tYuXLlNddcU6gGDzzwwLlz55bocS933XXXjjeIFq1JkyZDhgwp0SkAVGqCEIAS2OkFtCpVqrRt2/a22257/fXX161bN2XKlAEDBvz0pz/d7Wz77LPPo48+Om3atPQX3zVt2vTZZ5/NysrK5LqLp1WrVsW/4lejRo0nnniiPO6ubNas2eLFi4844ojUnkMOOeS111475phjSjRPmzZt5s6dW/R3MtO1b99+zpw53koPEIpbRgEogdatW5977rnPP/98kiQ1a9b85S9/2bNnz27dujVu3LjUc5577rkdOnS4/fbbx48fn5eX9/TTT1fI02IK9OjRY+nSpUUf06RJk27dut10002HHXZYOS2j4GuWp5xyyieffHLKKadMmTKldL/DHTt2XL58+YoVK95///0NGzbk5ubm5+cXOqZKlSp169Zt1apVy5YtM7F2ACoTQQhAyQwbNuz5558fPXp07969M3U1qX79+mPGjLn++utfffXVDh06ZGTO0unTp0+dOnXy8/OrVKlStWrVgufKZGVl1a5du27duo0aNTr00EPL70Ey6Q466KAXX3xxwoQJ9957b6F3SJTUEUcckX69EQBSquz4P4UAULTc3Nzq1f2XYgZ88803GzZsSA2bNGlSxvYDgBIRhAAAAEF5qAwAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUP8POgr+6SMfL2kAAAAASUVORK5CYII=",
++    "expected_text": "限时优惠"
++  },
++  "response_status": 200,
++  "response": {
++    "schema": "textproof.report/v1",
++    "tool_version": "0.1.0",
++    "verdict": "MISMATCH",
++    "image": {
++      "sha256": "7d3a5c0b8e8da3b59c0090f5ccba20cfe81b533df07c1ef83fcb7fef79cec660",
++      "format": "PNG",
++      "width": 1200,
++      "height": 480,
++      "coordinate_system": "oriented_image_px_top_left"
++    },
++    "expected_text": "限时优惠",
++    "recognized_text": "限时优",
++    "ocr_lines": [
++      {
++        "line_index": 0,
++        "text": "限时优",
++        "confidence": 0.99929,
++        "bbox_xyxy": [
++          491.0,
++          190.0,
++          713.0,
++          291.0
++        ],
++        "quad": [
++          [
++            491.0,
++            190.0
++          ],
++          [
++            713.0,
++            190.0
++          ],
++          [
++            713.0,
++            291.0
++          ],
++          [
++            491.0,
++            291.0
++          ]
++        ]
++      }
++    ],
++    "errors": [
++      {
++        "id": "E001",
++        "type": "MISSING_CHARACTER",
++        "expected_line_index": 0,
++        "ocr_line_index": 0,
++        "expected_text": "限时优惠",
++        "recognized_text": "限时优",
++        "expected_span": [
++          3,
++          4
++        ],
++        "recognized_span": [
++          3,
++          3
++        ],
++        "expected_fragment": "惠",
++        "recognized_fragment": "",
++        "bbox_xyxy": [
++          491.0,
++          190.0,
++          713.0,
++          291.0
++        ],
++        "bbox_scope": "ocr_line",
++        "confidence": 0.99929
++      }
++    ],
++    "warnings": [],
++    "summary": {
++      "expected_lines": 1,
++      "ocr_lines": 1,
++      "error_count": 1,
++      "warning_count": 0
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/fixtures/error_ANIMATED_IMAGE_NOT_SUPPORTED.json b/task_handoffs/T007/fixtures/error_ANIMATED_IMAGE_NOT_SUPPORTED.json
+new file mode 100644
+index 0000000..b3a4019
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/error_ANIMATED_IMAGE_NOT_SUPPORTED.json
+@@ -0,0 +1,15 @@
++{
++  "request": {
++    "image_mime": "image/webp",
++    "image_base64": "UklGRuYAAABXRUJQVlA4WAoAAAACAAAAYwAAMQAAQU5JTQYAAAAAAAAAAABBTk1GWgAAAAAAAAAAAGMAADEAAGQAAAJWUDggQgAAADAFAJ0BKmQAMgAuTTabTaEkJCQEAExLSDODNAvAH6AACVmUM4w2Gk7E++dj987H750QAP789OP5gnFZ9KArp4LAAEFOTUZYAAAAAAAAAAAAYwAAMQAAZAAAAFZQOCBAAAAA1AQAnQEqZAAyAC5NNptNgAAExLSDODNAvAH6AACVmUM4w2Gk7E++dj987H750QAA/v03HmtEMS1ohiWtEGgAAA==",
++    "expected_text": "限时优惠"
++  },
++  "response_status": 400,
++  "response": {
++    "error": {
++      "code": "ANIMATED_IMAGE_NOT_SUPPORTED",
++      "message": "Input failed validation.",
++      "detail": "animated_webp"
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/fixtures/error_EXPECTED_TEXT_EMPTY.json b/task_handoffs/T007/fixtures/error_EXPECTED_TEXT_EMPTY.json
+new file mode 100644
+index 0000000..8ad1415
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/error_EXPECTED_TEXT_EMPTY.json
+@@ -0,0 +1,15 @@
++{
++  "request": {
++    "image_mime": "image/png",
++    "image_base64": "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z0/tOfbYY4899tgkSRYtWpR+nbZoq1evTm1/8skn1113XRkX1qRJk+K/9AKASk0QAvBfJk2alNru1atXEa8fTMnLy8vLyyvPRe2dhg8f/o9//CN9z1133VWwsWzZsgcffLB005b6xJTWrVsLQoAgBCEA/7F58+b054sOHDiwAhdTfo4++uidfvGvONatW/fZZ5+l72nduvWOhzVp0qToeT7++OM777yz0M7DDjusdKsCgNIRhAD8xzPPPLN58+aC7aOPPrpjx44Vu55y8uKLL5b63HXr1jVs2DA1PO644956661SzDNo0KDvv/++1MsAgIwQhAD8x4QJE1LbV155ZTHPWrt2bSm+Q7hy5cqC78sF9MADD8yaNauIA6pWrVrMdz/ueLNu2V8aWYo/TQAqKX/jA/CjDz744I033ijY/slPftK3b99inpidnV2KhMjOzi7pKXuHJUuW3HzzzUUf079///79+xdntqVLl7Zp0yY1HDJkyO9///uyLA+AULyYHoAfTZ06NbVdu3btDL6YgZTNmzf/+te/Tn/xYBl98cUX6cMGDRpkamYAIhCEAPwoJyfn8MMPL9heu3Ztr169MtgtFMjJyVmxYkUGJ1yzZk36cLcPswGAdIIQgB/Vr19/+vTpqcdvLly48KabbqrYJRVtSzHsdpJ//etfOTk5ffr0+R8seOjQoU8//XRm5yx0hfCggw7K7PwA7N0EIQD/0bJly9GjR6eGDz744Lx58ypuObuxdOnSWkXq3r17Ead/9dVX119/ffPmzceNG/fUU0898cQT5braCRMmFHrPRJ06dQYNGlTGaV0hBKAsBCEA/+XSSy8977zzCrbz8/NzcnJyc3MrdknlZNasWSNHjty6dWvBcPDgwZ988kn5fVZOTk6hnWPHjk3do1tqha4QpoLw7bffrp7md7/7XRk/CIC9kiAEoLARI0ZkZWUVbH/wwQfjx48v+vji3Lq5o1SJVZTevXv36tUrNdy0adOll166ffv28visrKysQu+HuPzyy3v37l32mT/99NPUdt26dVN3/Obn5+elKadfFwCVnSAEoLBmzZpdccUVqeHw4cPz8/OLOH7fffct+tbNnWrRokX5/1J2Y+zYsQcccEBqOH/+/Pvvv788PqhDhw4DBw5MDY8//vj0W3PLYvny5antpk2bZmROAOLwHkIAdmLw4MGjRo0q6MCPP/54zpw5Z511VkUvaif++te/FvHT2bNn33333UUc0KBBgzFjxqRfJ7ztttu6devWsmXLjC3x/xs2bNjkyZO/+eabAw444Lnnnktdgy2LVatWbdq0KTUsj2UDsHcThADsRPPmzdu1a7d48eKC4bRp0/bAIGzfvv1pp51WxAG5ublFB2GSJOedd94FF1zwzDPPFAy3bt3ar1+/N954o1q1aplaZ4FGjRrdcsstd9555/Tp0zN1Ke+9995LH7Zq1Soj0wIQh1tGAdi59Ed0zpo1qwJXUt5Gjx5dv3791PDNN98cMWJEeXzQ4MGDp02bdvzxx2dqQkEIQBm5QgjAznXs2DG1vWLFivXr16dXU7qFCxdWr/5f/6D06NHj888/L9ju2rXrHXfcsduPO/DAA8uw2DJp2LDh8OHD+/Xrl9ozdOjQc845J+Pfcqxdu3anTp0yOGGhIPzZz36WwckBiEAQArBzrVu3Th8uW7bs1FNP3emR7dq1KxSEN95443XXXVew/dlnn7Vr16581pgxl1122ZNPPpn6RuKWLVv69ev3+uuvZ/zG0cx68803U9tZWVnNmzevwMUAUBm5ZRSAncvOzs7Ozk4NV65cWfxzu3btmtpeunTphx9+uNtT3n333YkTJ5ZgfZk2duzYffbZJzVctGjRAw88UIHr2a21a9e+++67qWGLFi328HwFYA8kCAHYpf322y+1vXHjxuKfeMQRRxx11FGp4ZQpU4o+/rXXXjvllFMuu+yySZMmlXCNGXPkkUfeeuut6XuGDh1afq+qL7u5c+emvw7k5JNPrsDFAFBJCUIAdin93fElfbN5jx49UtuPP/54EUc+/PDDZ5111saNG7dv3963b98XX3yxhMvMmJtuuin9zQ3ffffdlVdeWVGL2a25c+emD88888yKWgkAlZcgBGDncnNz169fnxqmXy0sjvPPPz+1/cEHH8yfP3/HY77//vuBAwcOGjRo27ZtqQ+98MILV61aVaoll1XNmjULvS/+lVde2e3lzYqS/g7GqlWrFv0GDgDYKUEIwM4tXbo01WlJkuzqEaO70q5du/SndD700EOFDnjnnXeOO+64Rx55JH1n3bp1J0+efPDBB5d8vZlxxhlnpL+nPkmSIUOGfP/99xW1nl1ZtWrVihUrUsO2bdvWq1evAtcDQCUlCAHYuT/+8Y/pw0IPHS2OPn36pLanTJny6aefpoajR48+4YQTli9fnn58mzZtFi9enH6vaYUYMWJEVlZWatiiRYsSfX/yf2Pq1KnpQ/eLAlA6ghCAJEmS119//Y033li8ePGCBQsmT558wQUXPPbYY6mfNm7cuFmzZiWd87LLLku9jiI3N/f+++9PkmTNmjXdu3cfPHhw+hcUkyS5+uqrFy1adOSRR5bpl5EJhxxyyNVXX50kyeGHH/7888+/8sorFfiOxF2ZPHly+lAQAlA63kMIQJIkyXPPPVfEWxYGDBhQijmbNGnSs2fP1HfwHn744YYNG95///1ff/11+mEHH3zwo48+etZZZ5XiI8rJLbfc0rBhw2uvvTb9RRR7jn/+85+LFy9ODevVq+cLhACUjiuEACRJklxyySW7+lGTJk2uueaa0k07ePDg1PbWrVtvv/32QjU4YMCAZcuW7VE1mCRJvXr1brzxxj2zBpMd7ubt1atXjRo1KmoxAFRqrhACkCRJ0qZNm/3333/Dhg2F9jdv3vyll15q2LBh6abt0KHDL37xi4ULF+74o0MOOWTcuHGdOnUq3cxJkqxcuXLlypVFHPDll1+WevI91ubNm5944on0PRdffHFFLQaAyk4QApAkSVKlSpUTTjhhwYIF+fn5tWrVqlevXtu2bTt37nzxxRenvgdYOkOHDu3cuXOhnTfccMP//d//1a5duywzf/nll4ceemhZZqiM/vCHP3zzzTepYYsWLTJyv+hrr722fPnyyy+/vIx/3ABULv7SB+BHL7/8cnlMe/bZZ5900kkLFixI7enVq9d9991XHp+119u0adOIESPS91x99dVVqlQp+8zr1q0bNGjQ3XfffeWVV1500UWleIYQAJWR7xACUO5GjhxZtep//sWZNm3a7NmzK3A9lde9996bflvv/vvvf+mll2Zk5oJ3La5evfqWW25p06ZNRuYEYM8nCAEod8cff3z//v1Tw+3bt1900UWrVq2qwCVVRh9++OHw4cPT9wwZMqROnToZmfy7775Lbe+3334ZmROAPZ9bRgH4X7jnnnteeumlNWvWFAzXrVvXuXPn+fPn169fvyzT7vRxNbtyzDHHlOWzKlZ+fv5VV12V/vLGBg0apD/EtYzSv5eYnZ2dqWkB2MMJQgD+F+rXrz9hwoSuXbum9ixfvrxbt26zZs3ad999Szdn+/btTzzxxAwtcE83cuTImTNnpu8ZNmxYpi4PJkmS/jqQAw44IFPTArCHc8soAOXr/fff//zzz5Mk6dKlS6ErWm+++eapp566V74cIrOWLFly8803p+9p167dFVdckcGPSF28TZLkwAMPzODMAOzJBCEAJbZ9+/YifpqXl7dkyZKRI0f26tWrUaNGLVu2TD1idMSIEYXekfD3v//95JNPXrZsWfmttrJbtWpV9+7df/jhh9Se6tWrjx07Nv05PTsq6aNHP/roo9R2wJd5AITlllEASiz9alKBrVu3Ll68eP78+a+99tqCBQvSv5CWJElubm7BRo0aNaZOndq+ffv0/Pjoo4+OP/74kSNH5uTklPfKMy4jr3wowvr16zt37lxwiTVl2LBhxx13XNEn1qhRI324cePGIg7eunXr22+/nRoeddRRJV4oAJWTIASgZLZu3bpixYr0PaeeeuqSJUu2bNmyq1PS+7B+/fqzZ88+7bTTPv3009TOLVu2DBo0aOrUqaNGjWrRokURn3777bevXbu2YLtRo0al/DWUwRdffJE+rFmzZvl91meffdapU6fly5en7zzjjDNuvPHG3Z5b6Gk906ZNu/jiiw8//PBq1aoVOnLTpk133XXXpk2bUnvatm1bhlUDUJkIQgBK5pFHHil0uSn9pfM7VSiimjVrNm/evEJNmCTJ7Nmzf/7zn+fk5AwZMuSQQw7Z6VQ9evQozaKL59FHH83Ly6tZs2bNmjVr1KhRvXr16tWrF1wDzMvL++GHH9auXfvYY4+ln9KgQYNyWszy5cu7dOlS6LfoqKOOmjJlStE3ixY48MADa9eunXqZxMcff7zbi4oFmjZt6gohQByCEIASmDlz5tVXX13Mg1u2bNm5c+ezzz67Y8eOhX7UrFmzRYsW9ezZc9GiRen7t23bNnr06LFjx44ZM2bgwIGZWXSxLVmyZMyYMSU6pXXr1uWxkkmTJg0cOPDbb79N39moUaOXX355//33L84MVatWPf3002fMmFHSj87Um+4BqBQ8VAaAErjjjjuKPiA7O/tXv/rV+PHjV61a9d57791///1nn312rVq1djyycePG8+bNS39hfcqJJ554ySWXZGbFJXHllVeW6PgaNWr07t0748tYuXLlNddcU6gGDzzwwLlz55bocS933XXXjjeIFq1JkyZDhgwp0SkAVGqCEIAS2OkFtCpVqrRt2/a22257/fXX161bN2XKlAEDBvz0pz/d7Wz77LPPo48+Om3atPQX3zVt2vTZZ5/NysrK5LqLp1WrVsW/4lejRo0nnniiPO6ubNas2eLFi4844ojUnkMOOeS111475phjSjRPmzZt5s6dW/R3MtO1b99+zpw53koPEIpbRgEogdatW5977rnPP/98kiQ1a9b85S9/2bNnz27dujVu3LjUc5577rkdOnS4/fbbx48fn5eX9/TTT1fI02IK9OjRY+nSpUUf06RJk27dut10002HHXZYOS2j4GuWp5xyyieffHLKKadMmTKldL/DHTt2XL58+YoVK95///0NGzbk5ubm5+cXOqZKlSp169Zt1apVy5YtM7F2ACoTQQhAyQwbNuz5558fPXp07969M3U1qX79+mPGjLn++utfffXVDh06ZGTO0unTp0+dOnXy8/OrVKlStWrVgufKZGVl1a5du27duo0aNTr00EPL70Ey6Q466KAXX3xxwoQJ9957b6F3SJTUEUcckX69EQBSquz4P4UAULTc3Nzq1f2XYgZ88803GzZsSA2bNGlSxvYDgBIRhAAAAEF5qAwAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUP8POgr+6SMfL2kAAAAASUVORK5CYII=",
++    "expected_text": ""
++  },
++  "response_status": 400,
++  "response": {
++    "error": {
++      "code": "EXPECTED_TEXT_EMPTY",
++      "message": "Input failed validation.",
++      "detail": "expected_text_empty"
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/fixtures/error_EXPECTED_TEXT_TOO_LONG.json b/task_handoffs/T007/fixtures/error_EXPECTED_TEXT_TOO_LONG.json
+new file mode 100644
+index 0000000..dc5ab03
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/error_EXPECTED_TEXT_TOO_LONG.json
+@@ -0,0 +1,15 @@
++{
++  "request": {
++    "image_mime": "image/png",
++    "image_base64": "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z0/tOfbYY4899tgkSRYtWpR+nbZoq1evTm1/8skn1113XRkX1qRJk+K/9AKASk0QAvBfJk2alNru1atXEa8fTMnLy8vLyyvPRe2dhg8f/o9//CN9z1133VWwsWzZsgcffLB005b6xJTWrVsLQoAgBCEA/7F58+b054sOHDiwAhdTfo4++uidfvGvONatW/fZZ5+l72nduvWOhzVp0qToeT7++OM777yz0M7DDjusdKsCgNIRhAD8xzPPPLN58+aC7aOPPrpjx44Vu55y8uKLL5b63HXr1jVs2DA1PO644956661SzDNo0KDvv/++1MsAgIwQhAD8x4QJE1LbV155ZTHPWrt2bSm+Q7hy5cqC78sF9MADD8yaNauIA6pWrVrMdz/ueLNu2V8aWYo/TQAqKX/jA/CjDz744I033ijY/slPftK3b99inpidnV2KhMjOzi7pKXuHJUuW3HzzzUUf079///79+xdntqVLl7Zp0yY1HDJkyO9///uyLA+AULyYHoAfTZ06NbVdu3btDL6YgZTNmzf/+te/Tn/xYBl98cUX6cMGDRpkamYAIhCEAPwoJyfn8MMPL9heu3Ztr169MtgtFMjJyVmxYkUGJ1yzZk36cLcPswGAdIIQgB/Vr19/+vTpqcdvLly48KabbqrYJRVtSzHsdpJ//etfOTk5ffr0+R8seOjQoU8//XRm5yx0hfCggw7K7PwA7N0EIQD/0bJly9GjR6eGDz744Lx58ypuObuxdOnSWkXq3r17Ead/9dVX119/ffPmzceNG/fUU0898cQT5braCRMmFHrPRJ06dQYNGlTGaV0hBKAsBCEA/+XSSy8977zzCrbz8/NzcnJyc3MrdknlZNasWSNHjty6dWvBcPDgwZ988kn5fVZOTk6hnWPHjk3do1tqha4QpoLw7bffrp7md7/7XRk/CIC9kiAEoLARI0ZkZWUVbH/wwQfjx48v+vji3Lq5o1SJVZTevXv36tUrNdy0adOll166ffv28visrKysQu+HuPzyy3v37l32mT/99NPUdt26dVN3/Obn5+elKadfFwCVnSAEoLBmzZpdccUVqeHw4cPz8/OLOH7fffct+tbNnWrRokX5/1J2Y+zYsQcccEBqOH/+/Pvvv788PqhDhw4DBw5MDY8//vj0W3PLYvny5antpk2bZmROAOLwHkIAdmLw4MGjRo0q6MCPP/54zpw5Z511VkUvaif++te/FvHT2bNn33333UUc0KBBgzFjxqRfJ7ztttu6devWsmXLjC3x/xs2bNjkyZO/+eabAw444Lnnnktdgy2LVatWbdq0KTUsj2UDsHcThADsRPPmzdu1a7d48eKC4bRp0/bAIGzfvv1pp51WxAG5ublFB2GSJOedd94FF1zwzDPPFAy3bt3ar1+/N954o1q1aplaZ4FGjRrdcsstd9555/Tp0zN1Ke+9995LH7Zq1Soj0wIQh1tGAdi59Ed0zpo1qwJXUt5Gjx5dv3791PDNN98cMWJEeXzQ4MGDp02bdvzxx2dqQkEIQBm5QgjAznXs2DG1vWLFivXr16dXU7qFCxdWr/5f/6D06NHj888/L9ju2rXrHXfcsduPO/DAA8uw2DJp2LDh8OHD+/Xrl9ozdOjQc845J+Pfcqxdu3anTp0yOGGhIPzZz36WwckBiEAQArBzrVu3Th8uW7bs1FNP3emR7dq1KxSEN95443XXXVew/dlnn7Vr16581pgxl1122ZNPPpn6RuKWLVv69ev3+uuvZ/zG0cx68803U9tZWVnNmzevwMUAUBm5ZRSAncvOzs7Ozk4NV65cWfxzu3btmtpeunTphx9+uNtT3n333YkTJ5ZgfZk2duzYffbZJzVctGjRAw88UIHr2a21a9e+++67qWGLFi328HwFYA8kCAHYpf322y+1vXHjxuKfeMQRRxx11FGp4ZQpU4o+/rXXXjvllFMuu+yySZMmlXCNGXPkkUfeeuut6XuGDh1afq+qL7u5c+emvw7k5JNPrsDFAFBJCUIAdin93fElfbN5jx49UtuPP/54EUc+/PDDZ5111saNG7dv3963b98XX3yxhMvMmJtuuin9zQ3ffffdlVdeWVGL2a25c+emD88888yKWgkAlZcgBGDncnNz169fnxqmXy0sjvPPPz+1/cEHH8yfP3/HY77//vuBAwcOGjRo27ZtqQ+98MILV61aVaoll1XNmjULvS/+lVde2e3lzYqS/g7GqlWrFv0GDgDYKUEIwM4tXbo01WlJkuzqEaO70q5du/SndD700EOFDnjnnXeOO+64Rx55JH1n3bp1J0+efPDBB5d8vZlxxhlnpL+nPkmSIUOGfP/99xW1nl1ZtWrVihUrUsO2bdvWq1evAtcDQCUlCAHYuT/+8Y/pw0IPHS2OPn36pLanTJny6aefpoajR48+4YQTli9fnn58mzZtFi9enH6vaYUYMWJEVlZWatiiRYsSfX/yf2Pq1KnpQ/eLAlA6ghCAJEmS119//Y033li8ePGCBQsmT558wQUXPPbYY6mfNm7cuFmzZiWd87LLLku9jiI3N/f+++9PkmTNmjXdu3cfPHhw+hcUkyS5+uqrFy1adOSRR5bpl5EJhxxyyNVXX50kyeGHH/7888+/8sorFfiOxF2ZPHly+lAQAlA63kMIQJIkyXPPPVfEWxYGDBhQijmbNGnSs2fP1HfwHn744YYNG95///1ff/11+mEHH3zwo48+etZZZ5XiI8rJLbfc0rBhw2uvvTb9RRR7jn/+85+LFy9ODevVq+cLhACUjiuEACRJklxyySW7+lGTJk2uueaa0k07ePDg1PbWrVtvv/32QjU4YMCAZcuW7VE1mCRJvXr1brzxxj2zBpMd7ubt1atXjRo1KmoxAFRqrhACkCRJ0qZNm/3333/Dhg2F9jdv3vyll15q2LBh6abt0KHDL37xi4ULF+74o0MOOWTcuHGdOnUq3cxJkqxcuXLlypVFHPDll1+WevI91ubNm5944on0PRdffHFFLQaAyk4QApAkSVKlSpUTTjhhwYIF+fn5tWrVqlevXtu2bTt37nzxxRenvgdYOkOHDu3cuXOhnTfccMP//d//1a5duywzf/nll4ceemhZZqiM/vCHP3zzzTepYYsWLTJyv+hrr722fPnyyy+/vIx/3ABULv7SB+BHL7/8cnlMe/bZZ5900kkLFixI7enVq9d9991XHp+119u0adOIESPS91x99dVVqlQp+8zr1q0bNGjQ3XfffeWVV1500UWleIYQAJWR7xACUO5GjhxZtep//sWZNm3a7NmzK3A9lde9996bflvv/vvvf+mll2Zk5oJ3La5evfqWW25p06ZNRuYEYM8nCAEod8cff3z//v1Tw+3bt1900UWrVq2qwCVVRh9++OHw4cPT9wwZMqROnToZmfy7775Lbe+3334ZmROAPZ9bRgH4X7jnnnteeumlNWvWFAzXrVvXuXPn+fPn169fvyzT7vRxNbtyzDHHlOWzKlZ+fv5VV12V/vLGBg0apD/EtYzSv5eYnZ2dqWkB2MMJQgD+F+rXrz9hwoSuXbum9ixfvrxbt26zZs3ad999Szdn+/btTzzxxAwtcE83cuTImTNnpu8ZNmxYpi4PJkmS/jqQAw44IFPTArCHc8soAOXr/fff//zzz5Mk6dKlS6ErWm+++eapp566V74cIrOWLFly8803p+9p167dFVdckcGPSF28TZLkwAMPzODMAOzJBCEAJbZ9+/YifpqXl7dkyZKRI0f26tWrUaNGLVu2TD1idMSIEYXekfD3v//95JNPXrZsWfmttrJbtWpV9+7df/jhh9Se6tWrjx07Nv05PTsq6aNHP/roo9R2wJd5AITlllEASiz9alKBrVu3Ll68eP78+a+99tqCBQvSv5CWJElubm7BRo0aNaZOndq+ffv0/Pjoo4+OP/74kSNH5uTklPfKMy4jr3wowvr16zt37lxwiTVl2LBhxx13XNEn1qhRI324cePGIg7eunXr22+/nRoeddRRJV4oAJWTIASgZLZu3bpixYr0PaeeeuqSJUu2bNmyq1PS+7B+/fqzZ88+7bTTPv3009TOLVu2DBo0aOrUqaNGjWrRokURn3777bevXbu2YLtRo0al/DWUwRdffJE+rFmzZvl91meffdapU6fly5en7zzjjDNuvPHG3Z5b6Gk906ZNu/jiiw8//PBq1aoVOnLTpk133XXXpk2bUnvatm1bhlUDUJkIQgBK5pFHHil0uSn9pfM7VSiimjVrNm/evEJNmCTJ7Nmzf/7zn+fk5AwZMuSQQw7Z6VQ9evQozaKL59FHH83Ly6tZs2bNmjVr1KhRvXr16tWrF1wDzMvL++GHH9auXfvYY4+ln9KgQYNyWszy5cu7dOlS6LfoqKOOmjJlStE3ixY48MADa9eunXqZxMcff7zbi4oFmjZt6gohQByCEIASmDlz5tVXX13Mg1u2bNm5c+ezzz67Y8eOhX7UrFmzRYsW9ezZc9GiRen7t23bNnr06LFjx44ZM2bgwIGZWXSxLVmyZMyYMSU6pXXr1uWxkkmTJg0cOPDbb79N39moUaOXX355//33L84MVatWPf3002fMmFHSj87Um+4BqBQ8VAaAErjjjjuKPiA7O/tXv/rV+PHjV61a9d57791///1nn312rVq1djyycePG8+bNS39hfcqJJ554ySWXZGbFJXHllVeW6PgaNWr07t0748tYuXLlNddcU6gGDzzwwLlz55bocS933XXXjjeIFq1JkyZDhgwp0SkAVGqCEIAS2OkFtCpVqrRt2/a22257/fXX161bN2XKlAEDBvz0pz/d7Wz77LPPo48+Om3atPQX3zVt2vTZZ5/NysrK5LqLp1WrVsW/4lejRo0nnniiPO6ubNas2eLFi4844ojUnkMOOeS111475phjSjRPmzZt5s6dW/R3MtO1b99+zpw53koPEIpbRgEogdatW5977rnPP/98kiQ1a9b85S9/2bNnz27dujVu3LjUc5577rkdOnS4/fbbx48fn5eX9/TTT1fI02IK9OjRY+nSpUUf06RJk27dut10002HHXZYOS2j4GuWp5xyyieffHLKKadMmTKldL/DHTt2XL58+YoVK95///0NGzbk5ubm5+cXOqZKlSp169Zt1apVy5YtM7F2ACoTQQhAyQwbNuz5558fPXp07969M3U1qX79+mPGjLn++utfffXVDh06ZGTO0unTp0+dOnXy8/OrVKlStWrVgufKZGVl1a5du27duo0aNTr00EPL70Ey6Q466KAXX3xxwoQJ9957b6F3SJTUEUcckX69EQBSquz4P4UAULTc3Nzq1f2XYgZ88803GzZsSA2bNGlSxvYDgBIRhAAAAEF5qAwAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUP8POgr+6SMfL2kAAAAASUVORK5CYII=",
++    "expected_text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
++  },
++  "response_status": 400,
++  "response": {
++    "error": {
++      "code": "EXPECTED_TEXT_TOO_LONG",
++      "message": "Input failed validation.",
++      "detail": "expected_text_too_long"
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/fixtures/error_EXPECTED_TEXT_TOO_MANY_LINES.json b/task_handoffs/T007/fixtures/error_EXPECTED_TEXT_TOO_MANY_LINES.json
+new file mode 100644
+index 0000000..b22915e
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/error_EXPECTED_TEXT_TOO_MANY_LINES.json
+@@ -0,0 +1,15 @@
++{
++  "request": {
++    "image_mime": "image/png",
++    "image_base64": "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z0/tOfbYY4899tgkSRYtWpR+nbZoq1evTm1/8skn1113XRkX1qRJk+K/9AKASk0QAvBfJk2alNru1atXEa8fTMnLy8vLyyvPRe2dhg8f/o9//CN9z1133VWwsWzZsgcffLB005b6xJTWrVsLQoAgBCEA/7F58+b054sOHDiwAhdTfo4++uidfvGvONatW/fZZ5+l72nduvWOhzVp0qToeT7++OM777yz0M7DDjusdKsCgNIRhAD8xzPPPLN58+aC7aOPPrpjx44Vu55y8uKLL5b63HXr1jVs2DA1PO644956661SzDNo0KDvv/++1MsAgIwQhAD8x4QJE1LbV155ZTHPWrt2bSm+Q7hy5cqC78sF9MADD8yaNauIA6pWrVrMdz/ueLNu2V8aWYo/TQAqKX/jA/CjDz744I033ijY/slPftK3b99inpidnV2KhMjOzi7pKXuHJUuW3HzzzUUf079///79+xdntqVLl7Zp0yY1HDJkyO9///uyLA+AULyYHoAfTZ06NbVdu3btDL6YgZTNmzf/+te/Tn/xYBl98cUX6cMGDRpkamYAIhCEAPwoJyfn8MMPL9heu3Ztr169MtgtFMjJyVmxYkUGJ1yzZk36cLcPswGAdIIQgB/Vr19/+vTpqcdvLly48KabbqrYJRVtSzHsdpJ//etfOTk5ffr0+R8seOjQoU8//XRm5yx0hfCggw7K7PwA7N0EIQD/0bJly9GjR6eGDz744Lx58ypuObuxdOnSWkXq3r17Ead/9dVX119/ffPmzceNG/fUU0898cQT5braCRMmFHrPRJ06dQYNGlTGaV0hBKAsBCEA/+XSSy8977zzCrbz8/NzcnJyc3MrdknlZNasWSNHjty6dWvBcPDgwZ988kn5fVZOTk6hnWPHjk3do1tqha4QpoLw7bffrp7md7/7XRk/CIC9kiAEoLARI0ZkZWUVbH/wwQfjx48v+vji3Lq5o1SJVZTevXv36tUrNdy0adOll166ffv28visrKysQu+HuPzyy3v37l32mT/99NPUdt26dVN3/Obn5+elKadfFwCVnSAEoLBmzZpdccUVqeHw4cPz8/OLOH7fffct+tbNnWrRokX5/1J2Y+zYsQcccEBqOH/+/Pvvv788PqhDhw4DBw5MDY8//vj0W3PLYvny5antpk2bZmROAOLwHkIAdmLw4MGjRo0q6MCPP/54zpw5Z511VkUvaif++te/FvHT2bNn33333UUc0KBBgzFjxqRfJ7ztttu6devWsmXLjC3x/xs2bNjkyZO/+eabAw444Lnnnktdgy2LVatWbdq0KTUsj2UDsHcThADsRPPmzdu1a7d48eKC4bRp0/bAIGzfvv1pp51WxAG5ublFB2GSJOedd94FF1zwzDPPFAy3bt3ar1+/N954o1q1aplaZ4FGjRrdcsstd9555/Tp0zN1Ke+9995LH7Zq1Soj0wIQh1tGAdi59Ed0zpo1qwJXUt5Gjx5dv3791PDNN98cMWJEeXzQ4MGDp02bdvzxx2dqQkEIQBm5QgjAznXs2DG1vWLFivXr16dXU7qFCxdWr/5f/6D06NHj888/L9ju2rXrHXfcsduPO/DAA8uw2DJp2LDh8OHD+/Xrl9ozdOjQc845J+Pfcqxdu3anTp0yOGGhIPzZz36WwckBiEAQArBzrVu3Th8uW7bs1FNP3emR7dq1KxSEN95443XXXVew/dlnn7Vr16581pgxl1122ZNPPpn6RuKWLVv69ev3+uuvZ/zG0cx68803U9tZWVnNmzevwMUAUBm5ZRSAncvOzs7Ozk4NV65cWfxzu3btmtpeunTphx9+uNtT3n333YkTJ5ZgfZk2duzYffbZJzVctGjRAw88UIHr2a21a9e+++67qWGLFi328HwFYA8kCAHYpf322y+1vXHjxuKfeMQRRxx11FGp4ZQpU4o+/rXXXjvllFMuu+yySZMmlXCNGXPkkUfeeuut6XuGDh1afq+qL7u5c+emvw7k5JNPrsDFAFBJCUIAdin93fElfbN5jx49UtuPP/54EUc+/PDDZ5111saNG7dv3963b98XX3yxhMvMmJtuuin9zQ3ffffdlVdeWVGL2a25c+emD88888yKWgkAlZcgBGDncnNz169fnxqmXy0sjvPPPz+1/cEHH8yfP3/HY77//vuBAwcOGjRo27ZtqQ+98MILV61aVaoll1XNmjULvS/+lVde2e3lzYqS/g7GqlWrFv0GDgDYKUEIwM4tXbo01WlJkuzqEaO70q5du/SndD700EOFDnjnnXeOO+64Rx55JH1n3bp1J0+efPDBB5d8vZlxxhlnpL+nPkmSIUOGfP/99xW1nl1ZtWrVihUrUsO2bdvWq1evAtcDQCUlCAHYuT/+8Y/pw0IPHS2OPn36pLanTJny6aefpoajR48+4YQTli9fnn58mzZtFi9enH6vaYUYMWJEVlZWatiiRYsSfX/yf2Pq1KnpQ/eLAlA6ghCAJEmS119//Y033li8ePGCBQsmT558wQUXPPbYY6mfNm7cuFmzZiWd87LLLku9jiI3N/f+++9PkmTNmjXdu3cfPHhw+hcUkyS5+uqrFy1adOSRR5bpl5EJhxxyyNVXX50kyeGHH/7888+/8sorFfiOxF2ZPHly+lAQAlA63kMIQJIkyXPPPVfEWxYGDBhQijmbNGnSs2fP1HfwHn744YYNG95///1ff/11+mEHH3zwo48+etZZZ5XiI8rJLbfc0rBhw2uvvTb9RRR7jn/+85+LFy9ODevVq+cLhACUjiuEACRJklxyySW7+lGTJk2uueaa0k07ePDg1PbWrVtvv/32QjU4YMCAZcuW7VE1mCRJvXr1brzxxj2zBpMd7ubt1atXjRo1KmoxAFRqrhACkCRJ0qZNm/3333/Dhg2F9jdv3vyll15q2LBh6abt0KHDL37xi4ULF+74o0MOOWTcuHGdOnUq3cxJkqxcuXLlypVFHPDll1+WevI91ubNm5944on0PRdffHFFLQaAyk4QApAkSVKlSpUTTjhhwYIF+fn5tWrVqlevXtu2bTt37nzxxRenvgdYOkOHDu3cuXOhnTfccMP//d//1a5duywzf/nll4ceemhZZqiM/vCHP3zzzTepYYsWLTJyv+hrr722fPnyyy+/vIx/3ABULv7SB+BHL7/8cnlMe/bZZ5900kkLFixI7enVq9d9991XHp+119u0adOIESPS91x99dVVqlQp+8zr1q0bNGjQ3XfffeWVV1500UWleIYQAJWR7xACUO5GjhxZtep//sWZNm3a7NmzK3A9lde9996bflvv/vvvf+mll2Zk5oJ3La5evfqWW25p06ZNRuYEYM8nCAEod8cff3z//v1Tw+3bt1900UWrVq2qwCVVRh9++OHw4cPT9wwZMqROnToZmfy7775Lbe+3334ZmROAPZ9bRgH4X7jnnnteeumlNWvWFAzXrVvXuXPn+fPn169fvyzT7vRxNbtyzDHHlOWzKlZ+fv5VV12V/vLGBg0apD/EtYzSv5eYnZ2dqWkB2MMJQgD+F+rXrz9hwoSuXbum9ixfvrxbt26zZs3ad999Szdn+/btTzzxxAwtcE83cuTImTNnpu8ZNmxYpi4PJkmS/jqQAw44IFPTArCHc8soAOXr/fff//zzz5Mk6dKlS6ErWm+++eapp566V74cIrOWLFly8803p+9p167dFVdckcGPSF28TZLkwAMPzODMAOzJBCEAJbZ9+/YifpqXl7dkyZKRI0f26tWrUaNGLVu2TD1idMSIEYXekfD3v//95JNPXrZsWfmttrJbtWpV9+7df/jhh9Se6tWrjx07Nv05PTsq6aNHP/roo9R2wJd5AITlllEASiz9alKBrVu3Ll68eP78+a+99tqCBQvSv5CWJElubm7BRo0aNaZOndq+ffv0/Pjoo4+OP/74kSNH5uTklPfKMy4jr3wowvr16zt37lxwiTVl2LBhxx13XNEn1qhRI324cePGIg7eunXr22+/nRoeddRRJV4oAJWTIASgZLZu3bpixYr0PaeeeuqSJUu2bNmyq1PS+7B+/fqzZ88+7bTTPv3009TOLVu2DBo0aOrUqaNGjWrRokURn3777bevXbu2YLtRo0al/DWUwRdffJE+rFmzZvl91meffdapU6fly5en7zzjjDNuvPHG3Z5b6Gk906ZNu/jiiw8//PBq1aoVOnLTpk133XXXpk2bUnvatm1bhlUDUJkIQgBK5pFHHil0uSn9pfM7VSiimjVrNm/evEJNmCTJ7Nmzf/7zn+fk5AwZMuSQQw7Z6VQ9evQozaKL59FHH83Ly6tZs2bNmjVr1KhRvXr16tWrF1wDzMvL++GHH9auXfvYY4+ln9KgQYNyWszy5cu7dOlS6LfoqKOOmjJlStE3ixY48MADa9eunXqZxMcff7zbi4oFmjZt6gohQByCEIASmDlz5tVXX13Mg1u2bNm5c+ezzz67Y8eOhX7UrFmzRYsW9ezZc9GiRen7t23bNnr06LFjx44ZM2bgwIGZWXSxLVmyZMyYMSU6pXXr1uWxkkmTJg0cOPDbb79N39moUaOXX355//33L84MVatWPf3002fMmFHSj87Um+4BqBQ8VAaAErjjjjuKPiA7O/tXv/rV+PHjV61a9d57791///1nn312rVq1djyycePG8+bNS39hfcqJJ554ySWXZGbFJXHllVeW6PgaNWr07t0748tYuXLlNddcU6gGDzzwwLlz55bocS933XXXjjeIFq1JkyZDhgwp0SkAVGqCEIAS2OkFtCpVqrRt2/a22257/fXX161bN2XKlAEDBvz0pz/d7Wz77LPPo48+Om3atPQX3zVt2vTZZ5/NysrK5LqLp1WrVsW/4lejRo0nnniiPO6ubNas2eLFi4844ojUnkMOOeS111475phjSjRPmzZt5s6dW/R3MtO1b99+zpw53koPEIpbRgEogdatW5977rnPP/98kiQ1a9b85S9/2bNnz27dujVu3LjUc5577rkdOnS4/fbbx48fn5eX9/TTT1fI02IK9OjRY+nSpUUf06RJk27dut10002HHXZYOS2j4GuWp5xyyieffHLKKadMmTKldL/DHTt2XL58+YoVK95///0NGzbk5ubm5+cXOqZKlSp169Zt1apVy5YtM7F2ACoTQQhAyQwbNuz5558fPXp07969M3U1qX79+mPGjLn++utfffXVDh06ZGTO0unTp0+dOnXy8/OrVKlStWrVgufKZGVl1a5du27duo0aNTr00EPL70Ey6Q466KAXX3xxwoQJ9957b6F3SJTUEUcckX69EQBSquz4P4UAULTc3Nzq1f2XYgZ88803GzZsSA2bNGlSxvYDgBIRhAAAAEF5qAwAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUP8POgr+6SMfL2kAAAAASUVORK5CYII=",
++    "expected_text": "a\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na"
++  },
++  "response_status": 400,
++  "response": {
++    "error": {
++      "code": "EXPECTED_TEXT_TOO_MANY_LINES",
++      "message": "Input failed validation.",
++      "detail": "expected_text_too_many_lines"
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/fixtures/error_IMAGE_DIMENSION_EXCEEDED.json b/task_handoffs/T007/fixtures/error_IMAGE_DIMENSION_EXCEEDED.json
+new file mode 100644
+index 0000000..ed665a9
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/error_IMAGE_DIMENSION_EXCEEDED.json
+@@ -0,0 +1,15 @@
++{
++  "request": {
++    "image_mime": "image/png",
++    "image_base64": "iVBORw0KGgoAAAANSUhEUgAAIygAAAAKCAIAAABWhmLRAAAAAElFTkSuQmCC",
++    "expected_text": "限时优惠"
++  },
++  "response_status": 400,
++  "response": {
++    "error": {
++      "code": "IMAGE_DIMENSION_EXCEEDED",
++      "message": "Input failed validation.",
++      "detail": "image_dimension_exceeded"
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/fixtures/error_IMAGE_TOO_LARGE.json b/task_handoffs/T007/fixtures/error_IMAGE_TOO_LARGE.json
+new file mode 100644
+index 0000000..006b14c
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/error_IMAGE_TOO_LARGE.json
+@@ -0,0 +1,15 @@
++{
++  "request": {
++    "image_mime": "image/png",
++    "image_base64": "<omitted: 34952540 'A' chars, exceeds 25 MiB decoded limit>",
++    "expected_text": "限时优惠"
++  },
++  "response_status": 400,
++  "response": {
++    "error": {
++      "code": "IMAGE_TOO_LARGE",
++      "message": "Decoded image would exceed the 25 MiB limit.",
++      "detail": "file_too_large"
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/fixtures/error_IMAGE_TOO_MANY_PIXELS.json b/task_handoffs/T007/fixtures/error_IMAGE_TOO_MANY_PIXELS.json
+new file mode 100644
+index 0000000..e8eae1c
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/error_IMAGE_TOO_MANY_PIXELS.json
+@@ -0,0 +1,15 @@
++{
++  "request": {
++    "image_mime": "image/png",
++    "image_base64": "iVBORw0KGgoAAAANSUhEUgAAH0AAABdwCAIAAAC+BnNpAAAAAElFTkSuQmCC",
++    "expected_text": "限时优惠"
++  },
++  "response_status": 400,
++  "response": {
++    "error": {
++      "code": "IMAGE_TOO_MANY_PIXELS",
++      "message": "Input failed validation.",
++      "detail": "too_many_pixels"
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/fixtures/error_INVALID_BASE64.json b/task_handoffs/T007/fixtures/error_INVALID_BASE64.json
+new file mode 100644
+index 0000000..ccafc80
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/error_INVALID_BASE64.json
+@@ -0,0 +1,15 @@
++{
++  "request": {
++    "image_mime": "image/png",
++    "image_base64": "!!!not-b64!!!",
++    "expected_text": "限时优惠"
++  },
++  "response_status": 400,
++  "response": {
++    "error": {
++      "code": "INVALID_BASE64",
++      "message": "image_base64 is not valid base64.",
++      "detail": "invalid_base64"
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/fixtures/error_INVALID_IMAGE.json b/task_handoffs/T007/fixtures/error_INVALID_IMAGE.json
+new file mode 100644
+index 0000000..a90bacf
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/error_INVALID_IMAGE.json
+@@ -0,0 +1,15 @@
++{
++  "request": {
++    "image_mime": "image/png",
++    "image_base64": "iVBORw0KGgoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
++    "expected_text": "限时优惠"
++  },
++  "response_status": 400,
++  "response": {
++    "error": {
++      "code": "INVALID_IMAGE",
++      "message": "Input failed validation.",
++      "detail": "decode_failed"
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/fixtures/error_INVALID_IMAGE_FORMAT.json b/task_handoffs/T007/fixtures/error_INVALID_IMAGE_FORMAT.json
+new file mode 100644
+index 0000000..b667811
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/error_INVALID_IMAGE_FORMAT.json
+@@ -0,0 +1,15 @@
++{
++  "request": {
++    "image_mime": "image/png",
++    "image_base64": "aGVsbG8gd29ybGQsIG5vdCBhbiBpbWFnZQ==",
++    "expected_text": "限时优惠"
++  },
++  "response_status": 400,
++  "response": {
++    "error": {
++      "code": "INVALID_IMAGE_FORMAT",
++      "message": "Input failed validation.",
++      "detail": "unsupported_format"
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/fixtures/error_INVALID_IMAGE_MIME.json b/task_handoffs/T007/fixtures/error_INVALID_IMAGE_MIME.json
+new file mode 100644
+index 0000000..5e7b4ce
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/error_INVALID_IMAGE_MIME.json
+@@ -0,0 +1,15 @@
++{
++  "request": {
++    "image_mime": "image/gif",
++    "image_base64": "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z0/tOfbYY4899tgkSRYtWpR+nbZoq1evTm1/8skn1113XRkX1qRJk+K/9AKASk0QAvBfJk2alNru1atXEa8fTMnLy8vLyyvPRe2dhg8f/o9//CN9z1133VWwsWzZsgcffLB005b6xJTWrVsLQoAgBCEA/7F58+b054sOHDiwAhdTfo4++uidfvGvONatW/fZZ5+l72nduvWOhzVp0qToeT7++OM777yz0M7DDjusdKsCgNIRhAD8xzPPPLN58+aC7aOPPrpjx44Vu55y8uKLL5b63HXr1jVs2DA1PO644956661SzDNo0KDvv/++1MsAgIwQhAD8x4QJE1LbV155ZTHPWrt2bSm+Q7hy5cqC78sF9MADD8yaNauIA6pWrVrMdz/ueLNu2V8aWYo/TQAqKX/jA/CjDz744I033ijY/slPftK3b99inpidnV2KhMjOzi7pKXuHJUuW3HzzzUUf079///79+xdntqVLl7Zp0yY1HDJkyO9///uyLA+AULyYHoAfTZ06NbVdu3btDL6YgZTNmzf/+te/Tn/xYBl98cUX6cMGDRpkamYAIhCEAPwoJyfn8MMPL9heu3Ztr169MtgtFMjJyVmxYkUGJ1yzZk36cLcPswGAdIIQgB/Vr19/+vTpqcdvLly48KabbqrYJRVtSzHsdpJ//etfOTk5ffr0+R8seOjQoU8//XRm5yx0hfCggw7K7PwA7N0EIQD/0bJly9GjR6eGDz744Lx58ypuObuxdOnSWkXq3r17Ead/9dVX119/ffPmzceNG/fUU0898cQT5braCRMmFHrPRJ06dQYNGlTGaV0hBKAsBCEA/+XSSy8977zzCrbz8/NzcnJyc3MrdknlZNasWSNHjty6dWvBcPDgwZ988kn5fVZOTk6hnWPHjk3do1tqha4QpoLw7bffrp7md7/7XRk/CIC9kiAEoLARI0ZkZWUVbH/wwQfjx48v+vji3Lq5o1SJVZTevXv36tUrNdy0adOll166ffv28visrKysQu+HuPzyy3v37l32mT/99NPUdt26dVN3/Obn5+elKadfFwCVnSAEoLBmzZpdccUVqeHw4cPz8/OLOH7fffct+tbNnWrRokX5/1J2Y+zYsQcccEBqOH/+/Pvvv788PqhDhw4DBw5MDY8//vj0W3PLYvny5antpk2bZmROAOLwHkIAdmLw4MGjRo0q6MCPP/54zpw5Z511VkUvaif++te/FvHT2bNn33333UUc0KBBgzFjxqRfJ7ztttu6devWsmXLjC3x/xs2bNjkyZO/+eabAw444Lnnnktdgy2LVatWbdq0KTUsj2UDsHcThADsRPPmzdu1a7d48eKC4bRp0/bAIGzfvv1pp51WxAG5ublFB2GSJOedd94FF1zwzDPPFAy3bt3ar1+/N954o1q1aplaZ4FGjRrdcsstd9555/Tp0zN1Ke+9995LH7Zq1Soj0wIQh1tGAdi59Ed0zpo1qwJXUt5Gjx5dv3791PDNN98cMWJEeXzQ4MGDp02bdvzxx2dqQkEIQBm5QgjAznXs2DG1vWLFivXr16dXU7qFCxdWr/5f/6D06NHj888/L9ju2rXrHXfcsduPO/DAA8uw2DJp2LDh8OHD+/Xrl9ozdOjQc845J+Pfcqxdu3anTp0yOGGhIPzZz36WwckBiEAQArBzrVu3Th8uW7bs1FNP3emR7dq1KxSEN95443XXXVew/dlnn7Vr16581pgxl1122ZNPPpn6RuKWLVv69ev3+uuvZ/zG0cx68803U9tZWVnNmzevwMUAUBm5ZRSAncvOzs7Ozk4NV65cWfxzu3btmtpeunTphx9+uNtT3n333YkTJ5ZgfZk2duzYffbZJzVctGjRAw88UIHr2a21a9e+++67qWGLFi328HwFYA8kCAHYpf322y+1vXHjxuKfeMQRRxx11FGp4ZQpU4o+/rXXXjvllFMuu+yySZMmlXCNGXPkkUfeeuut6XuGDh1afq+qL7u5c+emvw7k5JNPrsDFAFBJCUIAdin93fElfbN5jx49UtuPP/54EUc+/PDDZ5111saNG7dv3963b98XX3yxhMvMmJtuuin9zQ3ffffdlVdeWVGL2a25c+emD88888yKWgkAlZcgBGDncnNz169fnxqmXy0sjvPPPz+1/cEHH8yfP3/HY77//vuBAwcOGjRo27ZtqQ+98MILV61aVaoll1XNmjULvS/+lVde2e3lzYqS/g7GqlWrFv0GDgDYKUEIwM4tXbo01WlJkuzqEaO70q5du/SndD700EOFDnjnnXeOO+64Rx55JH1n3bp1J0+efPDBB5d8vZlxxhlnpL+nPkmSIUOGfP/99xW1nl1ZtWrVihUrUsO2bdvWq1evAtcDQCUlCAHYuT/+8Y/pw0IPHS2OPn36pLanTJny6aefpoajR48+4YQTli9fnn58mzZtFi9enH6vaYUYMWJEVlZWatiiRYsSfX/yf2Pq1KnpQ/eLAlA6ghCAJEmS119//Y033li8ePGCBQsmT558wQUXPPbYY6mfNm7cuFmzZiWd87LLLku9jiI3N/f+++9PkmTNmjXdu3cfPHhw+hcUkyS5+uqrFy1adOSRR5bpl5EJhxxyyNVXX50kyeGHH/7888+/8sorFfiOxF2ZPHly+lAQAlA63kMIQJIkyXPPPVfEWxYGDBhQijmbNGnSs2fP1HfwHn744YYNG95///1ff/11+mEHH3zwo48+etZZZ5XiI8rJLbfc0rBhw2uvvTb9RRR7jn/+85+LFy9ODevVq+cLhACUjiuEACRJklxyySW7+lGTJk2uueaa0k07ePDg1PbWrVtvv/32QjU4YMCAZcuW7VE1mCRJvXr1brzxxj2zBpMd7ubt1atXjRo1KmoxAFRqrhACkCRJ0qZNm/3333/Dhg2F9jdv3vyll15q2LBh6abt0KHDL37xi4ULF+74o0MOOWTcuHGdOnUq3cxJkqxcuXLlypVFHPDll1+WevI91ubNm5944on0PRdffHFFLQaAyk4QApAkSVKlSpUTTjhhwYIF+fn5tWrVqlevXtu2bTt37nzxxRenvgdYOkOHDu3cuXOhnTfccMP//d//1a5duywzf/nll4ceemhZZqiM/vCHP3zzzTepYYsWLTJyv+hrr722fPnyyy+/vIx/3ABULv7SB+BHL7/8cnlMe/bZZ5900kkLFixI7enVq9d9991XHp+119u0adOIESPS91x99dVVqlQp+8zr1q0bNGjQ3XfffeWVV1500UWleIYQAJWR7xACUO5GjhxZtep//sWZNm3a7NmzK3A9lde9996bflvv/vvvf+mll2Zk5oJ3La5evfqWW25p06ZNRuYEYM8nCAEod8cff3z//v1Tw+3bt1900UWrVq2qwCVVRh9++OHw4cPT9wwZMqROnToZmfy7775Lbe+3334ZmROAPZ9bRgH4X7jnnnteeumlNWvWFAzXrVvXuXPn+fPn169fvyzT7vRxNbtyzDHHlOWzKlZ+fv5VV12V/vLGBg0apD/EtYzSv5eYnZ2dqWkB2MMJQgD+F+rXrz9hwoSuXbum9ixfvrxbt26zZs3ad999Szdn+/btTzzxxAwtcE83cuTImTNnpu8ZNmxYpi4PJkmS/jqQAw44IFPTArCHc8soAOXr/fff//zzz5Mk6dKlS6ErWm+++eapp566V74cIrOWLFly8803p+9p167dFVdckcGPSF28TZLkwAMPzODMAOzJBCEAJbZ9+/YifpqXl7dkyZKRI0f26tWrUaNGLVu2TD1idMSIEYXekfD3v//95JNPXrZsWfmttrJbtWpV9+7df/jhh9Se6tWrjx07Nv05PTsq6aNHP/roo9R2wJd5AITlllEASiz9alKBrVu3Ll68eP78+a+99tqCBQvSv5CWJElubm7BRo0aNaZOndq+ffv0/Pjoo4+OP/74kSNH5uTklPfKMy4jr3wowvr16zt37lxwiTVl2LBhxx13XNEn1qhRI324cePGIg7eunXr22+/nRoeddRRJV4oAJWTIASgZLZu3bpixYr0PaeeeuqSJUu2bNmyq1PS+7B+/fqzZ88+7bTTPv3009TOLVu2DBo0aOrUqaNGjWrRokURn3777bevXbu2YLtRo0al/DWUwRdffJE+rFmzZvl91meffdapU6fly5en7zzjjDNuvPHG3Z5b6Gk906ZNu/jiiw8//PBq1aoVOnLTpk133XXXpk2bUnvatm1bhlUDUJkIQgBK5pFHHil0uSn9pfM7VSiimjVrNm/evEJNmCTJ7Nmzf/7zn+fk5AwZMuSQQw7Z6VQ9evQozaKL59FHH83Ly6tZs2bNmjVr1KhRvXr16tWrF1wDzMvL++GHH9auXfvYY4+ln9KgQYNyWszy5cu7dOlS6LfoqKOOmjJlStE3ixY48MADa9eunXqZxMcff7zbi4oFmjZt6gohQByCEIASmDlz5tVXX13Mg1u2bNm5c+ezzz67Y8eOhX7UrFmzRYsW9ezZc9GiRen7t23bNnr06LFjx44ZM2bgwIGZWXSxLVmyZMyYMSU6pXXr1uWxkkmTJg0cOPDbb79N39moUaOXX355//33L84MVatWPf3002fMmFHSj87Um+4BqBQ8VAaAErjjjjuKPiA7O/tXv/rV+PHjV61a9d57791///1nn312rVq1djyycePG8+bNS39hfcqJJ554ySWXZGbFJXHllVeW6PgaNWr07t0748tYuXLlNddcU6gGDzzwwLlz55bocS933XXXjjeIFq1JkyZDhgwp0SkAVGqCEIAS2OkFtCpVqrRt2/a22257/fXX161bN2XKlAEDBvz0pz/d7Wz77LPPo48+Om3atPQX3zVt2vTZZ5/NysrK5LqLp1WrVsW/4lejRo0nnniiPO6ubNas2eLFi4844ojUnkMOOeS111475phjSjRPmzZt5s6dW/R3MtO1b99+zpw53koPEIpbRgEogdatW5977rnPP/98kiQ1a9b85S9/2bNnz27dujVu3LjUc5577rkdOnS4/fbbx48fn5eX9/TTT1fI02IK9OjRY+nSpUUf06RJk27dut10002HHXZYOS2j4GuWp5xyyieffHLKKadMmTKldL/DHTt2XL58+YoVK95///0NGzbk5ubm5+cXOqZKlSp169Zt1apVy5YtM7F2ACoTQQhAyQwbNuz5558fPXp07969M3U1qX79+mPGjLn++utfffXVDh06ZGTO0unTp0+dOnXy8/OrVKlStWrVgufKZGVl1a5du27duo0aNTr00EPL70Ey6Q466KAXX3xxwoQJ9957b6F3SJTUEUcckX69EQBSquz4P4UAULTc3Nzq1f2XYgZ88803GzZsSA2bNGlSxvYDgBIRhAAAAEF5qAwAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUP8POgr+6SMfL2kAAAAASUVORK5CYII=",
++    "expected_text": "限时优惠"
++  },
++  "response_status": 400,
++  "response": {
++    "error": {
++      "code": "INVALID_IMAGE_MIME",
++      "message": "image_mime must be image/png, image/jpeg or image/webp.",
++      "detail": "unsupported_mime"
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/fixtures/error_INVALID_REQUEST.json b/task_handoffs/T007/fixtures/error_INVALID_REQUEST.json
+new file mode 100644
+index 0000000..5cc3268
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/error_INVALID_REQUEST.json
+@@ -0,0 +1,15 @@
++{
++  "request": {
++    "image_mime": "image/png",
++    "image_base64": "<fixture png b64>",
++    "expected_text": "<MISSING>"
++  },
++  "response_status": 422,
++  "response": {
++    "error": {
++      "code": "INVALID_REQUEST",
++      "message": "Request body failed validation.",
++      "detail": "body,expected_text"
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/fixtures/error_OCR_FAILED.json b/task_handoffs/T007/fixtures/error_OCR_FAILED.json
+new file mode 100644
+index 0000000..384855b
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/error_OCR_FAILED.json
+@@ -0,0 +1,15 @@
++{
++  "request": {
++    "image_mime": "image/png",
++    "image_base64": "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z0/tOfbYY4899tgkSRYtWpR+nbZoq1evTm1/8skn1113XRkX1qRJk+K/9AKASk0QAvBfJk2alNru1atXEa8fTMnLy8vLyyvPRe2dhg8f/o9//CN9z1133VWwsWzZsgcffLB005b6xJTWrVsLQoAgBCEA/7F58+b054sOHDiwAhdTfo4++uidfvGvONatW/fZZ5+l72nduvWOhzVp0qToeT7++OM777yz0M7DDjusdKsCgNIRhAD8xzPPPLN58+aC7aOPPrpjx44Vu55y8uKLL5b63HXr1jVs2DA1PO644956661SzDNo0KDvv/++1MsAgIwQhAD8x4QJE1LbV155ZTHPWrt2bSm+Q7hy5cqC78sF9MADD8yaNauIA6pWrVrMdz/ueLNu2V8aWYo/TQAqKX/jA/CjDz744I033ijY/slPftK3b99inpidnV2KhMjOzi7pKXuHJUuW3HzzzUUf079///79+xdntqVLl7Zp0yY1HDJkyO9///uyLA+AULyYHoAfTZ06NbVdu3btDL6YgZTNmzf/+te/Tn/xYBl98cUX6cMGDRpkamYAIhCEAPwoJyfn8MMPL9heu3Ztr169MtgtFMjJyVmxYkUGJ1yzZk36cLcPswGAdIIQgB/Vr19/+vTpqcdvLly48KabbqrYJRVtSzHsdpJ//etfOTk5ffr0+R8seOjQoU8//XRm5yx0hfCggw7K7PwA7N0EIQD/0bJly9GjR6eGDz744Lx58ypuObuxdOnSWkXq3r17Ead/9dVX119/ffPmzceNG/fUU0898cQT5braCRMmFHrPRJ06dQYNGlTGaV0hBKAsBCEA/+XSSy8977zzCrbz8/NzcnJyc3MrdknlZNasWSNHjty6dWvBcPDgwZ988kn5fVZOTk6hnWPHjk3do1tqha4QpoLw7bffrp7md7/7XRk/CIC9kiAEoLARI0ZkZWUVbH/wwQfjx48v+vji3Lq5o1SJVZTevXv36tUrNdy0adOll166ffv28visrKysQu+HuPzyy3v37l32mT/99NPUdt26dVN3/Obn5+elKadfFwCVnSAEoLBmzZpdccUVqeHw4cPz8/OLOH7fffct+tbNnWrRokX5/1J2Y+zYsQcccEBqOH/+/Pvvv788PqhDhw4DBw5MDY8//vj0W3PLYvny5antpk2bZmROAOLwHkIAdmLw4MGjRo0q6MCPP/54zpw5Z511VkUvaif++te/FvHT2bNn33333UUc0KBBgzFjxqRfJ7ztttu6devWsmXLjC3x/xs2bNjkyZO/+eabAw444Lnnnktdgy2LVatWbdq0KTUsj2UDsHcThADsRPPmzdu1a7d48eKC4bRp0/bAIGzfvv1pp51WxAG5ublFB2GSJOedd94FF1zwzDPPFAy3bt3ar1+/N954o1q1aplaZ4FGjRrdcsstd9555/Tp0zN1Ke+9995LH7Zq1Soj0wIQh1tGAdi59Ed0zpo1qwJXUt5Gjx5dv3791PDNN98cMWJEeXzQ4MGDp02bdvzxx2dqQkEIQBm5QgjAznXs2DG1vWLFivXr16dXU7qFCxdWr/5f/6D06NHj888/L9ju2rXrHXfcsduPO/DAA8uw2DJp2LDh8OHD+/Xrl9ozdOjQc845J+Pfcqxdu3anTp0yOGGhIPzZz36WwckBiEAQArBzrVu3Th8uW7bs1FNP3emR7dq1KxSEN95443XXXVew/dlnn7Vr16581pgxl1122ZNPPpn6RuKWLVv69ev3+uuvZ/zG0cx68803U9tZWVnNmzevwMUAUBm5ZRSAncvOzs7Ozk4NV65cWfxzu3btmtpeunTphx9+uNtT3n333YkTJ5ZgfZk2duzYffbZJzVctGjRAw88UIHr2a21a9e+++67qWGLFi328HwFYA8kCAHYpf322y+1vXHjxuKfeMQRRxx11FGp4ZQpU4o+/rXXXjvllFMuu+yySZMmlXCNGXPkkUfeeuut6XuGDh1afq+qL7u5c+emvw7k5JNPrsDFAFBJCUIAdin93fElfbN5jx49UtuPP/54EUc+/PDDZ5111saNG7dv3963b98XX3yxhMvMmJtuuin9zQ3ffffdlVdeWVGL2a25c+emD88888yKWgkAlZcgBGDncnNz169fnxqmXy0sjvPPPz+1/cEHH8yfP3/HY77//vuBAwcOGjRo27ZtqQ+98MILV61aVaoll1XNmjULvS/+lVde2e3lzYqS/g7GqlWrFv0GDgDYKUEIwM4tXbo01WlJkuzqEaO70q5du/SndD700EOFDnjnnXeOO+64Rx55JH1n3bp1J0+efPDBB5d8vZlxxhlnpL+nPkmSIUOGfP/99xW1nl1ZtWrVihUrUsO2bdvWq1evAtcDQCUlCAHYuT/+8Y/pw0IPHS2OPn36pLanTJny6aefpoajR48+4YQTli9fnn58mzZtFi9enH6vaYUYMWJEVlZWatiiRYsSfX/yf2Pq1KnpQ/eLAlA6ghCAJEmS119//Y033li8ePGCBQsmT558wQUXPPbYY6mfNm7cuFmzZiWd87LLLku9jiI3N/f+++9PkmTNmjXdu3cfPHhw+hcUkyS5+uqrFy1adOSRR5bpl5EJhxxyyNVXX50kyeGHH/7888+/8sorFfiOxF2ZPHly+lAQAlA63kMIQJIkyXPPPVfEWxYGDBhQijmbNGnSs2fP1HfwHn744YYNG95///1ff/11+mEHH3zwo48+etZZZ5XiI8rJLbfc0rBhw2uvvTb9RRR7jn/+85+LFy9ODevVq+cLhACUjiuEACRJklxyySW7+lGTJk2uueaa0k07ePDg1PbWrVtvv/32QjU4YMCAZcuW7VE1mCRJvXr1brzxxj2zBpMd7ubt1atXjRo1KmoxAFRqrhACkCRJ0qZNm/3333/Dhg2F9jdv3vyll15q2LBh6abt0KHDL37xi4ULF+74o0MOOWTcuHGdOnUq3cxJkqxcuXLlypVFHPDll1+WevI91ubNm5944on0PRdffHFFLQaAyk4QApAkSVKlSpUTTjhhwYIF+fn5tWrVqlevXtu2bTt37nzxxRenvgdYOkOHDu3cuXOhnTfccMP//d//1a5duywzf/nll4ceemhZZqiM/vCHP3zzzTepYYsWLTJyv+hrr722fPnyyy+/vIx/3ABULv7SB+BHL7/8cnlMe/bZZ5900kkLFixI7enVq9d9991XHp+119u0adOIESPS91x99dVVqlQp+8zr1q0bNGjQ3XfffeWVV1500UWleIYQAJWR7xACUO5GjhxZtep//sWZNm3a7NmzK3A9lde9996bflvv/vvvf+mll2Zk5oJ3La5evfqWW25p06ZNRuYEYM8nCAEod8cff3z//v1Tw+3bt1900UWrVq2qwCVVRh9++OHw4cPT9wwZMqROnToZmfy7775Lbe+3334ZmROAPZ9bRgH4X7jnnnteeumlNWvWFAzXrVvXuXPn+fPn169fvyzT7vRxNbtyzDHHlOWzKlZ+fv5VV12V/vLGBg0apD/EtYzSv5eYnZ2dqWkB2MMJQgD+F+rXrz9hwoSuXbum9ixfvrxbt26zZs3ad999Szdn+/btTzzxxAwtcE83cuTImTNnpu8ZNmxYpi4PJkmS/jqQAw44IFPTArCHc8soAOXr/fff//zzz5Mk6dKlS6ErWm+++eapp566V74cIrOWLFly8803p+9p167dFVdckcGPSF28TZLkwAMPzODMAOzJBCEAJbZ9+/YifpqXl7dkyZKRI0f26tWrUaNGLVu2TD1idMSIEYXekfD3v//95JNPXrZsWfmttrJbtWpV9+7df/jhh9Se6tWrjx07Nv05PTsq6aNHP/roo9R2wJd5AITlllEASiz9alKBrVu3Ll68eP78+a+99tqCBQvSv5CWJElubm7BRo0aNaZOndq+ffv0/Pjoo4+OP/74kSNH5uTklPfKMy4jr3wowvr16zt37lxwiTVl2LBhxx13XNEn1qhRI324cePGIg7eunXr22+/nRoeddRRJV4oAJWTIASgZLZu3bpixYr0PaeeeuqSJUu2bNmyq1PS+7B+/fqzZ88+7bTTPv3009TOLVu2DBo0aOrUqaNGjWrRokURn3777bevXbu2YLtRo0al/DWUwRdffJE+rFmzZvl91meffdapU6fly5en7zzjjDNuvPHG3Z5b6Gk906ZNu/jiiw8//PBq1aoVOnLTpk133XXXpk2bUnvatm1bhlUDUJkIQgBK5pFHHil0uSn9pfM7VSiimjVrNm/evEJNmCTJ7Nmzf/7zn+fk5AwZMuSQQw7Z6VQ9evQozaKL59FHH83Ly6tZs2bNmjVr1KhRvXr16tWrF1wDzMvL++GHH9auXfvYY4+ln9KgQYNyWszy5cu7dOlS6LfoqKOOmjJlStE3ixY48MADa9eunXqZxMcff7zbi4oFmjZt6gohQByCEIASmDlz5tVXX13Mg1u2bNm5c+ezzz67Y8eOhX7UrFmzRYsW9ezZc9GiRen7t23bNnr06LFjx44ZM2bgwIGZWXSxLVmyZMyYMSU6pXXr1uWxkkmTJg0cOPDbb79N39moUaOXX355//33L84MVatWPf3002fMmFHSj87Um+4BqBQ8VAaAErjjjjuKPiA7O/tXv/rV+PHjV61a9d57791///1nn312rVq1djyycePG8+bNS39hfcqJJ554ySWXZGbFJXHllVeW6PgaNWr07t0748tYuXLlNddcU6gGDzzwwLlz55bocS933XXXjjeIFq1JkyZDhgwp0SkAVGqCEIAS2OkFtCpVqrRt2/a22257/fXX161bN2XKlAEDBvz0pz/d7Wz77LPPo48+Om3atPQX3zVt2vTZZ5/NysrK5LqLp1WrVsW/4lejRo0nnniiPO6ubNas2eLFi4844ojUnkMOOeS111475phjSjRPmzZt5s6dW/R3MtO1b99+zpw53koPEIpbRgEogdatW5977rnPP/98kiQ1a9b85S9/2bNnz27dujVu3LjUc5577rkdOnS4/fbbx48fn5eX9/TTT1fI02IK9OjRY+nSpUUf06RJk27dut10002HHXZYOS2j4GuWp5xyyieffHLKKadMmTKldL/DHTt2XL58+YoVK95///0NGzbk5ubm5+cXOqZKlSp169Zt1apVy5YtM7F2ACoTQQhAyQwbNuz5558fPXp07969M3U1qX79+mPGjLn++utfffXVDh06ZGTO0unTp0+dOnXy8/OrVKlStWrVgufKZGVl1a5du27duo0aNTr00EPL70Ey6Q466KAXX3xxwoQJ9957b6F3SJTUEUcckX69EQBSquz4P4UAULTc3Nzq1f2XYgZ88803GzZsSA2bNGlSxvYDgBIRhAAAAEF5qAwAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUP8POgr+6SMfL2kAAAAASUVORK5CYII=",
++    "expected_text": "限时优惠"
++  },
++  "response_status": 500,
++  "response": {
++    "error": {
++      "code": "OCR_FAILED",
++      "message": "OCR failed to produce a result.",
++      "detail": "ocr_engine_error"
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/fixtures/health_response.json b/task_handoffs/T007/fixtures/health_response.json
+new file mode 100644
+index 0000000..084f638
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/health_response.json
+@@ -0,0 +1,9 @@
++{
++  "status": 200,
++  "response": {
++    "status": "ok",
++    "service": "textproof",
++    "tool_version": "0.1.0",
++    "schema": "textproof.report/v1"
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/fixtures/version_response.json b/task_handoffs/T007/fixtures/version_response.json
+new file mode 100644
+index 0000000..b5b4e55
+--- /dev/null
++++ b/task_handoffs/T007/fixtures/version_response.json
+@@ -0,0 +1,14 @@
++{
++  "status": 200,
++  "response": {
++    "service": "textproof",
++    "tool_version": "0.1.0",
++    "schema": "textproof.report/v1",
++    "spec_version": "1.0.0",
++    "rapidocr_version": "3.10.0",
++    "onnxruntime_version": "1.32.0",
++    "providers": [
++      "CPUExecutionProvider"
++    ]
++  }
++}
+\ No newline at end of file
+diff --git a/task_handoffs/T007/loopback_proof.txt b/task_handoffs/T007/loopback_proof.txt
+new file mode 100644
+index 0000000..2a985d2
+--- /dev/null
++++ b/task_handoffs/T007/loopback_proof.txt
+@@ -0,0 +1,15 @@
++# loopback proof — server on 127.0.0.1:37503
++# date: 2026-11-25 07:35:59 UTC
++
++$ ss -tln
++State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess
++LISTEN 0      0          127.0.0.1:37503      0.0.0.0:*          
++LISTEN 0      0          127.0.0.1:8322       0.0.0.0:*          
++
++
++$ grep :927F /proc/net/tcp (LISTEN=0A)
++   0: 0100007F:927F 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 449318 1 0000000000000000 100 0 0 10 0                    
++
++connect 127.0.0.1:37503: OK (local ('127.0.0.1', 47636))
++
++NOTE: connect_ex to the non-loopback IP is NOT used as proof on this VM: outbound TCP is intercepted by the egress proxy (198.19.0.1:3128) and returns success even for unlistened ports. The /proc/net/tcp + ss LISTEN table above is the proof: the port listens on 127.0.0.1 only.
+diff --git a/task_handoffs/T007/test_commands.txt b/task_handoffs/T007/test_commands.txt
+new file mode 100644
+index 0000000..580720f
+--- /dev/null
++++ b/task_handoffs/T007/test_commands.txt
+@@ -0,0 +1,3 @@
++python -m pytest tests/integration/test_api.py -q   # 验收命令
++python -m pytest tests/unit -q   # 回归确认
++python task_handoffs/T007/capture_fixtures.py   # fixture + loopback 证明采集
+diff --git a/task_handoffs/T007/test_stderr.log b/task_handoffs/T007/test_stderr.log
+new file mode 100644
+index 0000000..e69de29
+diff --git a/task_handoffs/T007/test_stdout.log b/task_handoffs/T007/test_stdout.log
+new file mode 100644
+index 0000000..703bf86
+--- /dev/null
++++ b/task_handoffs/T007/test_stdout.log
+@@ -0,0 +1,2 @@
++..............................................                           [100%]
++46 passed in 22.40s
+diff --git a/tests/integration/test_api.py b/tests/integration/test_api.py
+new file mode 100644
+index 0000000..944a080
+--- /dev/null
++++ b/tests/integration/test_api.py
+@@ -0,0 +1,556 @@
++"""Integration tests for the T007 local API (FastAPI, loopback-only).
++
++HTTP-layer note (honest deviation, see API_CONTRACT.md §6): the T007
++card says "用 FastAPI TestClient 做 HTTP 层测试", but
++``starlette.testclient.TestClient`` requires ``httpx``, which is NOT
++in the frozen ``requirements.lock`` and is NOT installed in the T001
++venv (``from starlette.testclient import TestClient`` fails with an
++"install httpx" error).  Adding httpx would be a new dependency, which
++T007 is forbidden to do without the coordinator ("如需新依赖先停下报
++协调员").  These tests therefore exercise the real HTTP stack
++instead: a real uvicorn server bound to 127.0.0.1 in a background
++thread, driven over a real loopback socket with stdlib ``urllib``.
++That is strictly stronger evidence for the HTTP surface than
++TestClient (real socket, real server, real bind address), and the
++loopback-only proof in this file depends on it.
++
++Coverage maps to the six T007 acceptance criteria:
++
++1. health / version — ``test_health`` / ``test_version``.
++2. POST /api/v1/check returns textproof.report/v1 — ``test_check_success``.
++3. bind fixed to 127.0.0.1 — ``test_bind_host_*``,
++   ``test_server_listens_only_on_loopback``, ``test_serve_rejects_*``.
++4. in-memory only, no cross-request cache — ``test_stateless_*``,
++   ``test_check_does_not_write_files``.
++5. error codes for oversize / bad MIME / bad base64 / empty text /
++   OCR failure — ``test_check_error_cases`` (parametrised) plus
++   ``test_ocr_failure_*``.
++6. API == core for the same fixture — ``test_api_matches_core``.
++
++All test images are the frozen S0 synthetic fixtures or synthetic
++bytes built in-memory; no real user images, no network.
++"""
++
++from __future__ import annotations
++
++import asyncio
++import base64
++import io
++import json
++import socket
++import struct
++import threading
++import urllib.error
++import urllib.request
++import zlib
++from pathlib import Path
++
++import pytest
++import uvicorn
++from PIL import Image
++
++from textproof.api.app import create_app, serve, validate_bind_host
++from textproof.api.routes import (
++    _MAX_BASE64_CHARS,
++    ApiError,
++    get_ocr_adapter,
++    reset_ocr_adapter,
++    run_check,
++    set_ocr_adapter,
++)
++from textproof.core.report import build_report
++from textproof.io.image_loader import load_image, validate_expected_text
++
++REPO_ROOT = Path(__file__).resolve().parents[2]
++FIXTURES = REPO_ROOT / "tests" / "fixtures" / "s0"
++# The too-many-pixels case intentionally feeds Pillow a 48 MP header;
++# its DecompressionBombWarning is expected, not a test failure.
++pytestmark = pytest.mark.filterwarnings(
++    "ignore:Image size .* exceeds limit.*:Warning"
++)
++MANIFEST = json.loads((FIXTURES / "manifest.json").read_text(encoding="utf-8"))
++EXPECTED_OUTPUT = json.loads(
++    (FIXTURES / "expected_output.json").read_text(encoding="utf-8")
++)
++
++ZH001 = next(f for f in MANIFEST["fixtures"] if f["id"] == "TP-S0-ZH-001")
++ZH002 = next(f for f in MANIFEST["fixtures"] if f["id"] == "TP-S0-ZH-002")
++
++
++def _fixture_bytes(fixture_id: str) -> bytes:
++    record = next(f for f in MANIFEST["fixtures"] if f["id"] == fixture_id)
++    return (FIXTURES / record["filename"]).read_bytes()
++
++
++def _b64(data: bytes) -> str:
++    return base64.b64encode(data).decode("ascii")
++
++
++def _fake_png(width: int, height: int) -> bytes:
++    """A PNG with a valid IHDR but no image data (header-only).
++
++    Pillow's ``Image.open`` reads only the IHDR, so the loader's
++    header dimension check fires before any decode is attempted.
++    """
++    ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
++
++    def chunk(tag: bytes, payload: bytes) -> bytes:
++        body = tag + payload
++        return (
++            struct.pack(">I", len(payload))
++            + body
++            + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF)
++        )
++
++    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IEND", b"")
++
++
++def _animated_webp_bytes() -> bytes:
++    buf = io.BytesIO()
++    first = Image.new("RGB", (100, 50), "white")
++    second = Image.new("RGB", (100, 50), "black")
++    first.save(
++        buf, format="WEBP", save_all=True, append_images=[second],
++        duration=100, loop=0,
++    )
++    return buf.getvalue()
++
++
++def _free_port() -> int:
++    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
++        sock.bind(("127.0.0.1", 0))
++        return sock.getsockname()[1]
++
++
++# --- live loopback server (real uvicorn, real socket) --------------------
++
++@pytest.fixture(scope="module")
++def live_server():
++    """Start the real API server on 127.0.0.1; yield (base_url, port)."""
++    port = _free_port()
++    server = uvicorn.Server(
++        uvicorn.Config(
++            create_app(), host="127.0.0.1", port=port, log_level="error"
++        )
++    )
++    thread = threading.Thread(
++        target=asyncio.run, args=(server.serve(),), daemon=True
++    )
++    thread.start()
++    base = f"http://127.0.0.1:{port}"
++    deadline = __import__("time").monotonic() + 60
++    while True:
++        try:
++            status, _ = _http("GET", f"{base}/api/v1/health")
++            if status == 200:
++                break
++        except Exception:
++            pass
++        if __import__("time").monotonic() > deadline:
++            raise RuntimeError("live API server did not come up in 60s")
++        __import__("time").sleep(0.2)
++    yield base, port
++    server.should_exit = True
++    thread.join(timeout=15)
++
++
++def _http(method: str, url: str, body: object = None, raw: bytes | None = None,
++          headers: dict | None = None) -> tuple[int, bytes]:
++    """One stdlib HTTP request; returns (status, raw body bytes).
++
++    HTTP error statuses are returned, not raised, so tests can assert
++    on 400/422/500 bodies.
++    """
++    data = raw
++    hdrs = dict(headers or {})
++    if body is not None:
++        data = json.dumps(body).encode("utf-8")
++        hdrs.setdefault("Content-Type", "application/json")
++    req = urllib.request.Request(url, data=data, headers=hdrs, method=method)
++    try:
++        with urllib.request.urlopen(req, timeout=120) as resp:
++            return resp.status, resp.read()
++    except urllib.error.HTTPError as exc:
++        return exc.code, exc.read()
++
++
++def _check_payload(fixture_id: str, expected_text: str | None = None,
++                   mime: str = "image/png") -> dict:
++    record = next(f for f in MANIFEST["fixtures"] if f["id"] == fixture_id)
++    return {
++        "image_mime": mime,
++        "image_base64": _b64(_fixture_bytes(fixture_id)),
++        "expected_text": expected_text if expected_text is not None
++        else record["expected_text"],
++    }
++
++
++def _iou(box_a, box_b) -> float:
++    x1 = max(box_a[0], box_b[0])
++    y1 = max(box_a[1], box_b[1])
++    x2 = min(box_a[2], box_b[2])
++    y2 = min(box_a[3], box_b[3])
++    inter = max(0.0, x2 - x1) * max(0.0, y2 - y1)
++    area_a = max(0.0, box_a[2] - box_a[0]) * max(0.0, box_a[3] - box_a[1])
++    area_b = max(0.0, box_b[2] - box_b[0]) * max(0.0, box_b[3] - box_b[1])
++    union = area_a + area_b - inter
++    return inter / union if union > 0 else 0.0
++
++
++# --- acceptance 1: health + version ---------------------------------------
++
++def test_health(live_server):
++    base, _ = live_server
++    status, raw = _http("GET", f"{base}/api/v1/health")
++    assert status == 200
++    body = json.loads(raw)
++    assert body["status"] == "ok"
++    assert body["service"] == "textproof"
++    assert body["schema"] == "textproof.report/v1"
++    assert body["tool_version"] == "0.1.0"
++
++
++def test_version(live_server):
++    base, _ = live_server
++    status, raw = _http("GET", f"{base}/api/v1/version")
++    assert status == 200
++    body = json.loads(raw)
++    assert body["service"] == "textproof"
++    assert body["tool_version"] == "0.1.0"
++    assert body["schema"] == "textproof.report/v1"
++    assert body["spec_version"] == "1.0.0"
++    assert body["rapidocr_version"] == "3.10.0"
++    assert body["onnxruntime_version"] == "1.32.0"
++    assert body["providers"] == ["CPUExecutionProvider"]
++
++
++def test_version_alias(live_server):
++    base, _ = live_server
++    status, raw = _http("GET", f"{base}/version")
++    assert status == 200
++    assert json.loads(raw)["schema"] == "textproof.report/v1"
++
++
++def test_unknown_route_returns_error_envelope(live_server):
++    base, _ = live_server
++    status, raw = _http("GET", f"{base}/api/v1/nope")
++    assert status == 404
++    assert json.loads(raw)["error"]["code"] == "NOT_FOUND"
++
++
++# --- acceptance 2: POST /check returns textproof.report/v1 ---------------
++
++def test_check_success(live_server):
++    """TP-S0-ZH-001 via the API: the frozen §8.1 fixed case, live OCR."""
++    base, _ = live_server
++    status, raw = _http(
++        "POST", f"{base}/api/v1/check", body=_check_payload("TP-S0-ZH-001")
++    )
++    assert status == 200, raw[:500]
++    report = json.loads(raw)
++    assert report["schema"] == "textproof.report/v1"
++    assert report["tool_version"] == "0.1.0"
++    assert report["verdict"] == "MISMATCH"
++    assert report["image"]["sha256"] == ZH001["sha256"]
++    assert report["image"]["format"] == "PNG"
++    assert report["image"]["width"] == 1200
++    assert report["image"]["height"] == 480
++    assert report["expected_text"] == "限时优惠"
++    assert report["recognized_text"] == "限时优"
++    assert len(report["errors"]) == 1
++    err = report["errors"][0]
++    assert err["type"] == "MISSING_CHARACTER"
++    assert err["expected_fragment"] == "惠"
++    assert err["recognized_fragment"] == ""
++    assert err["expected_span"] == [3, 4]
++    assert err["recognized_span"] == [3, 3]
++    assert err["bbox_scope"] == "ocr_line"
++    assert err["bbox_xyxy"] == report["ocr_lines"][0]["bbox_xyxy"]
++    assert _iou(err["bbox_xyxy"], ZH001["target_region_xyxy"]) >= 0.80
++    assert report["summary"] == {
++        "expected_lines": 1, "ocr_lines": 1,
++        "error_count": 1, "warning_count": 0,
++    }
++    # The response carries no image bytes.
++    assert "image_base64" not in raw.decode("utf-8")
++
++
++# --- acceptance 6: API == core for the same fixture -----------------------
++
++def test_api_matches_core(live_server):
++    """API report and direct core build_report are dict-identical."""
++    base, _ = live_server
++    payload = _check_payload("TP-S0-ZH-001")
++    status, raw = _http("POST", f"{base}/api/v1/check", body=payload)
++    assert status == 200, raw[:500]
++    api_report = json.loads(raw)
++
++    png = _fixture_bytes("TP-S0-ZH-001")
++    image = load_image(png)
++    expected = validate_expected_text(ZH001["expected_text"])
++    adapter = get_ocr_adapter()
++    direct = build_report(image, expected, adapter.recognize(image.pil_image))
++    assert api_report == direct
++
++
++# --- acceptance 3: loopback-only binding ----------------------------------
++
++@pytest.mark.parametrize(
++    "host",
++    ["0.0.0.0", "198.19.0.2", "8.8.8.8", "localhost", "::1", "", "  ",
++     "example.com", "127.0.0.2", "0"],
++)
++def test_bind_host_rejects_non_loopback(host):
++    with pytest.raises(ValueError):
++        validate_bind_host(host)
++
++
++def test_bind_host_accepts_only_127_0_0_1():
++    assert validate_bind_host("127.0.0.1") == "127.0.0.1"
++
++
++@pytest.mark.parametrize("host", ["0.0.0.0", "198.19.0.2", "localhost"])
++def test_serve_rejects_non_loopback_host(host):
++    """serve() must raise before uvicorn ever binds."""
++    with pytest.raises(ValueError):
++        serve(host=host, port=18799)
++
++
++def test_server_listens_only_on_loopback(live_server):
++    """The live server's LISTEN socket is 127.0.0.1 only (/proc/net/tcp).
++
++    A plain ``connect_ex`` to the machine's non-loopback IP is NOT a
++    valid probe on this VM: outbound TCP is intercepted by the egress
++    proxy (a connect to 198.19.0.2:port returns 0 via 198.19.0.1:3128
++    even for a port nothing listens on).  Reading the kernel's own
++    listening-socket table is proxy-independent: the server's port
++    must appear in LISTEN state (0A) bound to 127.0.0.1 (0100007F)
++    and to no other local address.
++    """
++    base, port = live_server
++    # Loopback connects.
++    with socket.create_connection(("127.0.0.1", port), timeout=5):
++        pass
++    port_hex = f"{port:04X}"
++    listeners = []
++    for line in Path("/proc/net/tcp").read_text().splitlines()[1:]:
++        parts = line.split()
++        local_addr, state = parts[1], parts[3]
++        ip_hex, port_part = local_addr.split(":")
++        if port_part.upper() == port_hex and state == "0A":
++            listeners.append(ip_hex)
++    assert listeners, f"no LISTEN socket found for port {port}"
++    assert listeners == ["0100007F"], (
++        f"server listens on {listeners}, expected only 127.0.0.1 (0100007F)"
++    )
++
++
++def test_no_cors_header(live_server):
++    """No Access-Control-Allow-Origin is ever emitted (no CORS)."""
++    base, _ = live_server
++    req = urllib.request.Request(
++        f"{base}/api/v1/health",
++        headers={"Origin": "https://example.com"},
++        method="GET",
++    )
++    with urllib.request.urlopen(req, timeout=30) as resp:
++        assert resp.headers.get("Access-Control-Allow-Origin") is None
++
++
++# --- acceptance 4: in-memory only, no cross-request state -----------------
++
++def test_stateless_no_cross_request_leak(live_server):
++    """Two different fixtures in sequence: no data leaks between them."""
++    base, _ = live_server
++    status1, raw1 = _http(
++        "POST", f"{base}/api/v1/check", body=_check_payload("TP-S0-ZH-001")
++    )
++    status2, raw2 = _http(
++        "POST", f"{base}/api/v1/check", body=_check_payload("TP-S0-ZH-002")
++    )
++    assert status1 == 200 and status2 == 200
++    first, second = json.loads(raw1), json.loads(raw2)
++    assert first["image"]["sha256"] == ZH001["sha256"]
++    assert second["image"]["sha256"] == ZH002["sha256"]
++    assert second["expected_text"] == "新品上市"
++    assert second["recognized_text"] == "新口上市"
++    assert "限时优惠" not in raw2.decode("utf-8")
++    assert "限时优" not in raw2.decode("utf-8")
++
++
++def test_check_does_not_write_files(live_server, tmp_path):
++    """A check leaves no new files under src/ or tests/ (memory only)."""
++    base, _ = live_server
++    watched = [REPO_ROOT / "src", REPO_ROOT / "tests"]
++
++    def _snapshot():
++        return {
++            p for root in watched for p in Path(root).rglob("*") if p.is_file()
++        }
++
++    before = _snapshot()
++    status, _ = _http(
++        "POST", f"{base}/api/v1/check", body=_check_payload("TP-S0-ZH-001")
++    )
++    assert status == 200
++    assert _snapshot() == before
++
++
++# --- acceptance 5: error codes --------------------------------------------
++
++PNG_B64 = _b64(_fixture_bytes("TP-S0-ZH-001"))
++
++ERROR_CASES = [
++    # (label, payload, expected HTTP status, expected error code)
++    ("unsupported_mime", {"image_mime": "image/gif", "image_base64": PNG_B64,
++                          "expected_text": "限时优惠"},
++     400, "INVALID_IMAGE_MIME"),
++    ("mime_mismatch", {"image_mime": "image/jpeg", "image_base64": PNG_B64,
++                       "expected_text": "限时优惠"},
++     400, "INVALID_IMAGE_MIME"),
++    ("invalid_base64", {"image_mime": "image/png",
++                        "image_base64": "!!!not-base64!!!",
++                        "expected_text": "限时优惠"},
++     400, "INVALID_BASE64"),
++    ("empty_base64", {"image_mime": "image/png", "image_base64": "",
++                      "expected_text": "限时优惠"},
++     400, "INVALID_BASE64"),
++    ("non_image_bytes", {"image_mime": "image/png",
++                         "image_base64": _b64(b"hello world, not an image"),
++                         "expected_text": "限时优惠"},
++     400, "INVALID_IMAGE_FORMAT"),
++    ("corrupt_png", {"image_mime": "image/png",
++                     "image_base64": _b64(b"\x89PNG\r\n\x1a\n" + b"\x00" * 64),
++                     "expected_text": "限时优惠"},
++     400, "INVALID_IMAGE"),
++    ("animated_webp", {"image_mime": "image/webp",
++                       "image_base64": _b64(_animated_webp_bytes()),
++                       "expected_text": "限时优惠"},
++     400, "ANIMATED_IMAGE_NOT_SUPPORTED"),
++    ("dimension_exceeded", {"image_mime": "image/png",
++                            "image_base64": _b64(_fake_png(9000, 10)),
++                            "expected_text": "限时优惠"},
++     400, "IMAGE_DIMENSION_EXCEEDED"),
++    ("too_many_pixels", {"image_mime": "image/png",
++                         "image_base64": _b64(_fake_png(8000, 6000)),
++                         "expected_text": "限时优惠"},
++     400, "IMAGE_TOO_MANY_PIXELS"),
++    ("image_too_large", {"image_mime": "image/png",
++                         "image_base64": "A" * (_MAX_BASE64_CHARS + 4),
++                         "expected_text": "限时优惠"},
++     400, "IMAGE_TOO_LARGE"),
++    ("expected_text_empty", {"image_mime": "image/png",
++                             "image_base64": PNG_B64, "expected_text": ""},
++     400, "EXPECTED_TEXT_EMPTY"),
++    ("expected_text_blank", {"image_mime": "image/png",
++                             "image_base64": PNG_B64, "expected_text": "   "},
++     400, "EXPECTED_TEXT_EMPTY"),
++    ("expected_text_too_long", {"image_mime": "image/png",
++                                "image_base64": PNG_B64,
++                                "expected_text": "x" * 5001},
++     400, "EXPECTED_TEXT_TOO_LONG"),
++    ("expected_text_too_many_lines", {"image_mime": "image/png",
++                                      "image_base64": PNG_B64,
++                                      "expected_text": "\n".join(["a"] * 101)},
++     400, "EXPECTED_TEXT_TOO_MANY_LINES"),
++]
++
++
++@pytest.mark.parametrize(
++    "label,payload,status,code", ERROR_CASES,
++    ids=[c[0] for c in ERROR_CASES],
++)
++def test_check_error_cases(live_server, label, payload, status, code):
++    base, _ = live_server
++    got_status, raw = _http("POST", f"{base}/api/v1/check", body=payload)
++    assert got_status == status, f"{label}: {raw[:300]}"
++    body = json.loads(raw)
++    assert body["error"]["code"] == code, f"{label}: {body}"
++    assert "schema" not in body  # an error is not a report
++
++
++@pytest.mark.parametrize(
++    "label,payload,status,code",
++    [
++        ("missing_expected_text",
++         {"image_mime": "image/png", "image_base64": PNG_B64},
++         422, "INVALID_REQUEST"),
++        ("missing_image", {"image_mime": "image/png",
++                           "expected_text": "限时优惠"},
++         422, "INVALID_REQUEST"),
++        ("wrong_type_base64",
++         {"image_mime": "image/png", "image_base64": 123,
++          "expected_text": "限时优惠"},
++         422, "INVALID_REQUEST"),
++        ("unknown_field",
++         {"image_mime": "image/png", "image_base64": PNG_B64,
++          "expected_text": "限时优惠", "surprise": True},
++         422, "INVALID_REQUEST"),
++    ],
++    ids=["missing_expected_text", "missing_image", "wrong_type_base64",
++         "unknown_field"],
++)
++def test_check_request_validation(live_server, label, payload, status, code):
++    base, _ = live_server
++    got_status, raw = _http("POST", f"{base}/api/v1/check", body=payload)
++    assert got_status == status, f"{label}: {raw[:300]}"
++    assert json.loads(raw)["error"]["code"] == code
++
++
++def test_check_malformed_json(live_server):
++    base, _ = live_server
++    status, raw = _http(
++        "POST", f"{base}/api/v1/check", raw=b"{not json",
++        headers={"Content-Type": "application/json"},
++    )
++    assert status == 422
++    assert json.loads(raw)["error"]["code"] == "INVALID_REQUEST"
++
++
++class _FailingAdapter:
++    """Stub OCR engine that always raises (exercises OCR_FAILED)."""
++
++    def recognize(self, image):
++        raise RuntimeError("simulated engine failure")
++
++
++def test_ocr_failure_direct():
++    with pytest.raises(ApiError) as excinfo:
++        run_check(
++            image_mime="image/png", image_base64=PNG_B64,
++            expected_text="限时优惠", adapter=_FailingAdapter(),
++        )
++    assert excinfo.value.code == "OCR_FAILED"
++    assert excinfo.value.status == 500
++
++
++def test_ocr_failure_via_http(live_server):
++    base, _ = live_server
++    set_ocr_adapter(_FailingAdapter())
++    try:
++        status, raw = _http(
++            "POST", f"{base}/api/v1/check",
++            body=_check_payload("TP-S0-ZH-001"),
++        )
++    finally:
++        reset_ocr_adapter()
++    assert status == 500, raw[:300]
++    body = json.loads(raw)
++    assert body["error"]["code"] == "OCR_FAILED"
++    assert "schema" not in body
++
++
++def test_run_check_error_mapping_direct():
++    """run_check maps every T002 reason to its distinct API code."""
++    cases = [
++        (dict(image_mime="image/gif", image_base64=PNG_B64,
++              expected_text="x"), "INVALID_IMAGE_MIME"),
++        (dict(image_mime="image/png", image_base64="%%%",
++              expected_text="x"), "INVALID_BASE64"),
++        (dict(image_mime="image/png", image_base64=PNG_B64,
++              expected_text="x" * 5001), "EXPECTED_TEXT_TOO_LONG"),
++    ]
++    for kwargs, code in cases:
++        with pytest.raises(ApiError) as excinfo:
++            run_check(**kwargs)
++        assert excinfo.value.code == code

@@ -1,0 +1,27 @@
+=== CMD1: acceptance verify ===
+VERIFY OK: 300 fixtures, counts={'total': 300, 'clean': 100, 'substitution': 70, 'omission': 70, 'numeric_change': 60, 'blind_subset': 60}, font=Noto Sans SC 2.004-H2 sha256=a3041811a78c361b...
+cmd1 exit=0
+=== CMD2: fixture tests ===
+.......                                                                  [100%]
+7 passed in 21.13s
+cmd2 exit=0
+=== CMD3: full suite ===
+........................................................................ [ 41%]
+........................................................................ [ 82%]
+..............................                                           [100%]
+=============================== warnings summary ===============================
+tests/unit/test_image_loader.py::test_pixels_over_40m_rejected
+tests/unit/test_image_loader.py::test_all_rejections_share_the_unified_code
+  /home/hatch/workspace/p033-textproof/.venv/lib/python3.12/site-packages/PIL/Image.py:3452: DecompressionBombWarning: Image size (40008000 pixels) exceeds limit of 40000000 pixels, could be decompression bomb DOS attack.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+174 passed, 2 warnings in 37.52s
+cmd3 exit=0
+=== CMD4: independent regeneration to /tmp/t005-regen3, SHA comparison ===
+GENERATED: 300 fixtures (clean=100, substitution=70, omission=70, numeric_change=60)
+  output: /tmp/t005-regen3
+  font: Noto Sans SC 2.004-H2 sha256=a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da
+cmd4a exit=0
+run1: 300 run2: 300 identical: True
+cmd4b exit=0

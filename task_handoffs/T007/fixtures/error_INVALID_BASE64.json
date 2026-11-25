@@ -1,0 +1,15 @@
+{
+  "request": {
+    "image_mime": "image/png",
+    "image_base64": "!!!not-b64!!!",
+    "expected_text": "限时优惠"
+  },
+  "response_status": 400,
+  "response": {
+    "error": {
+      "code": "INVALID_BASE64",
+      "message": "image_base64 is not valid base64.",
+      "detail": "invalid_base64"
+    }
+  }
+}

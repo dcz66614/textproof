@@ -1,0 +1,14 @@
+T009 exit codes (PROJECT_BOOK.md §5.5; recorded from real runs)
+- pytest tests/integration/test_cli.py: 0 (40 passed, 0 failed)
+- textproof version: 0
+- textproof check TP-S0-ZH-001 (real OCR): 1 (MISMATCH)
+- textproof check TP-CLN-001 (real OCR): 0 (MATCH)
+- textproof check blank PNG (real OCR): 4 (OCR_FAILED)
+- textproof check invalid inputs (missing/garbage/empty/bad-utf8/too-long): 3
+- textproof check engine failure (stub): 4
+- textproof check unexpected error (stub): 5
+- textproof serve --host 0.0.0.0: 3
+- textproof serve (real, 127.0.0.1:8899): health probe HTTP 200, stopped cleanly
+- textproof verify-s0 (S0 rerun): 0 (S0 VERDICT: PASS)
+- pytest tests/unit + tests/integration/test_api.py + tests/oracle: 0 (244 passed)
+- pytest tests/s0: 0 (12 passed)

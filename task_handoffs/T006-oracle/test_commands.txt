@@ -1,0 +1,12 @@
+# Working directory for all commands: ~/workspace/p033-textproof-oracle
+# Python: /home/hatch/workspace/p033-textproof/.venv/bin/python (Python 3.12, locked deps)
+# 1. Acceptance command (required by the task):
+/home/hatch/workspace/p033-textproof/.venv/bin/python -m pytest tests/oracle/test_reference_compare.py -q
+# 2. Unit suite (no-regression check, pre-independence-test-fix run; the fix touched only tests/oracle):
+/home/hatch/workspace/p033-textproof/.venv/bin/python -m pytest tests/unit -q
+# 3. Combined core-first run (proves the independence test holds when textproof.core is already imported):
+/home/hatch/workspace/p033-textproof/.venv/bin/python -m pytest tests/unit/test_core tests/oracle/test_reference_compare.py -q
+# 4. Full suite (post-fix):
+/home/hatch/workspace/p033-textproof/.venv/bin/python -m pytest -q
+# 5. JSON-serialisability spot check of one golden report (inline python -c, see TASK_RESULT.md):
+/home/hatch/workspace/p033-textproof/.venv/bin/python -c "from oracle.reference_compare import compare; ..."

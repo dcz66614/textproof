@@ -1,0 +1,8 @@
+/home/hatch/workspace/p033-textproof/.venv/bin/python -m pytest -q
+unshare -n /home/hatch/workspace/p033-textproof/.venv/bin/python scripts/verify_s0.py --manifest tests/fixtures/s0/manifest.json --force-live
+/home/hatch/workspace/p033-textproof/.venv/bin/python scripts/independent_verify.py --case TP-S0-ZH-001
+/home/hatch/workspace/p033-textproof/.venv/bin/python scripts/parity_check.py --manifest tests/fixtures/s0/manifest.json --out task_handoffs/T006/parity_report.json
+/home/hatch/workspace/p033-textproof/.venv/bin/python scripts/independent_verify.py --case TP-S0-ZH-002
+/home/hatch/workspace/p033-textproof/.venv/bin/python scripts/independent_verify.py --case TP-S0-ZH-003
+/home/hatch/workspace/p033-textproof/.venv/bin/python scripts/independent_verify.py --case TP-S0-NUM-001
+/home/hatch/workspace/p033-textproof/.venv/bin/python scripts/independent_verify.py --case TP-S0-NUM-001 --strict-live

@@ -1,0 +1,15 @@
+{
+  "request": {
+    "image_mime": "image/png",
+    "image_base64": "<fixture png b64>",
+    "expected_text": "<MISSING>"
+  },
+  "response_status": 422,
+  "response": {
+    "error": {
+      "code": "INVALID_REQUEST",
+      "message": "Request body failed validation.",
+      "detail": "body,expected_text"
+    }
+  }
+}

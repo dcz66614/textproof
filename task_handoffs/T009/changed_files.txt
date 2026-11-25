@@ -1,0 +1,5 @@
+ M scripts/validate_report_schema.py
+?? schemas/
+?? src/textproof/cli.py
+?? task_handoffs/T009/
+?? tests/integration/test_cli.py

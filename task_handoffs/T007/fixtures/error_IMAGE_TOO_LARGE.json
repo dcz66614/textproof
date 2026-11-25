@@ -1,0 +1,15 @@
+{
+  "request": {
+    "image_mime": "image/png",
+    "image_base64": "<omitted: 34952540 'A' chars, exceeds 25 MiB decoded limit>",
+    "expected_text": "限时优惠"
+  },
+  "response_status": 400,
+  "response": {
+    "error": {
+      "code": "IMAGE_TOO_LARGE",
+      "message": "Decoded image would exceed the 25 MiB limit.",
+      "detail": "file_too_large"
+    }
+  }
+}

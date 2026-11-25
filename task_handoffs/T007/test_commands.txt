@@ -1,0 +1,3 @@
+python -m pytest tests/integration/test_api.py -q   # 验收命令
+python -m pytest tests/unit -q   # 回归确认
+python task_handoffs/T007/capture_fixtures.py   # fixture + loopback 证明采集

@@ -1,0 +1,16 @@
+src/textproof/api/app.py
+src/textproof/ui/app.js
+src/textproof/ui/index.html
+src/textproof/ui/style.css
+task_handoffs/T008/TASK_RESULT.md
+task_handoffs/T008/downloaded_report.json
+task_handoffs/T008/exit_codes.txt
+task_handoffs/T008/network_requests.json
+task_handoffs/T008/test_stderr.log
+task_handoffs/T008/test_stdout.log
+task_handoffs/T008/ui_mismatch_highlight.png
+task_handoffs/T008/ui_missing_line.png
+tests/e2e/cdp.py
+tests/e2e/conftest.py
+tests/e2e/test_ui_browser.py
+tests/e2e/test_ui_static.py

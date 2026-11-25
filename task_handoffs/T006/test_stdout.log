@@ -1,0 +1,135 @@
+=== CMD1: pytest -q (exit 0) ===
+........................................................................ [ 31%]
+........................................................................ [ 62%]
+........................................................................ [ 94%]
+.............                                                            [100%]
+=============================== warnings summary ===============================
+tests/unit/test_image_loader.py::test_pixels_over_40m_rejected
+tests/unit/test_image_loader.py::test_all_rejections_share_the_unified_code
+  /home/hatch/workspace/p033-textproof/.venv/lib/python3.12/site-packages/PIL/Image.py:3452: DecompressionBombWarning: Image size (40008000 pixels) exceeds limit of 40000000 pixels, could be decompression bomb DOS attack.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+229 passed, 2 warnings in 179.62s (0:02:59)
+
+=== CMD2: verify_s0.py under unshare -n, run2 (exit 0) ===
+[1] oracle independence: PASS []
+[0] manifest integrity (300 PNG SHA-256): PASS []
+[3] TP-S0-ZH-001: PASS {'production': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}, 'oracle': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}}
+[3] TP-S0-ZH-002: PASS {'production': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}, 'oracle': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}}
+[3] TP-S0-NUM-001: PASS {'production': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}, 'oracle': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}}
+[3] TP-S0-ZH-003: PASS {'production': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}, 'oracle': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}}
+[2] parity fixed fixtures: 300/300 (PASS)
+[2] edge battery (diagnostic): 13/26 match; differing: ['empty_expected_empty_ocr', 'empty_expected_one_ocr', 'low_conf_match', 'low_conf_diff', 'missing_line', 'extra_line', 'high_cost_pair', 'confusion_lower_o', 'confusion_upper_O', 'trailing_newline', 'same_row_two_boxes_x_order', 'same_row_diff_centre', 'multi_sub_mixed_types']
+ONNX providers: {"det": ["CPUExecutionProvider"], "cls": ["CPUExecutionProvider"], "rec": ["CPUExecutionProvider"]}
+model route: {"rapidocr_version": "3.10.0", "onnxruntime_version": "1.32.0", "providers": {"det": ["CPUExecutionProvider"], "cls": ["CPUExecutionProvider"], "rec": ["CPUExecutionProvider"]}, "det": {"file": "PP-OCRv6_det_small.onnx", "model_key": "multi_PP-OCRv6_det_small", "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.10.0/onnx/PP-OCRv6/det/PP-OCRv6_det_small.onnx", "sha256": "090f04abcd9d9a7498bc4ebf677e4cb9bdce1fe4197ddb7e529f1ef44e1ff94f"}, "rec": {"file": "PP-OCRv6_rec_small.onnx", "model_key": "multi_PP-OCRv6_rec_small", "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.10.0/onnx/PP-OCRv6/rec/PP-OCRv6_rec_small.onnx", "sha256": "6f327246b50388f3c176ae304bd95767ea6dc0c9ae92153ef8cbe210b3c14884"}, "cls": {"file": "ch_ppocr_mobile_v2.0_cls_mobile.onnx", "model_key": "ch_ppocr_mobile_v2.0_cls_mobile", "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.10.0/onnx/PP-OCRv4/cls/ch_ppocr_mobile_v2.0_cls_mobile.onnx", "sha256": "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c"}, "dict": {"file": "ppocrv6_dict.txt", "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.10.0/paddle/PP-OCRv6/rec/PP-OCRv6_rec_small/ppocrv6_dict.txt", "sha256": "b5f2bfe2bdd9448429e3e82b51c789775d9b42f2403d082b00662eb77e401c5d", "lines": 18708}}
+live OCR results written to /home/hatch/workspace/p033-textproof-t006/task_handoffs/T006/live_ocr_results.jsonl (300 records)
+[4] recall: 100.00% (per class: substitution 100.00%, omission 100.00%, numeric_change 100.00%) threshold >=95% / >=90% each: PASS
+[5] clean FPR: 0.00% (0/100) threshold <=8%: PASS
+[6] schema legality: 100.0% (PASS); CER: 0.0008 (reported separately, §8.3)
+[I] IoU: min 0.829 mean 0.938 below 0.80: 0 (PASS); blind min 0.835
+[7] ONNX providers: {"det": ["CPUExecutionProvider"], "cls": ["CPUExecutionProvider"], "rec": ["CPUExecutionProvider"]} (PASS)
+[9] evidence written to /home/hatch/workspace/p033-textproof-t006/task_handoffs/T006 (s0_metrics.json, parity_report.json, live_ocr_results.jsonl, schema_validation.log)
+S0 VERDICT: PASS
+NOTE: item 8 (independent_verify.py) is a separate script and is not run by this runner; see S0_REPORT.md.
+
+=== CMD3: independent_verify.py --case TP-S0-ZH-001 (exit 0) ===
+case: TP-S0-ZH-001
+expected_text: '限时优惠'
+drawn_text: '限时优'
+PNG bytes: 7985 sha256: 7d3a5c0b8e8da3b59c0090f5ccba20cfe81b533df07c1ef83fcb7fef79cec660
+manifest sha256: 7d3a5c0b8e8da3b59c0090f5ccba20cfe81b533df07c1ef83fcb7fef79cec660
+PIL format: PNG size: (1200, 480) mode: RGB
+fixed-record production: verdict=MISMATCH errors=[{"id": "E001", "type": "MISSING_CHARACTER", "expected_line_index": 0, "ocr_line_index": 0, "expected_text": "限时优惠", "recognized_text": "限时优", "expected_span": [3, 4], "recognized_span": [3, 3], "expected_fragment": "惠", "recognized_fragment": "", "bbox_xyxy": [486.0, 189.0, 714.0, 291.0], "bbox_scope": "ocr_line", "confidence": 0.99}]
+fixed-record oracle: verdict=MISMATCH errors=[{"id": "E001", "type": "MISSING_CHARACTER", "expected_line_index": 0, "ocr_line_index": 0, "expected_text": "限时优惠", "recognized_text": "限时优", "expected_span": [3, 4], "recognized_span": [3, 3], "expected_fragment": "惠", "recognized_fragment": "", "bbox_xyxy": [486.0, 189.0, 714.0, 291.0], "bbox_scope": "ocr_line", "confidence": 0.99}]
+ONNX providers: {"det": ["CPUExecutionProvider"], "cls": ["CPUExecutionProvider"], "rec": ["CPUExecutionProvider"]}
+live OCR lines: 1
+  VERBATIM live OCR text: '限时优' confidence=0.99929 bbox=[491.0, 190.0, 713.0, 291.0]
+VERBATIM live production report:
+{
+  "schema": "textproof.report/v1",
+  "tool_version": "0.1.0",
+  "verdict": "MISMATCH",
+  "image": {
+    "sha256": "7d3a5c0b8e8da3b59c0090f5ccba20cfe81b533df07c1ef83fcb7fef79cec660",
+    "format": "PNG",
+    "width": 1200,
+    "height": 480,
+    "coordinate_system": "oriented_image_px_top_left"
+  },
+  "expected_text": "限时优惠",
+  "recognized_text": "限时优",
+  "ocr_lines": [
+    {
+      "line_index": 0,
+      "text": "限时优",
+      "confidence": 0.99929,
+      "bbox_xyxy": [
+        491.0,
+        190.0,
+        713.0,
+        291.0
+      ],
+      "quad": [
+        [
+          491.0,
+          190.0
+        ],
+        [
+          713.0,
+          190.0
+        ],
+        [
+          713.0,
+          291.0
+        ],
+        [
+          491.0,
+          291.0
+        ]
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "id": "E001",
+      "type": "MISSING_CHARACTER",
+      "expected_line_index": 0,
+      "ocr_line_index": 0,
+      "expected_text": "限时优惠",
+      "recognized_text": "限时优",
+      "expected_span": [
+        3,
+        4
+      ],
+      "recognized_span": [
+        3,
+        3
+      ],
+      "expected_fragment": "惠",
+      "recognized_fragment": "",
+      "bbox_xyxy": [
+        491.0,
+        190.0,
+        713.0,
+        291.0
+      ],
+      "bbox_scope": "ocr_line",
+      "confidence": 0.99929
+    }
+  ],
+  "warnings": [],
+  "summary": {
+    "expected_lines": 1,
+    "ocr_lines": 1,
+    "error_count": 1,
+    "warning_count": 0
+  }
+}
+live oracle: verdict=MISMATCH errors=[{"id": "E001", "type": "MISSING_CHARACTER", "expected_line_index": 0, "ocr_line_index": 0, "expected_text": "限时优惠", "recognized_text": "限时优", "expected_span": [3, 4], "recognized_span": [3, 3], "expected_fragment": "惠", "recognized_fragment": "", "bbox_xyxy": [491.0, 190.0, 713.0, 291.0], "bbox_scope": "ocr_line", "confidence": 0.99929}]
+IoU(live bbox, target_region) = 0.964 (>= 0.80 required)
+INDEPENDENT VERIFICATION: PASS
+
+=== parity_check.py (exit 0) ===
+fixed fixtures: 300/300 match (100.0%)
+edge battery (diagnostic): 13/26 match; differing: ['empty_expected_empty_ocr', 'empty_expected_one_ocr', 'low_conf_match', 'low_conf_diff', 'missing_line', 'extra_line', 'high_cost_pair', 'confusion_lower_o', 'confusion_upper_O', 'trailing_newline', 'same_row_two_boxes_x_order', 'same_row_diff_centre', 'multi_sub_mixed_types']

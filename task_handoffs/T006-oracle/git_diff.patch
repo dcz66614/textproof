@@ -1,0 +1,1383 @@
+diff --git a/oracle/__init__.py b/oracle/__init__.py
+new file mode 100644
+index 0000000..bdfc3d1
+--- /dev/null
++++ b/oracle/__init__.py
+@@ -0,0 +1,5 @@
++"""Independent reference oracle (T006) — see :mod:`oracle.reference_compare`."""
++
++from .reference_compare import compare
++
++__all__ = ["compare"]
+diff --git a/oracle/reference_compare.py b/oracle/reference_compare.py
+new file mode 100644
+index 0000000..a77d7a3
+--- /dev/null
++++ b/oracle/reference_compare.py
+@@ -0,0 +1,751 @@
++"""Independent reference comparison oracle for TextProof (P033), T006.
++
++Implemented from the frozen specification alone:
++
++* ``PROJECT_BOOK.md`` §4.3 (normalisation), §4.4 (reading order and
++  line alignment), §4.5 (weighted character edit distance), §4.6
++  (coordinates), §5 (frozen ``textproof.report/v1`` contract), §7
++  (algorithms) and §8.1 (fixed S0 samples);
++* ``IMPLEMENTATION_PLAN.md`` §5.1 (interface shapes) and the T006 card.
++
++This module is a deliberately separate code path from the production
++implementation.  It imports nothing from ``textproof`` (standard library
++only), reads no images and calls no OCR engine: it compares an expected
++text against already-recognised OCR line records and builds a
++``textproof.report/v1`` report dict.
++
++Frozen constants (spec §4.4 / §7.2 / §7.6):
++
++* line gap penalty ``0.35``; ambiguity margin ``0.05``;
++  high pair cost ``0.70``; low-confidence threshold ``0.65``.
++* character weights (§4.5): equal ``0``, visual-confusion substitution
++  ``0.65``, punctuation substitution ``0.50``, digit-to-digit
++  substitution ``1.25``, other substitution ``1.00``,
++  missing / extra character ``1.00``.
++
++Decisions where the specification text leaves room (recorded here so a
++reviewer can challenge them; see also ``TASK_RESULT.md``):
++
++1. Confusion pairs (§4.5 says "如", i.e. the list is exemplary).  Only
++   the pairs named in the spec are used, literally: ``O/0``, ``I/1``,
++   ``I/l``, ``1/l``, ``S/5``, ``B/8``.  Lowercase ``o/0``, ``s/5`` and
++   ``b/8`` are NOT treated as confusion pairs.
++2. Line splitting follows ``contracts.py`` ("LF-separated segments"):
++   the text is split on ``"\\n"`` literally, so ``""`` is one empty
++   line and a trailing newline yields a trailing empty line.
++3. The punctuation-substitution cost (``0.50``) applies only when
++   *both* characters are Unicode punctuation (category ``P*``).
++4. A pair cost above ``0.70`` is excluded from the line DP.  This is
++   exactly equivalent to letting the DP choose: delete + insert costs
++   ``0.35 + 0.35 = 0.70``, so any optimal alignment already avoids such
++   a pair; the exclusion only makes the intent explicit.
++5. ``AMBIGUOUS_ALIGNMENT`` is emitted as one entry in ``errors`` (§5.3
++   lists it in the error-type enum).  When ambiguous, no deterministic
++   character/line conclusions are emitted (§7.2: "不输出确定性字符结论"),
++   so ``errors`` holds exactly that one entry.
++6. Consecutive operations of the same kind inside one line pair merge
++   into a single error record (this is what makes §8.1 ZH-003 report
++   the missing ``"20"`` as one ``MISSING_CHARACTER`` with span
++   ``[4, 6]``).  Consecutive substitutions of *different* classified
++   types (e.g. ``SUBSTITUTION`` followed by ``NUMERIC_CHANGE``) are
++   kept as separate records.
++7. Warnings are objects ``{"code", "message", ...}``: one
++   ``LOW_OCR_CONFIDENCE`` object per OCR line below ``0.65``, and one
++   ``OCR_EMPTY`` object when OCR produced no usable text.  The spec
++   (§5.3) fixes the warning *codes* but shows no warning object shape.
++8. ``MISSING_LINE`` carries ``bbox_xyxy: null`` and ``bbox_scope:
++   "none"``; every other error carries ``bbox_scope: "ocr_line"`` with
++   the paired / extra OCR line's box.  Error-level ``expected_text`` /
++   ``recognized_text`` are the *normalised* line texts (spans index
++   normalised text); the report top level keeps the raw expected text
++   and the raw recognised text (§4.3.6).
++9. The ``image`` block is always present.  The oracle takes no image
++   bytes, so callers pass ``image_info`` (``sha256`` / ``format`` /
++   ``width`` / ``height``) when known; unknown fields are ``null``.
++10. No usable OCR text and non-empty expected text is ``OCR_FAILED``
++    with an ``OCR_EMPTY`` warning and no error records.  Empty expected
++    text together with empty OCR is ``MATCH``.
++11. ``tool_version`` defaults to ``"0.1.0"``, the value in the §5.4
++    sample.
++12. Reading order: OCR line records are re-sorted by bbox vertical
++    centre, then bbox ``x1``, then ``source_order`` (§4.4: rows by ``y``
++    ascending, same visual row by ``x`` ascending); ``line_index`` in
++    the report is the reassigned sorted zero-based index (§7.1).
++    Records without a bbox keep their relative input order after
++    records with one.
++13. Ambiguity (§4.4: "两个最优对齐路径代价差小于 0.05") is judged
++    over *distinct alignments*, where an alignment is its set of
++    paired lines.  Two DP paths that differ only by swapping adjacent
++    delete/insert steps encode the same alignment (same pairs, same
++    missing/extra lines) and do not count as two paths; otherwise
++    every missing-plus-extra case would be "ambiguous" by
++    construction.  The second-best cost is therefore the cheapest
++    alignment whose pair set differs from the best one's.
++"""
++
++from __future__ import annotations
++
++import re
++import unicodedata
++from fractions import Fraction
++from typing import Any, Optional, Sequence
++
++__all__ = [
++    "SCHEMA_ID",
++    "COORDINATE_SYSTEM",
++    "TOOL_VERSION",
++    "GAP_PENALTY",
++    "AMBIGUITY_MARGIN",
++    "HIGH_PAIR_COST",
++    "LOW_CONFIDENCE_THRESHOLD",
++    "normalize_text",
++    "split_normalized_lines",
++    "substitution_cost",
++    "weighted_edit_distance",
++    "pair_cost",
++    "compare",
++]
++
++# ---------------------------------------------------------------------------
++# Frozen identity and thresholds (PROJECT_BOOK.md §5.1, §4.4, §7.2, §7.6)
++# ---------------------------------------------------------------------------
++
++SCHEMA_ID = "textproof.report/v1"
++COORDINATE_SYSTEM = "oriented_image_px_top_left"
++TOOL_VERSION = "0.1.0"
++
++GAP_PENALTY = 0.35
++AMBIGUITY_MARGIN = 0.05
++HIGH_PAIR_COST = 0.70
++LOW_CONFIDENCE_THRESHOLD = 0.65
++
++_GAP = Fraction(35, 100)
++_MARGIN = Fraction(5, 100)
++_HIGH_COST = Fraction(70, 100)
++_BIG = Fraction(10**9, 1)  # "infinity" for the line DP; real costs stay << 1.
++
++# Character weights in integer hundredths (§4.5) so the character DP is
++# exact and free of float drift.
++_W_EQUAL = 0
++_W_CONFUSION = 65
++_W_PUNCTUATION = 50
++_W_DIGIT = 125
++_W_OTHER = 100
++_W_INDEL = 100
++
++# Visual-confusion pairs named in §4.5, taken literally (see docstring 1).
++_CONFUSION_PAIRS = frozenset(
++    frozenset(pair)
++    for pair in (("O", "0"), ("I", "1"), ("I", "l"), ("1", "l"),
++                 ("S", "5"), ("B", "8"))
++)
++
++_WS_RUN = re.compile(r"\s+")
++_FULLWIDTH_SPACE = 0x3000
++_FULLWIDTH_ASCII_FIRST = 0xFF01
++_FULLWIDTH_ASCII_LAST = 0xFF5E
++_FULLWIDTH_OFFSET = 0xFEE0
++
++
++# ---------------------------------------------------------------------------
++# §4.3 normalisation
++# ---------------------------------------------------------------------------
++
++def _map_fullwidth(ch: str) -> str:
++    """Map one full-width ASCII char to half-width; full-width space to space."""
++    code = ord(ch)
++    if _FULLWIDTH_ASCII_FIRST <= code <= _FULLWIDTH_ASCII_LAST:
++        return chr(code - _FULLWIDTH_OFFSET)
++    if code == _FULLWIDTH_SPACE:
++        return " "
++    return ch
++
++
++def normalize_text(text: str) -> str:
++    """Apply §4.3 to a whole text: NFC, newline unification, full-width
++    mapping, per-line strip and horizontal-whitespace folding.
++
++    Case is preserved; punctuation is preserved.
++    """
++    if not isinstance(text, str):
++        raise TypeError("text must be str")
++    text = unicodedata.normalize("NFC", text)
++    text = text.replace("\r\n", "\n").replace("\r", "\n")
++    text = "".join(_map_fullwidth(ch) for ch in text)
++    return "\n".join(_WS_RUN.sub(" ", line.strip()) for line in text.split("\n"))
++
++
++def split_normalized_lines(text: str) -> list[str]:
++    """Split an expected / OCR text into normalised lines (§4.3).
++
++    Literal ``"\\n"`` split (see docstring 2): ``""`` yields ``[""]`` and
++    a trailing newline yields a trailing empty line.
++    """
++    return normalize_text(text).split("\n")
++
++
++# ---------------------------------------------------------------------------
++# §4.5 / §7.3 character-level weighted edit distance
++# ---------------------------------------------------------------------------
++
++def _is_decimal_digit(ch: str) -> bool:
++    return unicodedata.category(ch) == "Nd"
++
++
++def _is_punctuation(ch: str) -> bool:
++    return unicodedata.category(ch).startswith("P")
++
++
++def _substitution_cost_cents(a: str, b: str) -> int:
++    if a == b:
++        return _W_EQUAL
++    if frozenset((a, b)) in _CONFUSION_PAIRS:
++        return _W_CONFUSION
++    if _is_punctuation(a) and _is_punctuation(b):
++        return _W_PUNCTUATION
++    if _is_decimal_digit(a) and _is_decimal_digit(b):
++        return _W_DIGIT
++    return _W_OTHER
++
++
++def substitution_cost(a: str, b: str) -> float:
++    """Cost of substituting single character ``a`` with ``b`` (§4.5)."""
++    if len(a) != 1 or len(b) != 1:
++        raise ValueError("substitution_cost takes single characters")
++    return _substitution_cost_cents(a, b) / 100.0
++
++
++def _char_edit_ops(expected: str, recognized: str):
++    """Character DP (§7.3).
++
++    Returns ``(cost_cents, ops)`` where ``ops`` is a list of
++    ``(kind, exp_index, rec_index)`` with kind in ``match`` / ``sub`` /
++    ``missing`` / ``extra``; the absent side's index is ``None``.
++    Ties resolve diagonal (match/sub) > missing > extra.
++    """
++    n, m = len(expected), len(recognized)
++    dist = [[0] * (m + 1) for _ in range(n + 1)]
++    choice = [[0] * (m + 1) for _ in range(n + 1)]  # 0 diag, 1 missing, 2 extra
++    for i in range(1, n + 1):
++        dist[i][0] = i * _W_INDEL
++        choice[i][0] = 1
++    for j in range(1, m + 1):
++        dist[0][j] = j * _W_INDEL
++        choice[0][j] = 2
++    for i in range(1, n + 1):
++        exp_ch = expected[i - 1]
++        for j in range(1, m + 1):
++            diag = dist[i - 1][j - 1] + _substitution_cost_cents(exp_ch, recognized[j - 1])
++            dele = dist[i - 1][j] + _W_INDEL
++            ins = dist[i][j - 1] + _W_INDEL
++            best, pick = diag, 0
++            if dele < best:
++                best, pick = dele, 1
++            if ins < best:
++                best, pick = ins, 2
++            dist[i][j] = best
++            choice[i][j] = pick
++    ops = []
++    i, j = n, m
++    while i > 0 or j > 0:
++        pick = choice[i][j]
++        if pick == 0:
++            kind = "match" if expected[i - 1] == recognized[j - 1] else "sub"
++            ops.append((kind, i - 1, j - 1))
++            i -= 1
++            j -= 1
++        elif pick == 1:
++            ops.append(("missing", i - 1, None))
++            i -= 1
++        else:
++            ops.append(("extra", None, j - 1))
++            j -= 1
++    ops.reverse()
++    return dist[n][m], ops
++
++
++def weighted_edit_distance(expected: str, recognized: str) -> float:
++    """Minimum weighted edit cost between two (single-line) strings (§4.5)."""
++    cents, _ = _char_edit_ops(normalize_text(expected), normalize_text(recognized))
++    return cents / 100.0
++
++
++def _classify_substitution(exp_ch: str, rec_ch: str) -> str:
++    """§7.4: both Unicode decimal digits -> NUMERIC_CHANGE, else SUBSTITUTION."""
++    if _is_decimal_digit(exp_ch) and _is_decimal_digit(rec_ch):
++        return "NUMERIC_CHANGE"
++    return "SUBSTITUTION"
++
++
++# ---------------------------------------------------------------------------
++# §7.2 / §4.4 line alignment
++# ---------------------------------------------------------------------------
++
++def pair_cost(expected_line: str, recognized_line: str) -> float:
++    """Normalised pair cost ``c(i,j) = d_w / max(|e|, |o|, 1)`` (§7.2)."""
++    cents, _ = _char_edit_ops(
++        normalize_text(expected_line), normalize_text(recognized_line)
++    )
++    denom = max(len(normalize_text(expected_line)),
++                len(normalize_text(recognized_line)), 1)
++    return float(Fraction(cents, 100 * denom))
++
++
++def _pair_cost_fraction(expected_line: str, recognized_line: str) -> Fraction:
++    cents, _ = _char_edit_ops(expected_line, recognized_line)
++    denom = max(len(expected_line), len(recognized_line), 1)
++    return Fraction(cents, 100 * denom)
++
++
++def _line_dp(m: int, n: int, pair, forbidden=frozenset()):
++    """Global sequence DP over lines (§7.2).
++
++    ``pair`` is an ``m x n`` matrix of ``Fraction`` costs or ``None``
++    (``None`` = pairing excluded, e.g. cost above 0.70).  ``forbidden``
++    is a set of ``(dest_i, dest_j, kind)`` transitions to exclude, used
++    to compute the second-best alignment.  ``kind`` is ``pair`` /
++    ``del`` (missing expected line) / ``ins`` (extra OCR line).
++    Tie-break: pair > del > ins (§4.4).
++
++    Returns ``(cost_table, choice_table)``.
++    """
++    cost = [[_BIG] * (n + 1) for _ in range(m + 1)]
++    choice: list[list[Optional[str]]] = [[None] * (n + 1) for _ in range(m + 1)]
++    cost[0][0] = Fraction(0)
++    for i in range(1, m + 1):
++        if (i, 0, "del") not in forbidden and cost[i - 1][0] < _BIG:
++            cost[i][0] = cost[i - 1][0] + _GAP
++            choice[i][0] = "del"
++    for j in range(1, n + 1):
++        if (0, j, "ins") not in forbidden and cost[0][j - 1] < _BIG:
++            cost[0][j] = cost[0][j - 1] + _GAP
++            choice[0][j] = "ins"
++    for i in range(1, m + 1):
++        for j in range(1, n + 1):
++            best = _BIG
++            pick: Optional[str] = None
++            if pair[i - 1][j - 1] is not None and (i, j, "pair") not in forbidden:
++                cand = cost[i - 1][j - 1] + pair[i - 1][j - 1]
++                if cand < best:
++                    best, pick = cand, "pair"
++            if (i, j, "del") not in forbidden:
++                cand = cost[i - 1][j] + _GAP
++                if cand < best:
++                    best, pick = cand, "del"
++            if (i, j, "ins") not in forbidden:
++                cand = cost[i][j - 1] + _GAP
++                if cand < best:
++                    best, pick = cand, "ins"
++            cost[i][j] = best
++            choice[i][j] = pick
++    return cost, choice
++
++
++def _backtrack_alignment(choice, m: int, n: int):
++    """Backtrack the line DP into ``(kind, exp_i, rec_j)`` ops, in order.
++
++    ``kind`` is ``pair`` / ``missing`` (expected line without OCR pair)
++    / ``extra`` (OCR line without expected pair).
++    """
++    ops = []
++    i, j = m, n
++    while i > 0 or j > 0:
++        pick = choice[i][j]
++        if pick == "pair":
++            ops.append(("pair", i - 1, j - 1))
++            i -= 1
++            j -= 1
++        elif pick == "del":
++            ops.append(("missing", i - 1, None))
++            i -= 1
++        elif pick == "ins":
++            ops.append(("extra", None, j - 1))
++            j -= 1
++        else:
++            raise RuntimeError("unreachable cell in line alignment")
++    ops.reverse()
++    return ops
++
++
++def _backward_dp(m: int, n: int, pair):
++    """Backward DP (§7.2): ``back[i][j]`` is the minimum cost from cell
++    ``(i, j)`` to ``(m, n)``.  Used to price alignments that contain a
++    given pair."""
++    back = [[_BIG] * (n + 1) for _ in range(m + 1)]
++    back[m][n] = Fraction(0)
++    for i in range(m - 1, -1, -1):
++        back[i][n] = back[i + 1][n] + _GAP
++    for j in range(n - 1, -1, -1):
++        back[m][j] = back[m][j + 1] + _GAP
++    for i in range(m - 1, -1, -1):
++        for j in range(n - 1, -1, -1):
++            best = back[i + 1][j] + _GAP
++            cand = back[i][j + 1] + _GAP
++            if cand < best:
++                best = cand
++            if pair[i][j] is not None:
++                cand = pair[i][j] + back[i + 1][j + 1]
++                if cand < best:
++                    best = cand
++            back[i][j] = best
++    return back
++
++
++def _second_best_cost(m: int, n: int, pair, forward, best_ops) -> Fraction:
++    """Exact cost of the cheapest alignment with a *different pair set*
++    from the best alignment.
++
++    An alignment is determined by its set of paired ``(exp, ocr)``
++    lines: unpaired expected lines are missing, unpaired OCR lines are
++    extra.  Two DP paths that differ only by swapping adjacent delete /
++    insert steps (``del`` then ``ins`` vs ``ins`` then ``del``) encode
++    the *same* alignment, so they must not count as the "two best
++    paths" of §4.4.  Every genuinely different alignment either lacks
++    some pair of the best alignment or contains a pair the best one
++    lacks, so the second-best cost is the minimum of:
++
++    (a) for each pair of the best alignment, the best alignment that
++        does not contain that pair (a DP run with that diagonal
++        forbidden); and
++    (b) for each allowed pair the best alignment lacks, the cheapest
++        alignment containing it (forward cost to the pair + pair cost +
++        backward cost from the pair).
++
++    Returns ``_BIG`` when no different alignment exists.
++    """
++    best_pairs = {(i, j) for kind, i, j in best_ops if kind == "pair"}
++    second = _BIG
++    for (i, j) in best_pairs:
++        cost, _ = _line_dp(m, n, pair, forbidden={(i + 1, j + 1, "pair")})
++        if cost[m][n] < second:
++            second = cost[m][n]
++    back = _backward_dp(m, n, pair)
++    for i in range(m):
++        for j in range(n):
++            if pair[i][j] is None or (i, j) in best_pairs:
++                continue
++            cand = forward[i][j] + pair[i][j] + back[i + 1][j + 1]
++            if cand < second:
++                second = cand
++    return second
++
++
++# ---------------------------------------------------------------------------
++# OCR line records and reading order (§4.4, §7.1)
++# ---------------------------------------------------------------------------
++
++def _field(record: Any, name: str, default: Any) -> Any:
++    if isinstance(record, dict):
++        return record.get(name, default)
++    return getattr(record, name, default)
++
++
++def _as_list(value: Any) -> Optional[list]:
++    if value is None:
++        return None
++    if isinstance(value, (list, tuple)):
++        return list(value)
++    return value
++
++
++def _as_quad(value: Any) -> Optional[list]:
++    if value is None:
++        return None
++    if isinstance(value, (list, tuple)):
++        return [list(point) for point in value]
++    return value
++
++
++def _normalise_record(raw: Any, position: int) -> dict:
++    text = _field(raw, "text", "")
++    if text is None:
++        text = ""
++    if not isinstance(text, str):
++        text = str(text)
++    confidence = _field(raw, "confidence", None)
++    if confidence is not None:
++        confidence = float(confidence)
++    bbox = _as_list(_field(raw, "bbox_xyxy", None))
++    return {
++        "line_index": _field(raw, "line_index", position),
++        "text": text,
++        "confidence": confidence,
++        "bbox_xyxy": bbox,
++        "quad": _as_quad(_field(raw, "quad", None)),
++        "source_order": _field(raw, "source_order", position),
++        "normalized": normalize_text(text),
++    }
++
++
++def _reading_order(records: list[dict]) -> list[dict]:
++    """Sort OCR lines into reading order (§4.4): bbox vertical centre
++    ascending, then bbox x1 ascending, then source order."""
++
++    def key(item):
++        position, record = item
++        bbox = record["bbox_xyxy"]
++        if isinstance(bbox, (list, tuple)) and len(bbox) == 4:
++            centre_y = (float(bbox[1]) + float(bbox[3])) / 2.0
++            x1 = float(bbox[0])
++        else:
++            centre_y = float("inf")
++            x1 = float("inf")
++        return (centre_y, x1, record["source_order"], record["line_index"])
++
++    return [record for _, record in sorted(enumerate(records), key=key)]
++
++
++# ---------------------------------------------------------------------------
++# Report construction (§5, §7.4–§7.6)
++# ---------------------------------------------------------------------------
++
++def _char_errors_for_pair(error_no_start: int, exp_idx: int, rec_idx: int,
++                          exp_line: str, rec_line: str,
++                          record: dict) -> list[dict]:
++    """Merge the character DP ops of one aligned line pair into error
++    records (§4.5, §7.4, §7.5)."""
++    _, ops = _char_edit_ops(exp_line, rec_line)
++    errors: list[dict] = []
++    error_no = error_no_start
++    exp_pos = 0
++    rec_pos = 0
++    k = 0
++    while k < len(ops):
++        kind = ops[k][0]
++        if kind == "match":
++            exp_pos += 1
++            rec_pos += 1
++            k += 1
++            continue
++        start_exp, start_rec = exp_pos, rec_pos
++        run = []
++        while k < len(ops):
++            op_kind, op_i, op_j = ops[k]
++            if op_kind != kind:
++                break
++            if kind == "sub" and run:
++                prev_i, prev_j = run[-1][1], run[-1][2]
++                if _classify_substitution(exp_line[prev_i], rec_line[prev_j]) != \
++                        _classify_substitution(exp_line[op_i], rec_line[op_j]):
++                    break
++            run.append(ops[k])
++            k += 1
++            if kind == "missing":
++                exp_pos += 1
++            elif kind == "extra":
++                rec_pos += 1
++            else:
++                exp_pos += 1
++                rec_pos += 1
++        error_no += 1
++        if kind == "missing":
++            error_type = "MISSING_CHARACTER"
++            exp_span = [start_exp, exp_pos]
++            rec_span = [start_rec, start_rec]
++            exp_frag = exp_line[start_exp:exp_pos]
++            rec_frag = ""
++        elif kind == "extra":
++            error_type = "EXTRA_CHARACTER"
++            exp_span = [start_exp, start_exp]
++            rec_span = [start_rec, rec_pos]
++            exp_frag = ""
++            rec_frag = rec_line[start_rec:rec_pos]
++        else:
++            error_type = _classify_substitution(exp_line[start_exp], rec_line[start_rec])
++            exp_span = [start_exp, exp_pos]
++            rec_span = [start_rec, rec_pos]
++            exp_frag = exp_line[start_exp:exp_pos]
++            rec_frag = rec_line[start_rec:rec_pos]
++        errors.append({
++            "id": f"E{error_no:03d}",
++            "type": error_type,
++            "expected_line_index": exp_idx,
++            "ocr_line_index": rec_idx,
++            "expected_text": exp_line,
++            "recognized_text": rec_line,
++            "expected_span": exp_span,
++            "recognized_span": rec_span,
++            "expected_fragment": exp_frag,
++            "recognized_fragment": rec_frag,
++            "bbox_xyxy": record["bbox_xyxy"],
++            "bbox_scope": "ocr_line",
++            "confidence": record["confidence"],
++        })
++    return errors
++
++
++def compare(expected_text: str,
++            ocr_lines: Sequence[Any],
++            image_info: Optional[dict] = None,
++            tool_version: str = TOOL_VERSION) -> dict:
++    """Compare expected text against OCR line records; build a
++    ``textproof.report/v1`` report dict (§5).
++
++    ``expected_text`` is the user's raw expected text.  ``ocr_lines``
++    is a sequence of OCR line records (dicts or objects) with fields
++    ``line_index`` / ``text`` / ``confidence`` / ``bbox_xyxy`` / ``quad``
++    / ``source_order`` (the shapes of ``OCRLine`` in §7.1 / plan §5.1).
++    ``image_info``, when given, supplies ``sha256`` / ``format`` /
++    ``width`` / ``height`` for the report ``image`` block; unknown
++    fields are ``null`` (the oracle reads no images).
++    """
++    if not isinstance(expected_text, str):
++        raise TypeError("expected_text must be str")
++    if image_info is not None and not isinstance(image_info, dict):
++        raise TypeError("image_info must be a dict or None")
++
++    raw_expected = expected_text
++    expected_lines = split_normalized_lines(expected_text)
++
++    records = [_normalise_record(raw, pos) for pos, raw in enumerate(ocr_lines)]
++    ordered = _reading_order(records)
++    for new_index, record in enumerate(ordered):
++        record["line_index"] = new_index
++
++    recognized_raw = "\n".join(record["text"] for record in ordered)
++    recognized_lines = [record["normalized"] for record in ordered]
++
++    # §7.6 warnings: one LOW_OCR_CONFIDENCE per line below 0.65.
++    warnings: list[dict] = []
++    for record in ordered:
++        confidence = record["confidence"]
++        if confidence is not None and confidence < LOW_CONFIDENCE_THRESHOLD:
++            warnings.append({
++                "code": "LOW_OCR_CONFIDENCE",
++                "message": (
++                    f"OCR line {record['line_index']} confidence "
++                    f"{confidence:.2f} is below {LOW_CONFIDENCE_THRESHOLD:.2f}."
++                ),
++                "ocr_line_index": record["line_index"],
++                "confidence": confidence,
++            })
++
++    usable_ocr = any(line != "" for line in recognized_lines)
++    usable_expected = any(line != "" for line in expected_lines)
++
++    errors: list[dict] = []
++    if not usable_ocr:
++        if usable_expected:
++            verdict = "OCR_FAILED"
++            warnings.append({
++                "code": "OCR_EMPTY",
++                "message": "OCR produced no usable text.",
++            })
++        else:
++            verdict = "MATCH"
++    else:
++        m, n = len(expected_lines), len(recognized_lines)
++        pair = [[None] * n for _ in range(m)]
++        for i in range(m):
++            for j in range(n):
++                cost = _pair_cost_fraction(expected_lines[i], recognized_lines[j])
++                pair[i][j] = cost if cost <= _HIGH_COST else None
++        cost_table, choice_table = _line_dp(m, n, pair)
++        best_ops = _backtrack_alignment(choice_table, m, n)
++        second_best = _second_best_cost(m, n, pair, cost_table, best_ops)
++        if second_best - cost_table[m][n] < _MARGIN:
++            errors = [{
++                "id": "E001",
++                "type": "AMBIGUOUS_ALIGNMENT",
++                "expected_line_index": None,
++                "ocr_line_index": None,
++                "expected_text": raw_expected,
++                "recognized_text": recognized_raw,
++                "expected_span": None,
++                "recognized_span": None,
++                "expected_fragment": "",
++                "recognized_fragment": "",
++                "bbox_xyxy": None,
++                "bbox_scope": "none",
++                "confidence": None,
++            }]
++            verdict = "REVIEW_REQUIRED"
++        else:
++            error_no = 0
++            for kind, exp_i, rec_j in best_ops:
++                if kind == "pair":
++                    new_errors = _char_errors_for_pair(
++                        error_no, exp_i, rec_j,
++                        expected_lines[exp_i], recognized_lines[rec_j],
++                        ordered[rec_j],
++                    )
++                    errors.extend(new_errors)
++                    error_no += len(new_errors)
++                elif kind == "missing":
++                    error_no += 1
++                    exp_line = expected_lines[exp_i]
++                    errors.append({
++                        "id": f"E{error_no:03d}",
++                        "type": "MISSING_LINE",
++                        "expected_line_index": exp_i,
++                        "ocr_line_index": None,
++                        "expected_text": exp_line,
++                        "recognized_text": "",
++                        "expected_span": [0, len(exp_line)],
++                        "recognized_span": [0, 0],
++                        "expected_fragment": exp_line,
++                        "recognized_fragment": "",
++                        "bbox_xyxy": None,
++                        "bbox_scope": "none",
++                        "confidence": None,
++                    })
++                else:  # extra OCR line
++                    error_no += 1
++                    rec_line = recognized_lines[rec_j]
++                    record = ordered[rec_j]
++                    errors.append({
++                        "id": f"E{error_no:03d}",
++                        "type": "EXTRA_LINE",
++                        "expected_line_index": None,
++                        "ocr_line_index": rec_j,
++                        "expected_text": "",
++                        "recognized_text": rec_line,
++                        "expected_span": [0, 0],
++                        "recognized_span": [0, len(rec_line)],
++                        "expected_fragment": "",
++                        "recognized_fragment": rec_line,
++                        "bbox_xyxy": record["bbox_xyxy"],
++                        "bbox_scope": "ocr_line",
++                        "confidence": record["confidence"],
++                    })
++            if warnings:
++                verdict = "REVIEW_REQUIRED"
++            elif errors:
++                verdict = "MISMATCH"
++            else:
++                verdict = "MATCH"
++
++    info = image_info or {}
++    report = {
++        "schema": SCHEMA_ID,
++        "tool_version": tool_version,
++        "verdict": verdict,
++        "image": {
++            "sha256": info.get("sha256"),
++            "format": info.get("format"),
++            "width": info.get("width"),
++            "height": info.get("height"),
++            "coordinate_system": COORDINATE_SYSTEM,
++        },
++        "expected_text": raw_expected,
++        "recognized_text": recognized_raw,
++        "ocr_lines": [
++            {
++                "line_index": record["line_index"],
++                "text": record["text"],
++                "confidence": record["confidence"],
++                "bbox_xyxy": record["bbox_xyxy"],
++                "quad": record["quad"],
++            }
++            for record in ordered
++        ],
++        "errors": errors,
++        "warnings": warnings,
++        "summary": {
++            "expected_lines": len(expected_lines),
++            "ocr_lines": len(ordered),
++            "error_count": len(errors),
++            "warning_count": len(warnings),
++        },
++    }
++    return report
+diff --git a/tests/oracle/test_reference_compare.py b/tests/oracle/test_reference_compare.py
+new file mode 100644
+index 0000000..58c472e
+--- /dev/null
++++ b/tests/oracle/test_reference_compare.py
+@@ -0,0 +1,609 @@
++"""Self-tests for the independent reference oracle (T006).
++
++These tests use only the frozen specification, the S0 fixture manifest
++and its expected-output file.  They never import the production
++implementation (``textproof.core``) — see ``test_oracle_is_independent``.
++
++Golden inputs are built from the manifest: for each S0 fixture the OCR
++side is a single fixed line record carrying the fixture's drawn text,
++with the line box taken from the manifest's ``target_region_xyxy``
++(the task's stated construction, not a real OCR run).
++"""
++
++import json
++import sys
++from pathlib import Path
++
++import pytest
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
++
++from oracle.reference_compare import (  # noqa: E402
++    compare,
++    normalize_text,
++    pair_cost,
++    split_normalized_lines,
++    substitution_cost,
++    weighted_edit_distance,
++)
++
++REPO_ROOT = Path(__file__).resolve().parents[2]
++MANIFEST_PATH = REPO_ROOT / "tests" / "fixtures" / "s0" / "manifest.json"
++EXPECTED_PATH = REPO_ROOT / "tests" / "fixtures" / "s0" / "expected_output.json"
++
++S0_IDS = ["TP-S0-ZH-001", "TP-S0-ZH-002", "TP-S0-NUM-001", "TP-S0-ZH-003"]
++
++
++@pytest.fixture(scope="module")
++def manifest():
++    return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
++
++
++@pytest.fixture(scope="module")
++def expected_output():
++    return json.loads(EXPECTED_PATH.read_text(encoding="utf-8"))
++
++
++@pytest.fixture(scope="module")
++def s0_entries(manifest):
++    by_id = {entry["id"]: entry for entry in manifest["fixtures"]}
++    return {fid: by_id[fid] for fid in S0_IDS}
++
++
++def make_line(text, bbox, confidence=0.98, line_index=0, source_order=0):
++    x1, y1, x2, y2 = bbox
++    return {
++        "line_index": line_index,
++        "text": text,
++        "confidence": confidence,
++        "bbox_xyxy": list(bbox),
++        "quad": [[x1, y1], [x2, y1], [x2, y2], [x1, y2]],
++        "source_order": source_order,
++    }
++
++
++def image_info_for(entry):
++    return {
++        "sha256": entry["sha256"],
++        "format": entry["format"],
++        "width": entry["width"],
++        "height": entry["height"],
++    }
++
++
++def compare_s0(entry):
++    """One fixed OCR line carrying the drawn text, boxed at target_region."""
++    line = make_line(entry["drawn_text"], entry["target_region_xyxy"])
++    return compare(entry["expected_text"], [line],
++                   image_info=image_info_for(entry))
++
++
++# ---------------------------------------------------------------------------
++# Independence (hard requirement of T006)
++# ---------------------------------------------------------------------------
++
++def test_oracle_is_independent():
++    source = (REPO_ROOT / "oracle" / "reference_compare.py").read_text(
++        encoding="utf-8")
++    assert "import textproof" not in source
++    assert "textproof.core" not in source
++    import ast
++    tree = ast.parse(source)
++    stdlib = sys.stdlib_module_names
++    for node in ast.walk(tree):
++        if isinstance(node, ast.Import):
++            for alias in node.names:
++                assert alias.name.split(".")[0] in stdlib, alias.name
++        elif isinstance(node, ast.ImportFrom):
++            assert (node.module or "").split(".")[0] in stdlib, node.module
++    # The decisive check runs in a fresh interpreter: importing only the
++    # oracle must not pull in the production package at all.  (Checking
++    # sys.modules in-process would be order-dependent: other test modules
++    # in a full-suite run import textproof.core first.)
++    import subprocess
++    code = (
++        "import sys; sys.path.insert(0, %r); "
++        "import oracle.reference_compare; "
++        "assert 'textproof' not in sys.modules, 'oracle imports textproof'; "
++        "assert 'textproof.core' not in sys.modules; "
++        "print('oracle-standalone-ok')" % str(REPO_ROOT)
++    )
++    proc = subprocess.run([sys.executable, "-c", code],
++                          capture_output=True, text=True, timeout=60)
++    assert proc.returncode == 0, proc.stderr
++    assert "oracle-standalone-ok" in proc.stdout
++
++
++# ---------------------------------------------------------------------------
++# §8.1 golden tests (the four fixed S0 samples)
++# ---------------------------------------------------------------------------
++
++@pytest.mark.parametrize("fixture_id", S0_IDS)
++def test_s0_golden_matches_manifest_and_expected_output(
++        fixture_id, s0_entries, expected_output):
++    entry = s0_entries[fixture_id]
++    expected = expected_output["fixtures"][fixture_id]
++    # The two frozen files must agree with each other first.
++    assert entry["expected_verdict"] == expected["verdict"]
++    assert entry["expected_errors"] == expected["errors"]
++    assert entry["expected_text"] == expected["expected_text"]
++    assert entry["drawn_text"] == expected["drawn_text"]
++
++    report = compare_s0(entry)
++
++    assert report["schema"] == "textproof.report/v1"
++    assert report["verdict"] == expected["verdict"]
++    assert report["expected_text"] == entry["expected_text"]
++    assert report["recognized_text"] == entry["drawn_text"]
++    assert report["image"]["sha256"] == entry["sha256"]
++    assert report["image"]["format"] == "PNG"
++    assert report["image"]["width"] == 1200
++    assert report["image"]["height"] == 480
++    assert report["image"]["coordinate_system"] == "oriented_image_px_top_left"
++    assert report["summary"] == expected["summary"]
++    assert len(report["errors"]) == len(expected["errors"])
++    for got, want in zip(report["errors"], expected["errors"]):
++        assert got["type"] == want["type"]
++        assert got["expected_fragment"] == want["expected_fragment"]
++        assert got["recognized_fragment"] == want["recognized_fragment"]
++        assert got["expected_span"] == want["expected_span"]
++        assert got["recognized_span"] == want["recognized_span"]
++        assert got["bbox_scope"] == want["bbox_scope"]
++        # The error box is the OCR line box, which the test supplies as
++        # the manifest target region.
++        assert got["bbox_xyxy"] == list(entry["target_region_xyxy"])
++        assert got["confidence"] == 0.98
++
++
++def test_s0_zh_001_exactly_one_missing_character(s0_entries):
++    report = compare_s0(s0_entries["TP-S0-ZH-001"])
++    assert [e["type"] for e in report["errors"]] == ["MISSING_CHARACTER"]
++    error = report["errors"][0]
++    assert error["id"] == "E001"
++    assert error["expected_fragment"] == "惠"
++    assert error["recognized_fragment"] == ""
++    assert error["expected_span"] == [3, 4]
++    assert error["recognized_span"] == [3, 3]
++    assert error["expected_line_index"] == 0
++    assert error["ocr_line_index"] == 0
++
++
++def test_s0_zh_002_exactly_one_substitution(s0_entries):
++    report = compare_s0(s0_entries["TP-S0-ZH-002"])
++    assert [e["type"] for e in report["errors"]] == ["SUBSTITUTION"]
++    error = report["errors"][0]
++    assert error["expected_fragment"] == "品"
++    assert error["recognized_fragment"] == "口"
++    assert error["expected_span"] == [1, 2]
++    assert error["recognized_span"] == [1, 2]
++
++
++def test_s0_num_001_exactly_one_numeric_change(s0_entries):
++    report = compare_s0(s0_entries["TP-S0-NUM-001"])
++    assert [e["type"] for e in report["errors"]] == ["NUMERIC_CHANGE"]
++    error = report["errors"][0]
++    assert error["expected_fragment"] == "8"
++    assert error["recognized_fragment"] == "0"
++    assert error["expected_span"] == [4, 5]
++    assert error["recognized_span"] == [4, 5]
++
++
++def test_s0_zh_003_missing_fragment_20(s0_entries):
++    report = compare_s0(s0_entries["TP-S0-ZH-003"])
++    missing = [e for e in report["errors"] if e["type"] == "MISSING_CHARACTER"]
++    assert len(missing) >= 1
++    # Consecutive missing characters merge into one record (§8.1 expects
++    # fragment "20" as a single error).
++    assert len(report["errors"]) == 1
++    assert missing[0]["expected_fragment"] == "20"
++    assert missing[0]["recognized_fragment"] == ""
++    assert missing[0]["expected_span"] == [4, 6]
++    assert missing[0]["recognized_span"] == [4, 4]
++
++
++# ---------------------------------------------------------------------------
++# §8.2 census: all 300 fixed fixtures, drawn text as the OCR line
++# ---------------------------------------------------------------------------
++
++def test_all_300_fixtures_verdict_and_error_types(manifest, expected_output):
++    """Pure-compare census (no OCR run): each fixture's drawn text is fed
++    as one fixed OCR line boxed at its target region.  Verdict and the
++    multiset of error types must match expected_output for every fixture.
++    Spans are deliberately NOT asserted here: with repeated characters a
++    minimal alignment can sit at an equivalent position (e.g. which of
++    two identical characters is "the" missing one)."""
++    by_id = {entry["id"]: entry for entry in manifest["fixtures"]}
++    assert len(by_id) == 300
++    assert len(expected_output["fixtures"]) == 300
++    mismatches = []
++    for fixture_id, want in expected_output["fixtures"].items():
++        entry = by_id[fixture_id]
++        line = make_line(entry["drawn_text"], entry["target_region_xyxy"])
++        report = compare(entry["expected_text"], [line],
++                         image_info=image_info_for(entry))
++        got_types = sorted(e["type"] for e in report["errors"])
++        want_types = sorted(e["type"] for e in want["errors"])
++        if report["verdict"] != want["verdict"] or got_types != want_types:
++            mismatches.append(
++                f"{fixture_id}: verdict got {report['verdict']} want "
++                f"{want['verdict']}; types got {got_types} want {want_types}")
++        if report["summary"]["error_count"] != len(want["errors"]):
++            mismatches.append(
++                f"{fixture_id}: error_count got "
++                f"{report['summary']['error_count']} want {len(want['errors'])}")
++    assert mismatches == []
++
++
++# ---------------------------------------------------------------------------
++# §4.3 normalisation
++# ---------------------------------------------------------------------------
++
++def test_normalize_fullwidth_ascii_and_space():
++    assert normalize_text("ＡＢＣ１２３　ｘ") == "ABC123 x"
++    line = make_line("ABC123 x", [0, 0, 100, 20])
++    report = compare("ＡＢＣ１２３　ｘ", [line])
++    assert report["verdict"] == "MATCH"
++    assert report["errors"] == []
++
++
++def test_normalize_nfc_newlines_and_whitespace():
++    # e + combining acute -> precomposed e-acute; CRLF/CR -> LF; runs fold.
++    assert normalize_text("café\r\n  a   b\tc ") == "café\na b c"
++    assert normalize_text("a\rb") == "a\nb"
++    assert split_normalized_lines("a\nb\nc") == ["a", "b", "c"]
++
++
++def test_normalize_case_sensitive_and_punctuation_kept():
++    # Long enough lines that the pairing survives the 0.70 rule (§4.4):
++    # a 3-of-3 different short line would be missing+extra instead.
++    line = make_line("xxabcyy", [0, 0, 100, 20])
++    report = compare("xxABCyy", [line])
++    assert report["verdict"] == "MISMATCH"
++    # The three consecutive substitutions merge into one record.
++    assert len(report["errors"]) == 1
++    assert report["errors"][0]["type"] == "SUBSTITUTION"
++    assert report["errors"][0]["expected_fragment"] == "ABC"
++    assert report["errors"][0]["recognized_fragment"] == "abc"
++    assert report["errors"][0]["expected_span"] == [2, 5]
++    line2 = make_line("a", [0, 0, 100, 20])
++    report2 = compare("a.", [line2])
++    assert [e["type"] for e in report2["errors"]] == ["MISSING_CHARACTER"]
++    assert report2["errors"][0]["expected_fragment"] == "."
++
++
++def test_normalize_fullwidth_yen_not_mapped():
++    # U+FFE5 is not an ASCII character, so it is left alone (§4.3 lists
++    # full-width ASCII only).  Both sides map identically, so a matching
++    # pair still matches; a half-width yen against a full-width yen differs.
++    assert normalize_text("￥28.00") == "￥28.00"
++    line = make_line("¥28.00", [0, 0, 100, 20])
++    report = compare("￥28.00", [line])
++    assert report["verdict"] == "MISMATCH"
++    assert report["errors"][0]["type"] == "SUBSTITUTION"
++
++
++def test_normalize_trailing_newline_is_a_trailing_empty_line():
++    # Literal LF-separated segments (see module docstring, decision 2).
++    assert split_normalized_lines("a\n") == ["a", ""]
++    assert split_normalized_lines("") == [""]
++
++
++# ---------------------------------------------------------------------------
++# §4.5 weights and §7.4 classification
++# ---------------------------------------------------------------------------
++
++def test_weights():
++    assert substitution_cost("O", "0") == 0.65
++    assert substitution_cost("0", "O") == 0.65
++    assert substitution_cost("I", "l") == 0.65
++    assert substitution_cost("S", "5") == 0.65
++    assert substitution_cost("B", "8") == 0.65
++    assert substitution_cost("。", ".") == 0.50
++    assert substitution_cost("，", ",") == 0.50
++    assert substitution_cost("8", "0") == 1.25
++    assert substitution_cost("a", "b") == 1.00
++    assert substitution_cost("a", "a") == 0.0
++    # Lowercase lookalikes are NOT in the spec's named confusion pairs.
++    assert substitution_cost("o", "0") == 1.00
++    assert substitution_cost("s", "5") == 1.00
++    # Punctuation against a non-punctuation character is an ordinary swap.
++    assert substitution_cost(".", "a") == 1.00
++    # Non-decimal numerics (e.g. superscript two, category No) are not Nd.
++    assert substitution_cost("²", "3") == 1.00
++
++
++def test_weighted_edit_distance_values():
++    assert weighted_edit_distance("abc", "abc") == 0.0
++    assert weighted_edit_distance("8", "0") == 1.25
++    assert weighted_edit_distance("a", "") == 1.00
++    assert weighted_edit_distance("", "a") == 1.00
++    assert weighted_edit_distance("O", "0") == 0.65
++    assert weighted_edit_distance("。", ".") == 0.50
++
++
++def test_confusion_pair_still_produces_an_error():
++    # The lower confusion cost only affects alignment choice (§4.5):
++    # different characters must still produce a difference record.
++    line = make_line("O", [0, 0, 100, 20])
++    report = compare("0", [line])
++    assert [e["type"] for e in report["errors"]] == ["SUBSTITUTION"]
++    assert report["errors"][0]["expected_fragment"] == "0"
++    assert report["errors"][0]["recognized_fragment"] == "O"
++
++
++def test_digit_substitution_is_numeric_change_not_substitution():
++    line = make_line("28.00", [0, 0, 100, 20])
++    report = compare("28.80", [line])
++    assert [e["type"] for e in report["errors"]] == ["NUMERIC_CHANGE"]
++
++
++def test_digit_missing_and_extra_stay_missing_extra():
++    line = make_line("28.0", [0, 0, 100, 20])
++    report = compare("28.80", [line])
++    assert [e["type"] for e in report["errors"]] == ["MISSING_CHARACTER"]
++    assert report["errors"][0]["expected_fragment"] == "8"
++    line2 = make_line("28.800", [0, 0, 100, 20])
++    report2 = compare("28.80", [line2])
++    assert [e["type"] for e in report2["errors"]] == ["EXTRA_CHARACTER"]
++    assert report2["errors"][0]["recognized_fragment"] == "0"
++
++
++def test_mixed_substitution_run_splits_by_classified_type():
++    # Padding keeps the pair cost (2.25 / 6 = 0.375) under the 0.70 rule.
++    line = make_line("xxb0yy", [0, 0, 100, 20])
++    report = compare("xxa8yy", [line])
++    assert [(e["type"], e["expected_fragment"], e["recognized_fragment"])
++            for e in report["errors"]] == [
++        ("SUBSTITUTION", "a", "b"),
++        ("NUMERIC_CHANGE", "8", "0"),
++    ]
++
++
++def test_consecutive_same_type_substitutions_merge():
++    # Padding keeps the pair cost (2.00 / 6 = 0.333) under the 0.70 rule.
++    line = make_line("xxcdyy", [0, 0, 100, 20])
++    report = compare("xxabyy", [line])
++    assert len(report["errors"]) == 1
++    assert report["errors"][0]["type"] == "SUBSTITUTION"
++    assert report["errors"][0]["expected_fragment"] == "ab"
++    assert report["errors"][0]["recognized_fragment"] == "cd"
++    assert report["errors"][0]["expected_span"] == [2, 4]
++    assert report["errors"][0]["recognized_span"] == [2, 4]
++
++
++# ---------------------------------------------------------------------------
++# §4.4 / §7.2 line alignment, gap, high-cost pairs, ambiguity
++# ---------------------------------------------------------------------------
++
++def test_pair_cost_normalisation_and_high_cost_rule():
++    assert pair_cost("ab", "ab") == 0.0
++    assert pair_cost("abcd", "abce") == pytest.approx(0.25)
++    # Cost above 0.70 must not force a character pairing: the lines are
++    # reported as a missing expected line plus an extra OCR line.
++    line = make_line("wxyz", [0, 0, 100, 20])
++    report = compare("abcd", [line])
++    assert sorted(e["type"] for e in report["errors"]) == [
++        "EXTRA_LINE", "MISSING_LINE"]
++    assert report["verdict"] == "MISMATCH"
++
++
++def test_missing_line_bbox_is_null():
++    line = make_line("第一行", [10, 10, 200, 40])
++    report = compare("第一行\n第二行", [line])
++    assert report["verdict"] == "MISMATCH"
++    missing = [e for e in report["errors"] if e["type"] == "MISSING_LINE"]
++    assert len(missing) == 1
++    assert missing[0]["expected_line_index"] == 1
++    assert missing[0]["ocr_line_index"] is None
++    assert missing[0]["bbox_xyxy"] is None
++    assert missing[0]["bbox_scope"] == "none"
++    assert missing[0]["expected_fragment"] == "第二行"
++    assert missing[0]["expected_span"] == [0, 3]
++    assert missing[0]["recognized_span"] == [0, 0]
++    assert missing[0]["confidence"] is None
++
++
++def test_extra_line_keeps_ocr_bbox():
++    bbox = [10, 50, 200, 80]
++    lines = [make_line("第一行", [10, 10, 200, 40]),
++             make_line("多余行", bbox)]
++    report = compare("第一行", lines)
++    extra = [e for e in report["errors"] if e["type"] == "EXTRA_LINE"]
++    assert len(extra) == 1
++    assert extra[0]["ocr_line_index"] == 1
++    assert extra[0]["bbox_xyxy"] == bbox
++    assert extra[0]["bbox_scope"] == "ocr_line"
++    assert extra[0]["recognized_fragment"] == "多余行"
++    assert extra[0]["recognized_span"] == [0, 3]
++
++
++def test_reading_order_re_sorts_by_bbox():
++    # Input order is deliberately not reading order: the box at y=100 is
++    # given first, the box at y=10 second; reading order puts y=10 first.
++    lower = make_line("第二行", [10, 100, 200, 130], line_index=1, source_order=1)
++    upper = make_line("第一行", [10, 10, 200, 40], line_index=0, source_order=0)
++    report = compare("第一行\n第二行", [lower, upper])
++    assert report["verdict"] == "MATCH"
++    assert [ln["text"] for ln in report["ocr_lines"]] == ["第一行", "第二行"]
++    assert [ln["line_index"] for ln in report["ocr_lines"]] == [0, 1]
++
++
++def test_reading_order_same_row_by_x():
++    right = make_line("右", [300, 10, 400, 40], line_index=1, source_order=1)
++    left = make_line("左", [10, 10, 100, 40], line_index=0, source_order=0)
++    report = compare("左右", [right, left])
++    # Two one-character lines on the same row pair with two expected lines
++    # only if the expected text is two lines; here the single expected
++    # line cannot pair with both, so this checks ordering, not pairing:
++    assert report["ocr_lines"][0]["text"] == "左"
++    assert report["ocr_lines"][1]["text"] == "右"
++
++
++def test_ambiguous_duplicate_lines():
++    # Two identical expected lines, one OCR line: either pairing costs
++    # the same (0.35), so the best/second-best gap is 0 -> ambiguous.
++    line = make_line("相同", [0, 0, 100, 20])
++    report = compare("相同\n相同", [line])
++    assert report["verdict"] == "REVIEW_REQUIRED"
++    assert [e["type"] for e in report["errors"]] == ["AMBIGUOUS_ALIGNMENT"]
++    assert report["errors"][0]["bbox_xyxy"] is None
++    assert report["summary"]["error_count"] == 1
++
++
++def test_ambiguity_boundary_not_ambiguous_at_exactly_margin():
++    # Pair cost 0.65 vs delete+insert 0.70: gap exactly 0.05 is NOT
++    # "less than 0.05", so the pairing stands.
++    expected = "a" * 20
++    recognized = "b" * 13 + "a" * 7
++    assert pair_cost(expected, recognized) == pytest.approx(0.65)
++    line = make_line(recognized, [0, 0, 100, 20])
++    report = compare(expected, [line])
++    assert report["verdict"] == "MISMATCH"
++    assert all(e["type"] != "AMBIGUOUS_ALIGNMENT" for e in report["errors"])
++    assert len(report["errors"]) == 1
++    assert report["errors"][0]["type"] == "SUBSTITUTION"
++
++
++def test_ambiguity_boundary_ambiguous_at_equal_cost():
++    # Pair cost 0.70 equals delete+insert 0.70: gap 0 -> ambiguous.
++    expected = "a" * 20
++    recognized = "b" * 14 + "a" * 6
++    assert pair_cost(expected, recognized) == pytest.approx(0.70)
++    line = make_line(recognized, [0, 0, 100, 20])
++    report = compare(expected, [line])
++    assert report["verdict"] == "REVIEW_REQUIRED"
++    assert [e["type"] for e in report["errors"]] == ["AMBIGUOUS_ALIGNMENT"]
++
++
++def test_clear_match_is_not_ambiguous():
++    line = make_line("完全一致", [0, 0, 100, 20])
++    report = compare("完全一致", [line])
++    assert report["verdict"] == "MATCH"
++    assert report["errors"] == []
++    assert report["warnings"] == []
++
++
++def test_multiline_error_line_indices():
++    lines = [make_line("第一行", [10, 10, 200, 40]),
++             make_line("第二行X", [10, 50, 200, 80])]
++    report = compare("第一行\n第二行", lines)
++    assert report["verdict"] == "MISMATCH"
++    assert len(report["errors"]) == 1
++    error = report["errors"][0]
++    assert error["type"] == "EXTRA_CHARACTER"
++    assert error["expected_line_index"] == 1
++    assert error["ocr_line_index"] == 1
++    assert error["recognized_fragment"] == "X"
++
++
++def test_object_style_ocr_lines_accepted():
++    class Line:
++        def __init__(self):
++            self.line_index = 0
++            self.text = "限时优"
++            self.confidence = 0.98
++            self.bbox_xyxy = (120, 180, 520, 252)
++            self.quad = ((120, 180), (520, 180), (520, 252), (120, 252))
++            self.source_order = 0
++
++    report = compare("限时优惠", [Line()])
++    assert report["verdict"] == "MISMATCH"
++    assert report["errors"][0]["type"] == "MISSING_CHARACTER"
++    assert report["errors"][0]["bbox_xyxy"] == [120, 180, 520, 252]
++    assert report["errors"][0]["expected_fragment"] == "惠"
++
++
++# ---------------------------------------------------------------------------
++# §7.5 coordinates, §7.6 confidence and verdict
++# ---------------------------------------------------------------------------
++
++def test_char_error_bbox_is_the_ocr_line_box():
++    bbox = [120, 180, 520, 252]
++    line = make_line("新口上市", bbox)
++    report = compare("新品上市", [line])
++    assert report["errors"][0]["bbox_xyxy"] == bbox
++    assert report["errors"][0]["bbox_scope"] == "ocr_line"
++
++
++def test_low_confidence_warning_and_verdict_escalation():
++    line = make_line("新口上市", [0, 0, 100, 20], confidence=0.5)
++    report = compare("新品上市", [line])
++    assert any(w["code"] == "LOW_OCR_CONFIDENCE" for w in report["warnings"])
++    assert report["warnings"][0]["ocr_line_index"] == 0
++    assert report["warnings"][0]["confidence"] == 0.5
++    assert report["summary"]["warning_count"] == 1
++    assert report["verdict"] == "REVIEW_REQUIRED"
++    # The difference itself is still reported.
++    assert [e["type"] for e in report["errors"]] == ["SUBSTITUTION"]
++
++
++def test_low_confidence_without_errors_still_requires_review():
++    line = make_line("一致", [0, 0, 100, 20], confidence=0.4)
++    report = compare("一致", [line])
++    assert report["errors"] == []
++    assert report["verdict"] == "REVIEW_REQUIRED"
++    assert report["warnings"][0]["code"] == "LOW_OCR_CONFIDENCE"
++
++
++def test_confidence_threshold_is_strictly_below():
++    line = make_line("一致", [0, 0, 100, 20], confidence=0.65)
++    report = compare("一致", [line])
++    assert report["warnings"] == []
++    assert report["verdict"] == "MATCH"
++    line2 = make_line("一致", [0, 0, 100, 20], confidence=0.64)
++    report2 = compare("一致", [line2])
++    assert len(report2["warnings"]) == 1
++    assert report2["verdict"] == "REVIEW_REQUIRED"
++
++
++def test_low_confidence_on_only_one_of_two_lines():
++    lines = [make_line("第一行", [10, 10, 200, 40], confidence=0.98),
++             make_line("第二行", [10, 50, 200, 80], confidence=0.3)]
++    report = compare("第一行\n第二行", lines)
++    assert len(report["warnings"]) == 1
++    assert report["warnings"][0]["ocr_line_index"] == 1
++    assert report["verdict"] == "REVIEW_REQUIRED"
++
++
++def test_ocr_failed_when_no_usable_ocr():
++    report = compare("限时优惠", [])
++    assert report["verdict"] == "OCR_FAILED"
++    assert report["errors"] == []
++    assert [w["code"] for w in report["warnings"]] == ["OCR_EMPTY"]
++    assert report["summary"] == {
++        "expected_lines": 1, "ocr_lines": 0,
++        "error_count": 0, "warning_count": 1,
++    }
++    assert report["recognized_text"] == ""
++
++
++def test_ocr_blank_lines_are_not_usable_text():
++    line = make_line("   ", [0, 0, 100, 20], confidence=0.99)
++    report = compare("限时优惠", [line])
++    assert report["verdict"] == "OCR_FAILED"
++    assert [w["code"] for w in report["warnings"]] == ["OCR_EMPTY"]
++
++
++def test_empty_expected_and_empty_ocr_is_match():
++    report = compare("", [])
++    assert report["verdict"] == "MATCH"
++    assert report["errors"] == []
++    assert report["warnings"] == []
++
++
++def test_report_top_level_keeps_raw_texts():
++    line = make_line("ＡＢＣ", [0, 0, 100, 20])
++    report = compare("ＡＢＣ", [line])
++    assert report["expected_text"] == "ＡＢＣ"
++    assert report["recognized_text"] == "ＡＢＣ"
++    assert report["verdict"] == "MATCH"
++
++
++def test_image_info_defaults_to_nulls():
++    line = make_line("一致", [0, 0, 100, 20])
++    report = compare("一致", [line])
++    assert report["image"] == {
++        "sha256": None, "format": None, "width": None, "height": None,
++        "coordinate_system": "oriented_image_px_top_left",
++    }
++    assert report["tool_version"] == "0.1.0"

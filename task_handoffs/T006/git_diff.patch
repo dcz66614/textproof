@@ -1,0 +1,2522 @@
+diff --git a/S0_REPORT.md b/S0_REPORT.md
+new file mode 100644
+index 0000000..ff2137d
+--- /dev/null
++++ b/S0_REPORT.md
+@@ -0,0 +1,417 @@
++# S0 报告 — P033 TextProof（字证）
++
++> **S0 VERDICT: PASS**
++>
++> 9 项门禁逐项通过（见 §1）。本报告是 T006 的 S0 结论记录；最终 PASS
++> 由主聊天复核后裁决。报告顶部先给结论，下面逐项给证据、给两项书面裁定、
++> 给门禁范围之外的发现（§7），不把发现藏进附录。
++
++- S0 run ID：`S0-20261125-run2`（权威证据轮次；run1 因门禁脚本自身的检查
++  bug 退出 1，见 §8）
++- 报告日期：2026-11-25（GMT；证据轮次 run2 完成 ~06:17 GMT）
++- 输入 commit：`732f07e188770460ef4ba3551b03691987118dcc`（master：T001–T005
++  与独立 Oracle 均已合入）
++- 输出 commit：见 `task_handoffs/T006/TASK_RESULT.md`（本报告提交后由外部读取）
++- 分支：`t006-s0-gate`（worktree `~/workspace/p033-textproof-t006`）
++- 规格版本：`1.0.0`（PROJECT_BOOK.md / IMPLEMENTATION_PLAN.md 均未修改）
++
++## 1. 门禁逐项结果（T006 任务卡 9 项）
++
++| # | 门禁项（规格锚点） | 结果 | 证据位置 |
++|---|---|---|---|
++| 1 | Oracle 不 import 生产比较模块；独立会话、不同代码路径（§8.4） | **PASS** | §2；`parity_report.json`；Oracle 自测 43 通过 |
++| 2 | 生产模块与 Oracle 在固定字符/行 fixture 上 100% parity（§8.4） | **PASS** | §3；`parity_report.json`：300/300 |
++| 3 | 四个固定案例逐项核对 §8.1 类型、片段、span、bbox 规则、verdict（§8.1） | **PASS** | §4；`verify_s0.py` 输出 [3] 四行全 PASS |
++| 4 | 300 样本检测召回率 ≥95%；替换/缺失/数字变化每类 ≥90%（§8.2–§8.3） | **PASS** | §5；召回率 **100.00%**，每类 100.00% |
++| 5 | 100 张 clean 图片误报率 ≤8%（§8.2–§8.3） | **PASS** | §5；误报率 **0.00%**（0/100） |
++| 6 | JSON schema 合法率 100%（§5.1–§5.3、§8.3）；OCR CER 独立报告，不替代检错召回率 | **PASS** | §5；合法率 **100%**（300/300）；CER **0.0008** 单独报告 |
++| 7 | 网络访问 0；ONNX Runtime provider 仅 CPU（§6.1–§6.2、§8.3、§9） | **PASS** | §7；全程 `unshare -n` 下运行 exit 0；三模型均为 `CPUExecutionProvider` |
++| 8 | `independent_verify.py` 从原始 PNG、manifest、expected output 独立复核 TP-S0-ZH-001；不只调用 `verify_s0.py`（§8.1、§8.4） | **PASS** | §6；ZH-001 / ZH-002 / ZH-003 / NUM-001 四案独立复核均 PASS |
++| 9 | S0 报告记录环境、版本、commit、所有 SHA、命令、退出码、指标、未执行项（§8.4、§11.1） | **PASS** | 本报告全文；§8–§9 |
++
++## 2. 环境、版本与哈希
++
++### 2.1 运行环境
++
++| 项目 | 值 |
++|---|---|
++| OS / 架构 | Linux 7.0.0-44-generic x86_64（glibc 2.39），4 CPU |
++| Python | 3.12.3 |
++| rapidocr | 3.10.0（冻结版本） |
++| onnxruntime | 1.32.0（CPU 包；`onnxruntime-gpu` 未安装） |
++| Pillow | 11.3.0 |
++| pytest | 8.4.2 |
++| fastapi / pydantic / uvicorn | 0.165.0 / 2.14.4 / 0.54.0（已锁，未使用） |
++| 虚拟环境 | `/home/hatch/workspace/p033-textproof/.venv`（主工作目录已有环境；未升级、未联网装包） |
++| 工作目录 | git worktree `~/workspace/p033-textproof-t006`，分支 `t006-s0-gate`，基线 `732f07e` |
++| 网络隔离 | 全部 live OCR 与门禁运行在 `unshare -n`（无网络命名空间）下完成 |
++
++### 2.2 冻结文件 SHA-256
++
++| 文件 | SHA-256 |
++|---|---|
++| `tests/fixtures/s0/manifest.json` | `cc9a0ea9ed75fda800882c226665fa61cfc8d7213682655d52358cf5c128f959`（与 T005 记录一致） |
++| `tests/fixtures/s0/expected_output.json` | `a2e55725a2c8ffdbedc9dab7b7310db47c3bdb9311d4585fc3246ead6a9a641e`（与 T005 记录一致） |
++| `tests/fixtures/s0/blind_subset.json` | `a90fb851cd02e9f9315eeecb385392c29c71d07551163fdb6d87669a3a32e93c`（与 T005 记录一致） |
++| `requirements.lock` | `8726d13cb20bb731b491a4119629c176b699f035b75d8547d853ca3585d1564d` |
++| `pyproject.toml` | `5bcebcc11ab184e5449ed2fe0200198869aaa1a1d1a813015f54d5911a9d5511` |
++| 字体 `NotoSansSC[wght].ttf` | `a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da`（manifest 记录一致） |
++
++300 张 PNG 的 SHA-256 已由 `verify_s0.py` [0] 步逐张重算并与 manifest
++比对：300/300 一致，无缺失、无字节数不符。
++
++### 2.3 OCR 模型与字典（T003 冻结，启动时逐文件验 SHA）
++
++| 资产 | SHA-256 |
++|---|---|
++| `PP-OCRv6_det_small.onnx` | `090f04abcd9d9a7498bc4ebf677e4cb9bdce1fe4197ddb7e529f1ef44e1ff94f` |
++| `PP-OCRv6_rec_small.onnx` | `6f327246b50388f3c176ae304bd95767ea6dc0c9ae92153ef8cbe210b3c14884` |
++| `ch_ppocr_mobile_v2.0_cls_mobile.onnx` | `e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c` |
++| `ppocrv6_dict.txt`（18,708 行） | `b5f2bfe2bdd9448429e3e82b51c789775d9b42f2403d082b00662eb77e401c5d` |
++
++## 3. Parity：生产模块 vs 独立 Oracle（门禁项 2）
++
++### 3.1 门禁范围内的结果：300/300，100% PASS
++
++方法（`scripts/parity_check.py`）：对 manifest 的每一张 fixture，把
++`drawn_text` 作为单条固定 OCR 行记录（bbox = manifest
++`target_region_xyxy`，confidence 0.99）同时喂给生产 `build_report`
++与 Oracle `compare`，逐案例比对 verdict、错误类型、expected /
++recognized 片段、expected / recognized span、bbox、warning codes、
++summary。结果：**300/300 一致，0 差异**。四案 §8.1 样本的固定路径
++核对同时由 `verify_s0.py` [3] 步对两个实现各做一次：全部 PASS。
++
++Oracle 独立性（门禁项 1）：`oracle/reference_compare.py` 经 AST
++检查只导入标准库（`re`、`unicodedata`、`fractions`、`typing`），
++无任何 `textproof` 导入；同一断言在 Oracle 自测
++（`tests/oracle/test_reference_compare.py`，43 通过）中以全新子进程
++复核。Oracle 由独立会话（T006-oracle）仅按项目书实现，未读生产
++核心代码（见其 TASK_RESULT.md）。
++
++### 3.2 T004 与 Oracle 的三处字面解读：三处全部一致
++
++| 字面解读 | 生产（T004） | Oracle | 本轮核对 |
++|---|---|---|---|
++| 混淆对集合（§4.5“如 O/0、I/1/l、S/5、B/8”） | 仅字面列出的 6 对；小写 `o/0` 不算 | 相同 | 边缘电池 `confusion_lower_o`：两侧错误类型一致 |
++| 标点替换 0.50（§4.5） | 要求两侧均为 Unicode 类别 P | 相同 | `punct_sub` / `punct_vs_letter`：两侧错误类型一致 |
++| gap 顺序（§4.4 平局规则） | 回溯表现为 trailing 缺失+额外按“额外在前、缺失在后” | 相同配对集合与错误顺序 | `high_cost_pair` / `multi_sub_mixed_types`：两侧错误顺序一致 |
++
++### 3.3 门禁范围之外的诊断：26 项边缘电池（13/26 一致）
++
++`parity_check.py` 另跑 26 项手造边缘案例（空输入、低置信、缺失/额外行、
++高代价配对、混淆对、标点、全角字符、尾换行、CRLF、阅读顺序排列、重复字符），
++**不属于冻结门禁范围**，结果 13 项一致、13 项有差异。差异逐项列出并裁定如下；
++完整逐字段 diff 见 `task_handoffs/T006/parity_report.json` 的
++`edge_battery.differences`。
++
++**R 组 — 规格未写明的表示字段（10 项）**：缺失侧 span 取 `null`（生产）
++vs `[0, 0]`（Oracle）；`MISSING_LINE` / `AMBIGUOUS_ALIGNMENT` 的
++`bbox_scope` 取 `null`（生产）vs `"none"`（Oracle）；警告对象报文文本不同，
++Oracle 多一个 `confidence` 字段。涉及案例：`empty_expected_one_ocr`、
++`missing_line`、`extra_line`、`high_cost_pair`、`confusion_lower_o`、
++`trailing_newline`、`multi_sub_mixed_types`、`same_row_two_boxes_x_order`
++（仅 `bbox_scope`）、`low_conf_match`、`low_conf_diff`（仅警告对象形态）。
++裁定：§5.4 样例只规定了字符错误的字段形态，**未规定**行级错误的缺失侧
++span 取值、未规定 `bbox_scope` 除 `"ocr_line"` 外的取值、§5.3 只规定了
++警告码枚举而未规定警告对象形态。两处取值均无项目书原文可依，**无法按原文
++裁定孰对孰错**。这些字段在 300 张固定 fixture 中一次未出现（无
++`MISSING_LINE` / `EXTRA_LINE` / `AMBIGUOUS_ALIGNMENT`，无警告），
++对 S0 指标零影响。记为发现 F-03：需 T009 在冻结 JSON schema 时统一口径，
++终审前不得各行其是。
++
++**V1 — 空期望 + 空 OCR 的 verdict（1 项）**：生产 `OCR_FAILED` +
++`OCR_EMPTY` 警告；Oracle `MATCH`。裁定：§7.6 原文“OCR 无可用文本时为
++`OCR_FAILED` 或 `REVIEW_REQUIRED`，具体按引擎失败 / 空识别区分”直接
++覆盖“OCR 无可用文本”的情形，生产取值有原文支持；Oracle 的空期望 carve-out
++在项目书中无依据。且该情形在产品内不可达：T002 对空白期望文本返回
++`INVALID_INPUT`（§4.2）。记为发现 F-04（Oracle 的 carve-out 与 §7.6
++字面不符；产品行为以生产为准）。
++
++**V2 — 单字符混淆替换 `O` → `0` 的歧义判定（1 项，生产缺陷）**：生产
++`REVIEW_REQUIRED` + 单条 `AMBIGUOUS_ALIGNMENT`；Oracle `MISMATCH` +
++`SUBSTITUTION`。裁定：§4.4 原文“两个最优对齐路径代价差小于 `0.05`”——
++精确十进制算术下次优（缺失+额外行，0.35+0.35=0.70）与最优（配对，混淆代价
++0.65）之差恰好为 0.05，**不小于 0.05，不应判歧义**；Oracle（`Fraction`
++精确计算）正确。生产用二进制浮点：`0.7 - 0.65 == 0.04999999999999993
++< 0.05`，误判歧义。这是**已证实的生产缺陷**，记为发现 F-01。影响面：
++仅当最优与次优代价差在十进制下恰好为 0.05 时触发；300 张 fixture 中
++0 次触发（固定 parity 300/300 即证），S0 指标零影响。修复属一行量级
++（以精确十进制/分数比较代替浮点比较），但本任务禁改 T004 文件，
++故不修复、只记录，列为 T013 P1（或 T004 跟进修复 + 回归测试）。
++
++**V3 — 同行多框、中心高度不同的阅读顺序（1 项，Oracle 偏差）**：两框
++纵向重叠（同一视觉行），`AB` 框 `[0,0,100,52]`、`CD` 框 `[200,2,300,48]`；
++生产按 x 排为 `AB`、`CD`；Oracle 按中心 y 排为 `CD`、`AB`。裁定：§4.4
++原文“按文本框垂直中心与纵向重叠聚合为行；**同一视觉行内按 x 从小到大
++排序**”——两框纵向重叠属同一视觉行，行内应按 x 排序，生产正确；
++Oracle 的纯中心排序违反该句。记为发现 F-02（Oracle 阅读顺序与 §4.4
++字面不符；无 fixture 影响——全部 fixture 为单行图，live OCR 每图只返回
++1 行）。其余阅读顺序案例（行交换、重叠行）两侧一致。
++
++**范围声明（重要）：** 门禁项 2 的冻结范围是“manifest 的固定 OCR 行记录”
++（任务卡原文），该范围 parity 为 100% PASS。若终审将“Oracle parity 100%”
++理解为**全输入域** 100%，则 F-01（生产浮点缺陷）与 F-03（规格未写明的
++表示字段）使 parity 在该理解下不成立，S0 应为 FAIL。本报告按任务卡字面
++范围给 PASS，同时把该分歧点写明，供主聊天复核时裁决是否推翻。
++
++## 4. 四个固定案例 §8.1 逐项核对（门禁项 3）
++
++固定 OCR 行记录路径（`drawn_text` + `target_region_xyxy`），生产与 Oracle
++双实现逐字核对 `expected_output.json`：
++
++| 样本 | 期望 / 图绘 | 核对结果（双实现一致） |
++|---|---|---|
++| TP-S0-ZH-001 | `限时优惠` / `限时优` | 恰好 1 条 `MISSING_CHARACTER`，fragment `惠`/`""`，span `[3,4]`/`[3,3]`，bbox = OCR 行框，verdict `MISMATCH` ✅ |
++| TP-S0-ZH-002 | `新品上市` / `新口上市` | 恰好 1 条 `SUBSTITUTION`，fragment `品`/`口`，span `[1,2]`/`[1,2]`，bbox = OCR 行框，verdict `MISMATCH` ✅ |
++| TP-S0-NUM-001 | `￥28.80` / `￥28.00` | 恰好 1 条 `NUMERIC_CHANGE`，fragment `8`/`0`，span `[4,5]`/`[4,5]`，bbox = OCR 行框，verdict `MISMATCH` ✅（固定路径；live 路径见 §6(a)） |
++| TP-S0-ZH-003 | `新客立减20元` / `新客立减元` | 恰好 1 条 `MISSING_CHARACTER`，fragment `20`/`""`，span `[4,6]`/`[4,4]`，bbox = OCR 行框，verdict `MISMATCH` ✅ |
++
++live OCR 路径的四案核对（`independent_verify.py` 逐案实测，见 §6）：
++
++| 样本 | live OCR 逐字文本（置信度） | live IoU | live 结论 |
++|---|---|---|---|
++| TP-S0-ZH-001 | `限时优`（0.99929） | 0.964 | 恰好 1 条 `MISSING_CHARACTER`（惠，[3,4]），verdict `MISMATCH` ✅ |
++| TP-S0-ZH-002 | `新口上市`（0.99978） | 0.955 | 恰好 1 条 `SUBSTITUTION`（品/口，[1,2]），verdict `MISMATCH` ✅ |
++| TP-S0-NUM-001 | `¥28.00`（0.93004） | 0.875 | 1 条 `NUMERIC_CHANGE`（8/0，[4,5]）+ 1 条额外 `SUBSTITUTION`（￥→¥，[0,1]），verdict `MISMATCH`（见 §6(a) 裁定） |
++| TP-S0-ZH-003 | `新客立减元`（0.94255） | 0.924 | 恰好 1 条 `MISSING_CHARACTER`（20，[4,6]），verdict `MISMATCH` ✅ |
++
++## 5. 300 样本 live 指标（门禁项 4、5、6）
++
++live 全流程：T002 加载 → T003 RapidOCR（CPU）→ T004 比较 → §5 报告，
++300 张逐张实测（`scripts/compute_s0_metrics.py`，结果
++`task_handoffs/T006/s0_metrics.json` + `live_ocr_results.jsonl`）。
++300 张全部返回单行 OCR，无零行、无多行；最低置信度 0.91432（> 0.65，
++故无 `LOW_OCR_CONFIDENCE` 警告）；全部 300 张无警告。
++
++| 指标（§8.3） | 门槛 | 实测 | 结论 |
++|---|---|---|---|
++| 检测召回率（注入字符差异数计） | ≥95% | **100.00%（201/201）** | PASS |
++| 替换类召回率 | ≥90% | **100.00%（70/70）** | PASS |
++| 缺失类召回率 | ≥90% | **100.00%（71/71）** | PASS |
++| 数字变化类召回率 | ≥90% | **100.00%（60/60）** | PASS |
++| clean 误报率（verdict `MISMATCH` 计） | ≤8% | **0.00%（0/100）** | PASS |
++| clean 非 `MATCH` 率（补充口径） | —（仅报告） | 0.00%（0/100） | — |
++| JSON schema 合法率（300 份 live 报告） | 100% | **100%（300/300 有效，0 违规）** | PASS |
++| OCR CER（独立报告，不替代召回率） | 记录值 | **0.0008**（S=1，D=1，I=0，N=2496） | 仅记录 |
++| IoU（live bbox vs target_region） | 每张 ≥0.80 | 最小 **0.829**，均值 0.938，低于 0.80 的 **0 张** | PASS |
++
++召回率计分规则（`compute_s0_metrics.py` 有载）：注入字符总数按 manifest
++计——替换 70×1、缺失 68×1 + ZH-001 1 + ZH-003 2（`"20"`）= 71、数字变化
++60×1，合计 201；某注入差异计为检出，当且仅当 live 报告含同类型错误，
++其 `expected_span` 覆盖注入 span 且 `expected_fragment` 包含注入片段
++（覆盖而非精确相等：live OCR 若同时误读相邻字符会展宽报告 run，
++但注入差异本身必须仍在其中）。漏检 0 项。
++
++CER 说明：CER 的两个字符差异即 live OCR 与图绘文本的全部差异——
++TP-S0-NUM-001 的 `￥`→`¥`（S=1）与 TP-SUB-055 的 `TOP 当季上馈` →
++`TOP当季上馈`（空格丢失，D=1）。其余 298 张 OCR 文本与图绘文本逐字一致。
++CER 与检错召回率是不同指标（§8.3 原文），此处分开报告；SUB-055 的注入
++替换本身仍被检出（召回率不受影响）。
++
++`verdict` 分布：`MATCH` 100 张（恰为 100 张 clean），`MISMATCH` 200 张
++（恰为 200 张 injected），`REVIEW_REQUIRED` / `OCR_FAILED` 各 0 张。
++
++计时（1200×480 fixture，单 warmed adapter，OCR+比较每图）：
++P50 1.33s、P95 1.77s、max 3.13s。§8.3 的运行时间门槛针对 1920×1080 预热后
++P95 ≤5s，**本次未测量**（冻结 fixture 为 1200×480），记为 NOT_MEASURED，
++归 T011 性能报告。
++
++## 6. 两项必须书面裁定的问题
++
++### 6(a) TP-S0-NUM-001 的 live-OCR ￥→¥ 问题 — 裁定：样本仍满足 §8.1
++
++**逐字贴出的 live 运行实际输出**（`independent_verify.py --case
++TP-S0-NUM-001`，RapidOCR 3.10.0，CPU，置信度 0.93004；同一输出在
++`scripts/verify_s0.py` 的 300 张 live 运行与 `tests/s0/test_s0_gate.py`
++的锁定测试中复现一致）：
++
++```text
++live OCR line: text='¥28.00' confidence=0.93004 bbox=[478.0, 188.0, 729.0, 291.0]
++expected_text: '￥28.80'   drawn_text: '￥28.00'
++verdict: MISMATCH
++errors:
++  E001 SUBSTITUTION      expected_fragment='￥' recognized_fragment='¥'
++       expected_span=[0, 1] recognized_span=[0, 1]
++  E002 NUMERIC_CHANGE    expected_fragment='8' recognized_fragment='0'
++       expected_span=[4, 5] recognized_span=[4, 5]
++```
++
++即：live 路径下该样本有 2 条错误，其中 `NUMERIC_CHANGE` 恰好 1 条，
++其 fragment（`8`/`0`）与 span（`[4,5]`）与 §8.1 逐字一致；多出的一条是
++`SUBSTITUTION`（`￥` U+FFE5 → `¥` U+00A5），来自 OCR 引擎把图绘的全角
++`￥` 读作半角 `¥`。
++
++**裁定：按项目书原文，“恰好 1 条 `NUMERIC_CHANGE`”只约束
++`NUMERIC_CHANGE` 的条数；多出的一条 `SUBSTITUTION` 作为 OCR 行为如实记录，
++样本仍算满足 §8.1。** 理由（均引项目书原文）：
++
++1. §8.1 表格原文是“恰好 1 条 `NUMERIC_CHANGE`；`expected_fragment=8`；
++   `recognized_fragment=0`；`expected_span=[4,5]`；bbox 指向该 OCR 文本行”。
++   计数修饰的是带类型的错误（`NUMERIC_CHANGE`），不是错误总数；若指总数，
++   自然写法应如 §12.2 对 ZH-001 所写的 `error_count: 1`。本样本 live 路径的
++   `NUMERIC_CHANGE` 条数恰好为 1，fragment 与 span 逐字符合。
++2. 同表 ZH-003 一栏写的是“**至少** 1 条 `MISSING_CHARACTER`”，证明该栏的
++   计数约束是按错误类型计的下限/精确数，而非对错误总数的封顶；按类型计是
++   表格一贯的写法。
++3. §8.1 的“固定预期输出”是定义在**固定样本**（图绘文本为 ground truth）
++   上的期望；在固定 OCR 行记录路径下，本样本恰好只有 1 条错误（即该条
++   `NUMERIC_CHANGE`），两种读法在该路径下都通过。live OCR 的识别文本
++   （`¥28.00`）与图绘文本（`￥28.00`）不同，live 路径的输入本身已偏离
++   固定样本定义；其额外错误是 OCR 识别差异（§8.3 的 CER 口径正在度量
++   此类差异：本轮 CER 的 S=1 即此一例），不是比较算法漏报或多报。
++4. §4.3 规范化原文只把 U+FF01–U+FF5E 的全角 ASCII 映射为半角；
++   `￥`（U+FFE5）不在该范围内，**不得**映射——T004 与 T005 均已按此锁定。
++   因此比较核心如实报告 `￥`→`¥` 为差异是正确的；把它删掉或把 `￥`/`¥`
++   视为相同，都需要 ADR 与 Owner 批准，本任务无权做。
++
++**未做的处理（明示）：** 未删除多出的 `SUBSTITUTION` 错误，未改 fixture
++（图绘 `￥28.00` 仍为冻结值），未改 manifest，未提交 ADR，未用任何变通
++绕过。`--strict-live`（要求 live 报告与固定预期逐字相等）下
++`independent_verify.py --case TP-S0-NUM-001` 退出 1，正是该额外错误的
++如实记录；默认（子集）模式退出 0。本裁定若被复核推翻（即采用“总错误数
++恰好为 1”的读法），则该样本不满足 §8.1，S0 应为 FAIL——此分歧点已写明，
++供主聊天裁决。
++
++### 6(b) target_region 校准方法 — 裁定：方法合法，盲测验证成立
++
++**独立重跑结果（本任务实测，非引用 T005）：** 对全部 300 张 fixture 跑
++live OCR（与 §5 同一次运行，同一 adapter、同一模型），逐张算
++IoU（live OCR bbox，manifest `target_region_xyxy`）：
++
++| 子集 | 张数 | 最小 IoU | 均值 IoU | < 0.80 的张数 |
++|---|---:|---:|---:|---:|
++| 全部 300 张 | 300 | **0.829** | 0.938 | **0** |
++| 非盲测 240 张（校准集） | 240 | 0.829 | 0.938 | 0 |
++| 盲测 60 张（未参与拟合） | 60 | **0.835** | 0.940 | **0** |
++
++与 T005 报告值（全部最小 0.829、盲测最小 0.835）逐数一致，独立复现成立。
++
++**方法合法性评估：**
++
++1. 规则本身是绘图几何的确定性函数：`target_region_for(ink_bbox)` 只用
++   墨迹框几何（`height = 70 + 0.7*ink_height - 0.05*ink_width`；
++   `width = ink_width + 40 - 0.02*ink_width`，以墨迹框中心为中心），
++   不用任何一张图片自己的 OCR 输出。本任务逐张重算验证：该规则从
++   `ink_bbox_xyxy` 复现 manifest 的 `target_region_xyxy`，**300/300
++   一致**。规则定义见 manifest `generator.target_region` 段与
++   `scripts/generate_fixtures.py`。
++2. 盲测验证成立：规则按 240 张非盲测的实测 OCR 框拟合，60 张盲测在拟合中
++   一次未用；盲测最小 IoU 0.835 ≥ 0.80，与校准集（0.829）同一水平，
++   无过拟合迹象。本任务在看到 S0 结果后**没有**重拟合规则；盲测 60 张
++   未用于任何调参（本次工作只读 manifest 与 live OCR 输出，未改生成器、
++   未改 manifest、未改任何 fixture）。
++3. 边界说明：该规则是按冻结的 PP-OCRv6 检测框几何校准的经验规则；
++   若更换 OCR 引擎/版本或字号，对应关系需重测（T005 已登记）。本轮
++   S0 的结论只在冻结模型路线下成立。
++
++**结论：target_region 校准方法合法；盲测验证成立；无一张 IoU < 0.80，
++无 S0 发现。**
++
++## 7. 离线与 CPU-only 证据（门禁项 7）
++
++- **网络访问 0（实测方式）：** 两轮完整门禁运行（run1、run2）均在
++  `unshare -n`（新建的空网络命名空间，无任何接口、无回环以外的网络）
++  下执行，`verify_s0.py` 全程 exit 0（run2）且 300 张 live OCR 全部完成；
++  若运行中任何一步需要外网（模型下载、遥测、远程 OCR），在该命名空间内
++  必失败。`verify_s0.py`、`compute_s0_metrics.py`、`parity_check.py`、
++  `independent_verify.py` 均不打开 socket（代码内无网络调用；RapidOCR
++  适配器在构造时验模型 SHA 并传显式本地 `model_path`，从不走下载分支，
++  见 T003）。另：T003 已验证删除外网后仍可完成 OCR；本轮未重复该实验，
++  以 `unshare -n` 全程运行为本次证据。
++- **ONNX Runtime provider 仅 CPU：** 启动时 adapter 对 det / cls / rec
++  三个 session 逐一断言 `get_providers() == ["CPUExecutionProvider"]`
++ （不满足即拒跑）；实测三模型均为 `["CPUExecutionProvider"]`，
++  `test_onnx_providers_cpu_only` 亦通过。`onnxruntime-gpu` 不在锁文件中。
++
++## 8. 执行命令与退出码（权威证据轮次 run2）
++
++验收命令（任务卡原文；Python 为主工作目录已锁 venv）：
++
++| # | 命令 | 退出码 | 结果 |
++|---|---|---|---|
++| 1 | `/home/hatch/workspace/p033-textproof/.venv/bin/python -m pytest -q` | **0** | **229 passed**，2 warnings（均为 T002 既有的 Pillow `DecompressionBombWarning`，与 T006 无关），179.62s |
++| 2 | `unshare -n /home/hatch/workspace/p033-textproof/.venv/bin/python scripts/verify_s0.py --manifest tests/fixtures/s0/manifest.json`（`--force-live`） | **0** | S0 VERDICT: PASS（见 §1；stderr 为空） |
++| 3 | `/home/hatch/workspace/p033-textproof/.venv/bin/python scripts/independent_verify.py --case TP-S0-ZH-001` | **0** | INDEPENDENT VERIFICATION: PASS（IoU 0.964） |
++
++补充命令（均 exit 0，除注明外）：
++
++| 命令 | 退出码 | 结果 |
++|---|---|---|
++| `python scripts/parity_check.py --manifest tests/fixtures/s0/manifest.json` | 0 | 固定 300/300；边缘电池 13/26（见 §3.3） |
++| `python scripts/independent_verify.py --case TP-S0-ZH-002` | 0 | PASS（IoU 0.955） |
++| `python scripts/independent_verify.py --case TP-S0-ZH-003` | 0 | PASS（IoU 0.924） |
++| `python scripts/independent_verify.py --case TP-S0-NUM-001` | 0 | PASS（子集模式；额外 `SUBSTITUTION` 逐字记录，见 §6(a)） |
++| `python scripts/independent_verify.py --case TP-S0-NUM-001 --strict-live` | **1** | FAIL（by design：额外 `SUBSTITUTION` 使严格相等不成立；见 §6(a)） |
++| `python scripts/validate_report_schema.py`（对 300 份 live 报告，门禁内调用） | 0 | 300/300 VALID（`schema_validation.log`） |
++| `python scripts/generate_fixtures.py --verify-manifest tests/fixtures/s0/manifest.json`（T005 命令，pytest 内已跑） | 0 | 全量 pytest 通过即含该验证（`test_fixtures_s0.py` 7 通过） |
++
++run1 说明：第一轮完整门禁运行（同样 `unshare -n` + `--force-live`）
++除门禁项 1 外全部通过，退出 1 的唯一原因是 `verify_s0.py` 自身的
++独立性检查 bug——它用子串 `"textproof" in source` 误判了 Oracle 文档
++字符串中的冻结 schema 名 `"textproof.report/v1"`。修复为 AST 导入检查后
++（只改本任务的 `scripts/verify_s0.py`，未动 Oracle 与生产代码），run2
++全项通过、退出 0。run1 的指标数与 run2 逐数一致（召回率 100%、FPR 0%、
++CER 0.0008、IoU 最小 0.829），run2 为权威轮次。
++
++执行中的两则运行时提示（据实记录）：两次较长 exec 调用返回了
++“审批超时”提示，但命令实际已执行并返回完整输出与退出码（以实际退出码
++与日志为准，未重复执行；按任务指示向父代理报告此提示）。
++
++## 9. 交付物、未执行项与已知事项
++
++### 9.1 本任务交付物（worktree `t006-s0-gate`，均新增、零修改已跟踪文件）
++
++| 文件 | 说明 |
++|---|---|
++| `S0_REPORT.md` | 本报告（仓库根目录） |
++| `scripts/verify_s0.py` | S0 门禁总控（9 项逐项判定，exit 0 当且仅当全过） |
++| `scripts/independent_verify.py` | 独立复核（不调用 `verify_s0.py`；逐字段核对 + live 逐字输出） |
++| `scripts/parity_check.py` | 固定 300 parity + 26 项边缘电池 + 裁定分组 |
++| `scripts/compute_s0_metrics.py` | 300 张 live OCR 指标（召回率/FPR/CER/IoU/schema/计时） |
++| `scripts/validate_report_schema.py` | §5 手工 schema 校验器（stdlib only；无 `jsonschema` 依赖可用） |
++| `tests/s0/test_s0_gate.py` | 12 个 S0 pytest（四样本双实现、300 parity、Oracle 独立性、CPU provider、schema、NUM-001 live 锁定） |
++| `task_handoffs/T006/` | 交接包：TASK_RESULT.md、changed_files.txt、git_diff.patch、test_commands.txt、test_stdout.log、test_stderr.log、exit_codes.txt、SHA256SUMS.txt 及运行证据（`s0_metrics.json`、`parity_report.json`、`live_ocr_results.jsonl`、`schema_validation.log`） |
++
++禁止文件未修改证明：`git status` 只显示新增文件（5 个 scripts、1 个
++tests/s0/、S0_REPORT.md、task_handoffs/T006/）；`git diff --name-only
++732f07e` 对 PROJECT_BOOK.md / .docx、IMPLEMENTATION_PLAN.md / .docx、
++requirements.lock、pyproject.toml 输出为空；未碰 T002–T005 与 Oracle 的文件；
++未新增依赖、未联网安装。
++
++### 9.2 未执行项
++
++| 未执行项 | 原因 |
++|---|---|
++| §8.3 运行时间：1920×1080 预热后 30 次测量 P95 ≤5s | 冻结 fixture 为 1200×480；记为 NOT_MEASURED，归 T011 性能报告（§5 计时段） |
++| 正式的 `.schema.json` 文件 | 是 T009 的交付物；本任务以 `validate_report_schema.py` 按 §5 逐字段校验并留日志，校验方法与依据的 §5 条款见该脚本 docstring |
++| API / UI / CLI 一致性、隐私与离线全量测试 | 属 T007–T014（待 S0 解锁后）；本任务只覆盖 S0 门禁范围 |
++| 1920×1080 图片的 OCR 实测 | 同运行时间项；未用非 fixture 图片 |
++
++### 9.3 已登记、不改的事项（转述，不处理）
++
++- `tool_version` 取 `"0.1.0"` 与 `pyproject.toml` 的 `1.0.0` 不一致：
++  已登记事项（T004 风险 1），本任务不改，留给 T009/终审统一口径。
++  §5 schema 校验只要求 `tool_version` 为非空字符串，不绑定具体值。
++- 字典许可：T003 已核实字典无单独许可声明、不在模型 Apache-2.0 声明内；
++  与 S0 门禁无关，转述。
++- TP-SUB-055 的 live-OCR 空格丢失（`TOP 当季上馈` → `TOP当季上馈`，
++  置信度 1.000，IoU 0.979）：OCR 引擎的混排空格行为，fixture 不改；
++  注入替换本身仍被检出，召回率计分按“注入差异是否检出”而非“错误数相等”
++  （见 §5 计分规则）。
++
++### 9.4 门禁范围外的发现（汇总；详见 §3.3）
++
++| 编号 | 发现 | 严重度 | 处置建议 |
++|---|---|---|---|
++| F-01 | 生产 `align_lines` 浮点比较误判歧义（单字符混淆替换 `O`→`0`：0.7−0.65 在浮点下 < 0.05） | P1（生产缺陷；S0 零影响） | T013 修复：以精确十进制/分数比较代替浮点比较 + 回归测试；终审前关闭 |
++| F-02 | Oracle 阅读顺序与 §4.4 字面不符（同行多框按中心而非按 x 排） | 低（Oracle 偏差；无 fixture 影响） | Oracle 跟进修正或在 Oracle docstring 中登记为已知偏差 |
++| F-03 | 行级错误缺失侧 span（null vs [0,0]）、`bbox_scope`（null vs "none"）、警告对象形态：规格未写明，两侧取值均无原文可依 | P1（规格澄清） | T009 冻结 JSON schema 时统一口径；终审前不得各行其是 |
++| F-04 | 空期望 + 空 OCR 的 verdict：生产 `OCR_FAILED`（有 §7.6 原文支持），Oracle `MATCH`（无原文依据的 carve-out） | 低（产品内不可达，T002 拒空白期望） | Oracle 跟进对齐 §7.6；或由规格方明确空期望语义 |
++
++### 9.5 回退
++
++- 回退 commit：`732f07e`（输入 commit；本任务只新增文件，删除分支
++  `t006-s0-gate` 与 worktree `~/workspace/p033-textproof-t006` 即完整回退）。
++- 任一硬门失败即 `S0_FAIL`、T007–T014 BLOCKED 的纪律未被触发：9 项全部通过。
++- 失败回退条款未动用：未降低指标、未删除 fixture、未修改分母（召回率分母
++  201、clean 分母 100 均为 manifest 原值）。
+diff --git a/scripts/compute_s0_metrics.py b/scripts/compute_s0_metrics.py
+new file mode 100644
+index 0000000..d135d9c
+--- /dev/null
++++ b/scripts/compute_s0_metrics.py
+@@ -0,0 +1,460 @@
++"""Live-OCR S0 metrics for the 300 fixed fixtures (T006).
++
++T006 deliverable (plan §5.2 / T006 card items 4-6; PROJECT_BOOK.md
++§8.2-§8.3).
++
++Runs the production pipeline end to end on every fixture PNG:
++T002 image loading -> T003 RapidOCR (CPU-only) -> T004 compare ->
++§5 report.  For each fixture it records the live OCR text,
++confidence, bbox, IoU against the manifest ``target_region_xyxy``,
++the production report, the §5 schema verdict and the per-image
++wall time.  From those it computes:
++
++* detection recall (§8.3): injected character differences detected /
++  injected character differences total, overall and per class
++  (substitution / omission / numeric change).  An injected
++  difference counts as detected iff the live report contains an
++  error of the expected type whose ``expected_span`` COVERS the
++  injected span and whose ``expected_fragment`` CONTAINS the injected
++  fragment.  Coverage (not exact equality) is required because live
++  OCR can misread a neighbouring character as well, widening the
++  reported run without hiding the injected difference; the injected
++  difference itself must still be present.  Injected character
++  counts come from the manifest: one per substitution / numeric
++  fixture, one per omission fixture except TP-S0-ZH-003 which
++  injects two characters (``"20"``), i.e. 70 + 71 + 60 = 201.
++  Recall is a property of the *detection* pipeline, never of the
++  fixed-record path.
++* clean false-positive rate (§8.3): clean fixtures whose live
++  verdict is ``MISMATCH`` / 100 (strict literal reading).  The
++  non-``MATCH`` rate (any other verdict) is reported alongside, so a
++  ``REVIEW_REQUIRED`` on a clean image cannot hide inside the
++  strict number.
++* OCR CER (§8.3): ``(S + D + I) / N`` over all 300 fixtures, where
++  S/D/I are substitution/deletion/insertion counts of the plain
++  (unweighted) character edit distance between the live OCR text
++  and the drawn text (both §4.3-normalised), and N is the total
++  number of drawn characters.  CER is reported on its own and is
++  NEVER used as a substitute for detection recall.
++* IoU (§8.1): IoU(live OCR bbox, ``target_region_xyxy``) per fixture
++  (single live line expected; if live OCR returns zero or multiple
++  lines the fixture is recorded with ``iou: null`` and a note, and
++  counts as an IoU failure).  Reported overall and for the 60-image
++  blind subset separately, with min / mean / count below 0.80.
++* JSON schema legality (§5): every live report validated with
++  ``scripts/validate_report_schema.py``; 300/300 required.
++* timing: per-image OCR+compare wall time (P50 / P95 / max).  The
++  §8.3 runtime threshold (1920x1080, pre-warmed, P95 <= 5s) is NOT
++  measured here — the frozen fixtures are 1200x480 — and is marked
++  NOT_MEASURED for T011.
++
++The live OCR results are cached as JSONL so ``verify_s0.py`` can
++re-run scoring without re-running OCR; pass ``--force`` to re-run.
++
++Usage::
++
++    python scripts/compute_s0_metrics.py --manifest tests/fixtures/s0/manifest.json \
++        --blind tests/fixtures/s0/blind_subset.json \
++        --out task_handoffs/T006/s0_metrics.json \
++        --live-results task_handoffs/T006/live_ocr_results.jsonl [--force]
++
++Exit code 0 iff recall >= 95% overall, each class >= 90%, clean
++FPR <= 8%, schema legality 100% and IoU >= 0.80 on every fixture.
++"""
++
++from __future__ import annotations
++
++import argparse
++import hashlib
++import json
++import statistics
++import sys
++import time
++from pathlib import Path
++
++REPO_ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(REPO_ROOT / "src"))
++sys.path.insert(0, str(REPO_ROOT))
++
++from textproof.core.report import build_report  # noqa: E402
++from textproof.io.image_loader import load_image  # noqa: E402
++from textproof.ocr.rapidocr_adapter import RapidOCRAdapter  # noqa: E402
++
++from scripts.validate_report_schema import validate_report  # noqa: E402
++
++S0_IDS = ["TP-S0-ZH-001", "TP-S0-ZH-002", "TP-S0-NUM-001", "TP-S0-ZH-003"]
++CLASS_OF_CATEGORY = {
++    "substitution": "substitution",
++    "omission": "omission",
++    "numeric_change": "numeric_change",
++}
++EXPECTED_ERROR_TYPE = {
++    "substitution": "SUBSTITUTION",
++    "omission": "MISSING_CHARACTER",
++    "numeric_change": "NUMERIC_CHANGE",
++}
++
++
++def iou(box_a: list[float], box_b: list[float]) -> float:
++    """Intersection-over-union of two [x1, y1, x2, y2] boxes."""
++    x1 = max(box_a[0], box_b[0])
++    y1 = max(box_a[1], box_b[1])
++    x2 = min(box_a[2], box_b[2])
++    y2 = min(box_a[3], box_b[3])
++    inter = max(0.0, x2 - x1) * max(0.0, y2 - y1)
++    area_a = max(0.0, box_a[2] - box_a[0]) * max(0.0, box_a[3] - box_a[1])
++    area_b = max(0.0, box_b[2] - box_b[0]) * max(0.0, box_b[3] - box_b[1])
++    union = area_a + area_b - inter
++    return inter / union if union > 0 else 0.0
++
++
++def levenshtein_ops(a: str, b: str) -> tuple[int, int, int]:
++    """Plain (unweighted) edit ops between ``a`` and ``b``.
++
++    Returns (substitutions, deletions, insertions) for the transform
++    a -> b.  Used ONLY for OCR CER (§8.3), never for detection recall.
++    """
++    n, m = len(a), len(b)
++    dist = [[0] * (m + 1) for _ in range(n + 1)]
++    for i in range(1, n + 1):
++        dist[i][0] = i
++    for j in range(1, m + 1):
++        dist[0][j] = j
++    for i in range(1, n + 1):
++        for j in range(1, m + 1):
++            dist[i][j] = min(
++                dist[i - 1][j - 1] + (0 if a[i - 1] == b[j - 1] else 1),
++                dist[i - 1][j] + 1,
++                dist[i][j - 1] + 1)
++    subs = dels = inss = 0
++    i, j = n, m
++    while i > 0 or j > 0:
++        if i > 0 and j > 0 and dist[i][j] == dist[i - 1][j - 1] + (
++                0 if a[i - 1] == b[j - 1] else 1):
++            if a[i - 1] != b[j - 1]:
++                subs += 1
++            i -= 1
++            j -= 1
++        elif i > 0 and dist[i][j] == dist[i - 1][j] + 1:
++            dels += 1
++            i -= 1
++        else:
++            inss += 1
++            j -= 1
++    return subs, dels, inss
++
++
++def _injected_chars(fixture: dict) -> list[dict]:
++    """Injected character differences of one fixture, from the manifest.
++
++    One entry per expected error: its type, expected span and expected
++    fragment.  Character count = span length (ZH-003's "20" is 2)."""
++    out = []
++    for err in fixture.get("expected_errors", []):
++        span = err["expected_span"]
++        out.append({
++            "type": err["type"],
++            "expected_span": list(span),
++            "expected_fragment": err["expected_fragment"],
++            "chars": span[1] - span[0],
++        })
++    return out
++
++
++def _detected(injected: dict, report_errors: list[dict]) -> bool:
++    """True iff the live report contains the injected difference.
++
++    The covering error must have the expected type, an expected_span
++    covering the injected span, and an expected_fragment containing
++    the injected fragment."""
++    for err in report_errors:
++        if err["type"] != injected["type"]:
++            continue
++        span = err["expected_span"]
++        if span is None:
++            continue
++        if span[0] <= injected["expected_span"][0] \
++                and span[1] >= injected["expected_span"][1] \
++                and injected["expected_fragment"] in err["expected_fragment"]:
++            return True
++    return False
++
++
++def run_live(manifest: dict, fixtures_dir: Path,
++             live_results_path: Path, force: bool) -> list[dict]:
++    """Run live OCR + compare over all fixtures (or reuse the cache)."""
++    if live_results_path.exists() and not force:
++        cached = [json.loads(line) for line in
++                  live_results_path.read_text(encoding="utf-8").splitlines()
++                  if line.strip()]
++        if len(cached) == len(manifest["fixtures"]) and all(
++                c["id"] == f["id"]
++                for c, f in zip(cached, manifest["fixtures"])):
++            print(f"reusing cached live OCR results: {live_results_path} "
++                  f"({len(cached)} records)")
++            return cached
++        print("cached live results do not match the manifest; re-running OCR")
++
++    adapter = RapidOCRAdapter()
++    print(f"ONNX providers: {json.dumps(adapter.providers)}")
++    print(f"model route: {json.dumps(adapter.model_info, ensure_ascii=False)}")
++    results: list[dict] = []
++    for fixture in manifest["fixtures"]:
++        t0 = time.perf_counter()
++        data = (fixtures_dir / fixture["filename"]).read_bytes()
++        image = load_image(data)
++        lines = adapter.recognize(image.pil_image)
++        report = build_report(image, fixture["expected_text"], lines)
++        elapsed = time.perf_counter() - t0
++        ocr_text = "\n".join(ln.text for ln in lines)
++        ocr_bboxes = [[round(v, 2) for v in ln.bbox_xyxy] for ln in lines]
++        iou_value = None
++        iou_note = ""
++        if len(lines) == 1:
++            iou_value = iou(ocr_bboxes[0],
++                            [float(v) for v in fixture["target_region_xyxy"]])
++        elif len(lines) == 0:
++            iou_note = "live OCR returned zero lines"
++        else:
++            iou_note = f"live OCR returned {len(lines)} lines (expected 1)"
++        results.append({
++            "id": fixture["id"],
++            "category": fixture["category"],
++            "sha256": image.sha256_hex(),
++            "manifest_sha256": fixture["sha256"],
++            "sha_match": image.sha256_hex() == fixture["sha256"],
++            "expected_text": fixture["expected_text"],
++            "drawn_text": fixture["drawn_text"],
++            "ocr_text": ocr_text,
++            "ocr_confidence": [round(ln.confidence, 5) for ln in lines],
++            "ocr_bboxes": ocr_bboxes,
++            "ocr_line_count": len(lines),
++            "iou": iou_value,
++            "iou_note": iou_note,
++            "target_region_xyxy": fixture["target_region_xyxy"],
++            "verdict": report["verdict"],
++            "errors": report["errors"],
++            "warnings": report["warnings"],
++            "report": report,
++            "seconds": round(elapsed, 4),
++        })
++    live_results_path.parent.mkdir(parents=True, exist_ok=True)
++    with open(live_results_path, "w", encoding="utf-8") as fh:
++        for row in results:
++            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
++    print(f"live OCR results written to {live_results_path} "
++          f"({len(results)} records)")
++    return results
++
++
++def score(results: list[dict], manifest: dict,
++          blind_ids: set[str]) -> dict:
++    """Score live results into the §8.3 metrics."""
++    by_id = {f["id"]: f for f in manifest["fixtures"]}
++    injected_total = 0
++    detected_total = 0
++    per_class: dict[str, dict[str, int]] = {
++        cls: {"injected": 0, "detected": 0} for cls in CLASS_OF_CATEGORY}
++    clean_total = clean_mismatch = clean_non_match = 0
++    cer_subs = cer_dels = cer_inss = cer_n = 0
++    ious: list[float] = []
++    blind_ious: list[float] = []
++    iou_failures: list[dict] = []
++    schema_bad: list[dict] = []
++    missed: list[dict] = []
++    s0_live: dict[str, dict] = {}
++    times: list[float] = []
++    for row in results:
++        fixture = by_id[row["id"]]
++        times.append(row["seconds"])
++        violations = validate_report(row["report"])
++        if violations:
++            schema_bad.append({"id": row["id"], "violations": violations})
++        if row["iou"] is not None:
++            ious.append(row["iou"])
++            if row["id"] in blind_ids:
++                blind_ious.append(row["iou"])
++            if row["iou"] < 0.80:
++                iou_failures.append({"id": row["id"], "iou": row["iou"]})
++        else:
++            iou_failures.append({"id": row["id"], "iou": None,
++                                 "note": row["iou_note"]})
++        subs, dels, inss = levenshtein_ops(
++            _normalised(row["drawn_text"]), _normalised(row["ocr_text"]))
++        cer_subs += subs
++        cer_dels += dels
++        cer_inss += inss
++        cer_n += len(_normalised(row["drawn_text"]))
++        if fixture["category"] == "clean":
++            clean_total += 1
++            if row["verdict"] == "MISMATCH":
++                clean_mismatch += 1
++            if row["verdict"] != "MATCH":
++                clean_non_match += 1
++        else:
++            cls = CLASS_OF_CATEGORY[fixture["category"]]
++            for injected in _injected_chars(fixture):
++                per_class[cls]["injected"] += injected["chars"]
++                injected_total += injected["chars"]
++                if _detected(injected, row["errors"]):
++                    per_class[cls]["detected"] += injected["chars"]
++                    detected_total += injected["chars"]
++                else:
++                    missed.append({"id": row["id"], "category": cls,
++                                   "injected": injected,
++                                   "live_errors": row["errors"],
++                                   "ocr_text": row["ocr_text"]})
++        if row["id"] in S0_IDS:
++            s0_live[row["id"]] = {
++                "expected_text": row["expected_text"],
++                "drawn_text": row["drawn_text"],
++                "ocr_text": row["ocr_text"],
++                "ocr_confidence": row["ocr_confidence"],
++                "ocr_bboxes": row["ocr_bboxes"],
++                "iou": row["iou"],
++                "verdict": row["verdict"],
++                "errors": row["errors"],
++                "warnings": row["warnings"],
++            }
++
++    def _recall(detected: int, total: int) -> float | None:
++        return (100.0 * detected / total) if total else None
++
++    per_class_out = {
++        cls: {"injected_chars": v["injected"],
++              "detected_chars": v["detected"],
++              "recall_pct": _recall(v["detected"], v["injected"])}
++        for cls, v in per_class.items()}
++    recall = _recall(detected_total, injected_total)
++    fpr = 100.0 * clean_mismatch / clean_total if clean_total else None
++    cer = (cer_subs + cer_dels + cer_inss) / cer_n if cer_n else None
++    metrics = {
++        "fixtures": len(results),
++        "recall": {"injected_chars": injected_total,
++                   "detected_chars": detected_total,
++                   "recall_pct": recall,
++                   "per_class": per_class_out,
++                   "missed": missed},
++        "clean": {"total": clean_total, "mismatch": clean_mismatch,
++                  "false_positive_rate_pct": fpr,
++                  "non_match": clean_non_match,
++                  "non_match_rate_pct": (100.0 * clean_non_match / clean_total
++                                         if clean_total else None)},
++        "cer": {"substitutions": cer_subs, "deletions": cer_dels,
++                "insertions": cer_inss, "n_chars": cer_n,
++                "cer": cer},
++        "iou": {"count": len(ious),
++                "min": min(ious) if ious else None,
++                "mean": statistics.fmean(ious) if ious else None,
++                "below_0.80": len(iou_failures),
++                "failures": iou_failures,
++                "blind_subset": {
++                    "count": len(blind_ious),
++                    "min": min(blind_ious) if blind_ious else None,
++                    "mean": statistics.fmean(blind_ious) if blind_ious else None,
++                    "below_0.80": sum(1 for v in blind_ious if v < 0.80)}},
++        "schema": {"total": len(results),
++                   "invalid": len(schema_bad),
++                   "legality_pct": 100.0 * (len(results) - len(schema_bad))
++                   / max(len(results), 1),
++                   "invalid_reports": schema_bad},
++        "timing_seconds": {
++            "p50": statistics.median(times) if times else None,
++            "p95": _percentile(times, 95) if times else None,
++            "max": max(times) if times else None,
++            "note": "1200x480 fixtures, OCR+compare per image, single "
++                    "warmed adapter. The §8.3 runtime threshold is defined "
++                    "for 1920x1080 pre-warmed P95 <= 5s and is NOT_MEASURED "
++                    "in S0; T011 owns the performance report."},
++        "s0_live": s0_live,
++    }
++    return metrics
++
++
++def _percentile(values: list[float], pct: float) -> float:
++    ordered = sorted(values)
++    if not ordered:
++        return 0.0
++    rank = (pct / 100.0) * (len(ordered) - 1)
++    lo = int(rank)
++    hi = min(lo + 1, len(ordered) - 1)
++    frac = rank - lo
++    return ordered[lo] * (1 - frac) + ordered[hi] * frac
++
++
++def _normalised(text: str) -> str:
++    from textproof.core.normalize import normalize_text
++    return normalize_text(text)
++
++
++def gate_pass(metrics: dict) -> bool:
++    """True iff every §8.3 hard threshold in scope is met."""
++    recall = metrics["recall"]["recall_pct"]
++    if recall is None or recall < 95.0:
++        return False
++    for cls, values in metrics["recall"]["per_class"].items():
++        if values["recall_pct"] is None or values["recall_pct"] < 90.0:
++            return False
++    if metrics["clean"]["false_positive_rate_pct"] is None \
++            or metrics["clean"]["false_positive_rate_pct"] > 8.0:
++        return False
++    if metrics["schema"]["legality_pct"] != 100.0:
++        return False
++    if metrics["iou"]["below_0.80"] != 0:
++        return False
++    return True
++
++
++def main(argv: list[str] | None = None) -> int:
++    parser = argparse.ArgumentParser(
++        description="Live-OCR S0 metrics over the 300 fixtures (T006).")
++    parser.add_argument("--manifest", type=Path, required=True)
++    parser.add_argument("--blind", type=Path, required=True)
++    parser.add_argument("--out", type=Path, required=True)
++    parser.add_argument("--live-results", type=Path, required=True)
++    parser.add_argument("--force", action="store_true",
++                        help="Re-run live OCR even if a cache exists.")
++    args = parser.parse_args(argv)
++
++    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
++    blind = json.loads(args.blind.read_text(encoding="utf-8"))
++    blind_ids = {entry["id"] for entry in blind["fixtures"]}
++    fixtures_dir = args.manifest.resolve().parent
++    results = run_live(manifest, fixtures_dir, args.live_results, args.force)
++    metrics = score(results, manifest, blind_ids)
++    args.out.parent.mkdir(parents=True, exist_ok=True)
++    args.out.write_text(
++        json.dumps(metrics, indent=2, ensure_ascii=False) + "\n",
++        encoding="utf-8")
++    print(f"metrics written to {args.out}")
++    print(f"recall: {metrics['recall']['detected_chars']}/"
++          f"{metrics['recall']['injected_chars']} = "
++          f"{metrics['recall']['recall_pct']:.2f}% "
++          f"(per class: " + ", ".join(
++              f"{c} {v['recall_pct']:.2f}%" for c, v in
++              metrics['recall']['per_class'].items()) + ")")
++    print(f"clean FPR: {metrics['clean']['mismatch']}/"
++          f"{metrics['clean']['total']} = "
++          f"{metrics['clean']['false_positive_rate_pct']:.2f}% "
++          f"(non-MATCH {metrics['clean']['non_match']})")
++    print(f"CER: {metrics['cer']['cer']:.4f} "
++          f"(S={metrics['cer']['substitutions']} "
++          f"D={metrics['cer']['deletions']} I={metrics['cer']['insertions']} "
++          f"N={metrics['cer']['n_chars']})")
++    print(f"IoU: min {metrics['iou']['min']:.3f} mean "
++          f"{metrics['iou']['mean']:.3f} below 0.80: "
++          f"{metrics['iou']['below_0.80']}; blind min "
++          f"{metrics['iou']['blind_subset']['min']:.3f}")
++    print(f"schema legality: {metrics['schema']['legality_pct']:.1f}% "
++          f"({metrics['schema']['invalid']} invalid)")
++    print(f"timing P95: {metrics['timing_seconds']['p95']:.3f}s "
++          f"max {metrics['timing_seconds']['max']:.3f}s")
++    if metrics["recall"]["missed"]:
++        print(f"missed injected differences: {len(metrics['recall']['missed'])}")
++        for miss in metrics["recall"]["missed"]:
++            print(f"  {miss['id']} {miss['injected']}")
++    return 0 if gate_pass(metrics) else 1
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/scripts/independent_verify.py b/scripts/independent_verify.py
+new file mode 100644
+index 0000000..8aca91d
+--- /dev/null
++++ b/scripts/independent_verify.py
+@@ -0,0 +1,303 @@
++"""Independent verification of one fixed S0 case (T006).
++
++PROJECT_BOOK.md §8.4 item 3: an independent re-check from a clean
++worktree that re-computes the image hash, opens the original PNG,
++reads the expected text, runs live OCR, independently executes the
++comparison and checks the output field by field.  This script does
++NOT call ``verify_s0.py`` (or ``parity_check.py`` /
++``compute_s0_metrics.py`` / ``validate_report_schema.py``); it
++re-does the work with its own code path, importing only the
++production compare (``textproof.core.report``), the Oracle
++(``oracle.reference_compare``), the image loader and the OCR
++adapter.
++
++For ``--case`` (default ``TP-S0-ZH-001``) it performs:
++
++1. Load the manifest record and the ``expected_output.json`` record
++   for the case; fail if either is missing.
++2. Read the original PNG bytes from disk; recompute SHA-256 and
++   compare with the manifest; open the PNG with Pillow and check
++   format (PNG), dimensions (1200x480) and that the bytes are a
++   decodable static image.
++3. Fixed-record path: feed the drawn text as a single OCR line
++   record (bbox = manifest ``target_region_xyxy``) to BOTH the
++   production compare and the Oracle, and check the result STRICTLY
++   against ``expected_output.json`` — verdict, error count, error
++   type, expected/recognized fragments, expected/recognized spans,
++   bbox equal to the OCR line bbox, ``bbox_scope == "ocr_line"``.
++4. Live-OCR path: run the RapidOCR adapter on the original PNG and
++   print the VERBATIM recognized text, confidence, bbox and the full
++   production report JSON.  Check that every expected error is
++   PRESENT in the live report (same type, fragment and span) and
++   that the live verdict is ``MISMATCH``; list any EXTRA live errors
++   verbatim instead of deleting them.  Check IoU(live bbox,
++   target_region) >= 0.80 and that the bbox stays inside the image.
++5. Print the full Oracle report for the same live OCR lines, and
++   check that the Oracle's live verdict and error types agree with
++   production's on this case.
++
++TP-S0-NUM-001 live note (see S0_REPORT.md §6(a)): live OCR reads
++the drawn ``￥`` (U+FFE5) as ``¥`` (U+00A5), so the live report
++contains one extra ``SUBSTITUTION`` in addition to the expected
++``NUMERIC_CHANGE``.  The live check is therefore a SUBSET check
++(expected errors present), not an exact-equality check; the extra
++error is printed verbatim.  Use ``--strict-live`` to require exact
++live equality instead (it fails on TP-S0-NUM-001 by design, and
++demonstrates the finding).
++
++Usage::
++
++    python scripts/independent_verify.py --case TP-S0-ZH-001
++    python scripts/independent_verify.py --case TP-S0-NUM-001 [--strict-live]
++
++Exit code 0 iff the hash matches, the PNG opens, the fixed-record
++strict check passes for both implementations, and the live subset
++check (or strict check with --strict-live) passes.
++"""
++
++from __future__ import annotations
++
++import argparse
++import hashlib
++import json
++import sys
++from pathlib import Path
++
++REPO_ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(REPO_ROOT / "src"))
++sys.path.insert(0, str(REPO_ROOT))
++
++from PIL import Image  # noqa: E402
++
++import oracle.reference_compare as oracle  # noqa: E402
++from textproof.core.report import build_report  # noqa: E402
++from textproof.io.image_loader import load_image  # noqa: E402
++from textproof.ocr.rapidocr_adapter import (  # noqa: E402
++    OCRLine,
++    RapidOCRAdapter,
++)
++
++
++def sha256_bytes(data: bytes) -> str:
++    return hashlib.sha256(data).hexdigest()
++
++
++def iou(box_a: list[float], box_b: list[float]) -> float:
++    x1 = max(box_a[0], box_b[0])
++    y1 = max(box_a[1], box_b[1])
++    x2 = min(box_a[2], box_b[2])
++    y2 = min(box_a[3], box_b[3])
++    inter = max(0.0, x2 - x1) * max(0.0, y2 - y1)
++    area_a = max(0.0, box_a[2] - box_a[0]) * max(0.0, box_a[3] - box_a[1])
++    area_b = max(0.0, box_b[2] - box_b[0]) * max(0.0, box_b[3] - box_b[1])
++    union = area_a + area_b - inter
++    return inter / union if union > 0 else 0.0
++
++
++def _canon_error(error: dict) -> dict:
++    return {
++        "type": error["type"],
++        "expected_fragment": error["expected_fragment"],
++        "recognized_fragment": error["recognized_fragment"],
++        "expected_span": list(error["expected_span"])
++        if error["expected_span"] is not None else None,
++        "recognized_span": list(error["recognized_span"])
++        if error["recognized_span"] is not None else None,
++    }
++
++
++def _strict_check(report: dict, expected: dict, fixture: dict,
++                  impl_name: str, problems: list[str]) -> None:
++    if report["verdict"] != expected["verdict"]:
++        problems.append(f"[{impl_name}] verdict {report['verdict']} != "
++                        f"{expected['verdict']}")
++    got = report["errors"]
++    want = expected["errors"]
++    if len(got) != len(want):
++        problems.append(f"[{impl_name}] error count {len(got)} != "
++                        f"{len(want)}")
++        return
++    for got_err, want_err in zip(got, want):
++        for field in ("type", "expected_fragment", "recognized_fragment"):
++            if got_err[field] != want_err[field]:
++                problems.append(
++                    f"[{impl_name}] {field} {got_err[field]!r} != "
++                    f"{want_err[field]!r}")
++        if list(got_err["expected_span"]) != list(want_err["expected_span"]):
++            problems.append(
++                f"[{impl_name}] expected_span {got_err['expected_span']} != "
++                f"{want_err['expected_span']}")
++        if list(got_err["recognized_span"]) != list(
++                want_err["recognized_span"]):
++            problems.append(
++                f"[{impl_name}] recognized_span {got_err['recognized_span']} "
++                f"!= {want_err['recognized_span']}")
++        if got_err["bbox_xyxy"] is None:
++            problems.append(f"[{impl_name}] error bbox is null")
++        elif [round(float(v), 2) for v in got_err["bbox_xyxy"]] != [
++                float(v) for v in fixture["target_region_xyxy"]]:
++            problems.append(
++                f"[{impl_name}] fixed-path error bbox "
++                f"{got_err['bbox_xyxy']} != target_region "
++                f"{fixture['target_region_xyxy']}")
++        if got_err.get("bbox_scope") != "ocr_line":
++            problems.append(
++                f"[{impl_name}] bbox_scope {got_err.get('bbox_scope')!r} != "
++                "'ocr_line'")
++
++
++def main(argv: list[str] | None = None) -> int:
++    parser = argparse.ArgumentParser(
++        description="Independent verification of one fixed S0 case (T006).")
++    parser.add_argument("--case", default="TP-S0-ZH-001")
++    parser.add_argument("--manifest", type=Path, default=None)
++    parser.add_argument("--expected-output", type=Path, default=None)
++    parser.add_argument("--strict-live", action="store_true",
++                        help="Require the live report to equal the fixed "
++                        "expected errors exactly (fails on TP-S0-NUM-001).")
++    args = parser.parse_args(argv)
++
++    fixtures_dir = REPO_ROOT / "tests" / "fixtures" / "s0"
++    manifest_path = args.manifest or fixtures_dir / "manifest.json"
++    expected_path = args.expected_output or fixtures_dir / "expected_output.json"
++    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
++    expected_output = json.loads(expected_path.read_text(encoding="utf-8"))
++    by_id = {f["id"]: f for f in manifest["fixtures"]}
++    problems: list[str] = []
++
++    if args.case not in by_id:
++        print(f"case {args.case} not in manifest")
++        return 2
++    fixture = by_id[args.case]
++    expected = expected_output["fixtures"].get(args.case)
++    if expected is None:
++        print(f"case {args.case} not in expected_output.json")
++        return 2
++    print(f"case: {args.case}")
++    print(f"expected_text: {expected['expected_text']!r}")
++    print(f"drawn_text: {expected['drawn_text']!r}")
++
++    # 1-2. Hash + open the original PNG.
++    png_path = fixtures_dir / fixture["filename"]
++    data = png_path.read_bytes()
++    actual_sha = sha256_bytes(data)
++    print(f"PNG bytes: {len(data)} sha256: {actual_sha}")
++    print(f"manifest sha256: {fixture['sha256']}")
++    if actual_sha != fixture["sha256"]:
++        problems.append("PNG SHA-256 does not match the manifest")
++    with Image.open(png_path) as pil:
++        print(f"PIL format: {pil.format} size: {pil.size} mode: {pil.mode}")
++        if pil.format != "PNG" or list(pil.size) != [1200, 480]:
++            problems.append(f"PIL image is {pil.format} {pil.size}, "
++                            "expected PNG 1200x480")
++        pil.load()
++
++    # 3. Fixed-record path, both implementations, strict check.
++    image = load_image(data)
++    region = fixture["target_region_xyxy"]
++    fixed_line = OCRLine(
++        line_index=0, text=fixture["drawn_text"], confidence=0.99,
++        bbox_xyxy=(float(region[0]), float(region[1]),
++                   float(region[2]), float(region[3])),
++        quad=((float(region[0]), float(region[1])),
++              (float(region[2]), float(region[1])),
++              (float(region[2]), float(region[3])),
++              (float(region[0]), float(region[3]))),
++        source_order=0)
++    prod_fixed = build_report(image, fixture["expected_text"], [fixed_line])
++    oracle_fixed = oracle.compare(
++        fixture["expected_text"],
++        [{"line_index": 0, "text": fixture["drawn_text"], "confidence": 0.99,
++          "bbox_xyxy": [float(v) for v in region],
++          "quad": [[float(region[0]), float(region[1])],
++                   [float(region[2]), float(region[1])],
++                   [float(region[2]), float(region[3])],
++                   [float(region[0]), float(region[3])]],
++          "source_order": 0}],
++        image_info={"sha256": image.sha256_hex(), "format": image.format,
++                    "width": image.width, "height": image.height})
++    _strict_check(prod_fixed, expected, fixture, "production", problems)
++    _strict_check(oracle_fixed, expected, fixture, "oracle", problems)
++    print(f"fixed-record production: verdict={prod_fixed['verdict']} "
++          f"errors={json.dumps(prod_fixed['errors'], ensure_ascii=False)}")
++    print(f"fixed-record oracle: verdict={oracle_fixed['verdict']} "
++          f"errors={json.dumps(oracle_fixed['errors'], ensure_ascii=False)}")
++
++    # 4-5. Live OCR path.
++    adapter = RapidOCRAdapter()
++    print(f"ONNX providers: {json.dumps(adapter.providers)}")
++    lines = adapter.recognize(image.pil_image)
++    print(f"live OCR lines: {len(lines)}")
++    for line in lines:
++        print(f"  VERBATIM live OCR text: {line.text!r} "
++              f"confidence={line.confidence:.5f} "
++              f"bbox={[round(v, 2) for v in line.bbox_xyxy]}")
++    prod_live = build_report(image, fixture["expected_text"], lines)
++    print("VERBATIM live production report:")
++    print(json.dumps(prod_live, indent=2, ensure_ascii=False))
++    oracle_live = oracle.compare(
++        fixture["expected_text"],
++        [{"line_index": ln.line_index, "text": ln.text,
++          "confidence": ln.confidence,
++          "bbox_xyxy": [float(v) for v in ln.bbox_xyxy],
++          "quad": [[float(p[0]), float(p[1])] for p in ln.quad],
++          "source_order": ln.source_order} for ln in lines],
++        image_info={"sha256": image.sha256_hex(), "format": image.format,
++                    "width": image.width, "height": image.height})
++    print(f"live oracle: verdict={oracle_live['verdict']} "
++          f"errors={json.dumps(oracle_live['errors'], ensure_ascii=False)}")
++    if oracle_live["verdict"] != prod_live["verdict"]:
++        problems.append(
++            f"live verdict differs: production {prod_live['verdict']} vs "
++            f"oracle {oracle_live['verdict']}")
++    if [_canon_error(e) for e in oracle_live["errors"]] != \
++            [_canon_error(e) for e in prod_live["errors"]]:
++        problems.append("live error lists differ between production and oracle")
++
++    if len(lines) == 1:
++        live_iou = iou([float(v) for v in lines[0].bbox_xyxy],
++                       [float(v) for v in region])
++        print(f"IoU(live bbox, target_region) = {live_iou:.3f} (>= 0.80 required)")
++        if live_iou < 0.80:
++            problems.append(f"live IoU {live_iou:.3f} < 0.80")
++        bbox = lines[0].bbox_xyxy
++        if bbox[0] < 0 or bbox[1] < 0 or bbox[2] > 1200 or bbox[3] > 480:
++            problems.append(f"live bbox {bbox} outside image bounds")
++    elif len(lines) == 0:
++        problems.append("live OCR returned zero lines")
++    else:
++        problems.append(f"live OCR returned {len(lines)} lines, expected 1")
++
++    if prod_live["verdict"] != "MISMATCH":
++        problems.append(f"live verdict {prod_live['verdict']} != MISMATCH")
++    want_canon = [_canon_error({"type": e["type"],
++                                "expected_fragment": e["expected_fragment"],
++                                "recognized_fragment": e["recognized_fragment"],
++                                "expected_span": e["expected_span"],
++                                "recognized_span": e["recognized_span"]})
++                  for e in expected["errors"]]
++    got_canon = [_canon_error(e) for e in prod_live["errors"]]
++    missing = [w for w in want_canon if w not in got_canon]
++    extra = [g for g in got_canon if g not in want_canon]
++    if missing:
++        problems.append(f"live report is missing expected errors: {missing}")
++    if args.strict_live:
++        if extra:
++            problems.append(
++                f"strict-live: extra live errors (verbatim): {extra}")
++    else:
++        if extra:
++            print(f"NOTE: extra live errors (recorded verbatim, not deleted): "
++                  f"{json.dumps(extra, ensure_ascii=False)}")
++
++    if problems:
++        print("INDEPENDENT VERIFICATION: FAIL")
++        for problem in problems:
++            print(f"  - {problem}")
++        return 1
++    print("INDEPENDENT VERIFICATION: PASS")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/scripts/parity_check.py b/scripts/parity_check.py
+new file mode 100644
+index 0000000..045ed68
+--- /dev/null
++++ b/scripts/parity_check.py
+@@ -0,0 +1,397 @@
++"""Production-vs-Oracle parity check for T006 (P033 TextProof).
++
++T006 deliverable (plan §5.2 / T006 card item 2; PROJECT_BOOK.md §8.4).
++
++Gate scope (the frozen S0 definition): the manifest's fixed OCR line
++records.  For every one of the 300 fixtures the drawn text is fed to
++both implementations as a single fixed OCR line record (text =
++``drawn_text``, bbox = manifest ``target_region_xyxy``, confidence
++0.99) and the two reports are compared field by field on verdict,
++error type, expected/recognized fragment, expected/recognized span,
++bbox and warning codes.  The gate passes iff all 300 agree — 100%.
++
++Extended battery (diagnostic, beyond the frozen gate scope): 26
++hand-built edge cases (empty inputs, low confidence, missing/extra
++lines, high-cost pairs, confusion pairs, punctuation, full-width
++characters, trailing newlines, CRLF, reading-order permutations,
++repeated characters).  Differences found there are listed, grouped
++and adjudicated against the frozen spec text in the JSON output and
++in ``S0_REPORT.md``; they do NOT change the gate result, because the
++gate scope is the manifest's fixed records.  The report states this
++boundary explicitly so a reviewer who reads "parity 100%" as
++all-inputs can overrule the PASS.
++
++Known adjudication groups (see S0_REPORT.md for the full reasoning):
++
++* R — representation differences in spec-silent fields: absent-side
++  span ``null`` (production) vs ``[0, 0]`` (Oracle); ``bbox_scope``
++  ``null`` vs ``"none"`` for ``MISSING_LINE`` / ``AMBIGUOUS``;
++  warning-object message text and the Oracle's extra ``confidence``
++  field.  §5.4's sample fixes none of these values, so neither side
++  can be called wrong from the spec text.
++* V1 — empty expected + empty OCR: production ``OCR_FAILED``,
++  Oracle ``MATCH``.  §7.6 ("OCR 无可用文本时为 OCR_FAILED 或
++  REVIEW_REQUIRED") supports production; the case is unreachable in
++  the product because T002 rejects blank expected text
++  (``INVALID_INPUT``, §4.2).
++* V2 — single-character confusion substitution (``O`` -> ``0``):
++  production ``REVIEW_REQUIRED`` / ``AMBIGUOUS_ALIGNMENT``, Oracle
++  ``MISMATCH`` / ``SUBSTITUTION``.  Exact decimal arithmetic gives
++  second-best minus best = 0.70 - 0.65 = 0.05, which is NOT < 0.05
++  (§4.4), so the Oracle is right and production's float subtraction
++  (0.7 - 0.65 == 0.04999999999999993) misfires.  Real production
++  defect, zero S0 impact (no fixture hits it), recorded as finding
++  F-01.
++* V3 — same-row boxes with different vertical centres: production
++  orders by x within the vertically overlapping row (§4.4: "同一视觉
++  行内按 x 从小到大排序"); the Oracle sorts purely by centre-y and
++  puts the right-hand box first.  Production follows §4.4; the
++  Oracle deviates.  No fixture impact (all fixtures are single-line).
++
++The three literal readings flagged by T004 and the Oracle (confusion
++pair set, punctuation-both-sides, gap order) AGREE between the two
++implementations on this battery and are asserted in the output.
++
++Usage::
++
++    python scripts/parity_check.py --manifest tests/fixtures/s0/manifest.json \
++        [--out task_handoffs/T006/parity_report.json]
++
++Exit code 0 iff fixed-fixture parity is 100% (300/300).  The edge
++battery is reported, never silently dropped, but does not change the
++exit code; see the JSON ``edge_battery`` section and S0_REPORT.md.
++"""
++
++from __future__ import annotations
++
++import argparse
++import json
++import sys
++from pathlib import Path
++
++REPO_ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(REPO_ROOT / "src"))
++sys.path.insert(0, str(REPO_ROOT))
++
++from textproof.core.report import build_report  # noqa: E402
++from textproof.io.image_loader import load_image  # noqa: E402
++from textproof.ocr.rapidocr_adapter import OCRLine  # noqa: E402
++
++import oracle.reference_compare as oracle  # noqa: E402
++
++S0_IDS = ["TP-S0-ZH-001", "TP-S0-ZH-002", "TP-S0-NUM-001", "TP-S0-ZH-003"]
++
++
++def _bbox_tuple(region: list) -> tuple[float, float, float, float]:
++    return (float(region[0]), float(region[1]),
++            float(region[2]), float(region[3]))
++
++
++def _quad_for(region: list) -> tuple:
++    x1, y1, x2, y2 = (float(v) for v in region)
++    return ((x1, y1), (x2, y1), (x2, y2), (x1, y2))
++
++
++def fixed_ocr_line(fixture: dict) -> OCRLine:
++    """The manifest's fixed OCR line record for one fixture."""
++    return OCRLine(
++        line_index=0,
++        text=fixture["drawn_text"],
++        confidence=0.99,
++        bbox_xyxy=_bbox_tuple(fixture["target_region_xyxy"]),
++        quad=_quad_for(fixture["target_region_xyxy"]),
++        source_order=0,
++    )
++
++
++def fixed_oracle_record(fixture: dict) -> dict:
++    region = fixture["target_region_xyxy"]
++    return {
++        "line_index": 0,
++        "text": fixture["drawn_text"],
++        "confidence": 0.99,
++        "bbox_xyxy": [float(v) for v in region],
++        "quad": [[float(region[0]), float(region[1])],
++                 [float(region[2]), float(region[1])],
++                 [float(region[2]), float(region[3])],
++                 [float(region[0]), float(region[3])]],
++        "source_order": 0,
++    }
++
++
++def canon_errors(errors: list[dict]) -> list[dict]:
++    """Canonical error comparison form (verdict + type + fragments +
++    spans + bbox).  ``bbox_scope`` is included: on the fixed fixtures
++    every error carries ``"ocr_line"`` on both sides, so any scope
++    difference would surface here."""
++    return [{
++        "type": e["type"],
++        "expected_fragment": e["expected_fragment"],
++        "recognized_fragment": e["recognized_fragment"],
++        "expected_span": list(e["expected_span"])
++        if e["expected_span"] is not None else None,
++        "recognized_span": list(e["recognized_span"])
++        if e["recognized_span"] is not None else None,
++        "bbox_xyxy": list(e["bbox_xyxy"]) if e["bbox_xyxy"] is not None else None,
++        "bbox_scope": e.get("bbox_scope"),
++    } for e in errors]
++
++
++def canon_warnings(warnings: list[dict]) -> list[str]:
++    """Warning codes only: §5.3 fixes codes, not object shapes."""
++    return [w["code"] for w in warnings]
++
++
++def compare_reports(prod: dict, orep: dict) -> dict:
++    """Field-by-field diff between a production report dict and an
++    Oracle report dict.  Returns {} when they agree on every compared
++    field."""
++    diff: dict = {}
++    if prod["verdict"] != orep["verdict"]:
++        diff["verdict"] = {"production": prod["verdict"],
++                           "oracle": orep["verdict"]}
++    if prod["expected_text"] != orep["expected_text"]:
++        diff["expected_text"] = {"production": prod["expected_text"],
++                                 "oracle": orep["expected_text"]}
++    if prod["recognized_text"] != orep["recognized_text"]:
++        diff["recognized_text"] = {"production": prod["recognized_text"],
++                                   "oracle": orep["recognized_text"]}
++    pe, oe = canon_errors(prod["errors"]), canon_errors(orep["errors"])
++    if pe != oe:
++        diff["errors"] = {"production": pe, "oracle": oe}
++    pw, ow = canon_warnings(prod["warnings"]), canon_warnings(orep["warnings"])
++    if pw != ow:
++        diff["warning_codes"] = {"production": pw, "oracle": ow}
++    if prod["summary"] != orep["summary"]:
++        diff["summary"] = {"production": prod["summary"],
++                           "oracle": orep["summary"]}
++    return diff
++
++
++def run_fixed_parity(manifest: dict, fixtures_dir: Path) -> dict:
++    """Parity over the manifest's fixed OCR line records (gate scope)."""
++    results: list[dict] = []
++    mismatches: list[dict] = []
++    for fixture in manifest["fixtures"]:
++        data = (fixtures_dir / fixture["filename"]).read_bytes()
++        image = load_image(data)
++        prod = build_report(image, fixture["expected_text"],
++                            [fixed_ocr_line(fixture)])
++        orep = oracle.compare(
++            fixture["expected_text"], [fixed_oracle_record(fixture)],
++            image_info={"sha256": image.sha256_hex(),
++                        "format": image.format,
++                        "width": image.width, "height": image.height})
++        diff = compare_reports(prod, orep)
++        entry = {"id": fixture["id"], "match": not diff, "diff": diff}
++        results.append(entry)
++        if diff:
++            mismatches.append(entry)
++    return {
++        "scope": "manifest fixed OCR line records (drawn_text, "
++                 "target_region_xyxy bbox, confidence 0.99)",
++        "total": len(results),
++        "matched": len(results) - len(mismatches),
++        "mismatched": len(mismatches),
++        "parity_pct": (100.0 * (len(results) - len(mismatches))
++                       / max(len(results), 1)),
++        "mismatches": mismatches,
++    }
++
++
++# ---------------------------------------------------------------------------
++# Extended edge battery (diagnostic only)
++# ---------------------------------------------------------------------------
++
++def _box(x1: float, y1: float, x2: float, y2: float) -> list[float]:
++    return [float(x1), float(y1), float(x2), float(y2)]
++
++
++EDGE_CASES: list[dict] = [
++    {"name": "empty_expected_empty_ocr", "expected": "",
++     "lines": []},
++    {"name": "empty_expected_one_ocr", "expected": "",
++     "lines": [{"text": "abc", "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "nonempty_expected_empty_ocr", "expected": "hello",
++     "lines": []},
++    {"name": "nonempty_expected_blank_ocr", "expected": "hello",
++     "lines": [{"text": "   ", "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "low_conf_match", "expected": "abc",
++     "lines": [{"text": "abc", "confidence": 0.5, "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "low_conf_diff", "expected": "abc",
++     "lines": [{"text": "abd", "confidence": 0.5, "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "missing_line", "expected": "line1\nline2",
++     "lines": [{"text": "line1", "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "extra_line", "expected": "line1",
++     "lines": [{"text": "line1", "bbox": _box(0, 0, 100, 50)},
++               {"text": "line2", "bbox": _box(0, 60, 100, 110)}]},
++    {"name": "high_cost_pair", "expected": "abc",
++     "lines": [{"text": "xyz", "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "ambiguous_dup_lines", "expected": "aa\naa",
++     "lines": [{"text": "aa", "bbox": _box(0, 0, 100, 50)},
++               {"text": "aa", "bbox": _box(0, 60, 100, 110)}]},
++    {"name": "confusion_lower_o", "expected": "o",
++     "lines": [{"text": "0", "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "confusion_upper_O", "expected": "O",
++     "lines": [{"text": "0", "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "punct_sub", "expected": "a,b",
++     "lines": [{"text": "a;b", "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "punct_vs_letter", "expected": "a,b",
++     "lines": [{"text": "axb", "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "fullwidth_yen", "expected": "￥28.80",
++     "lines": [{"text": "￥28.00", "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "fullwidth_ascii", "expected": "ＡＢＣ",
++     "lines": [{"text": "ABC", "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "trailing_newline", "expected": "abc\n",
++     "lines": [{"text": "abc", "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "crlf", "expected": "a\r\nb",
++     "lines": [{"text": "a", "bbox": _box(0, 0, 100, 50)},
++               {"text": "b", "bbox": _box(0, 60, 100, 110)}]},
++    {"name": "two_lines_swapped_order", "expected": "first\nsecond",
++     "lines": [{"text": "second", "bbox": _box(0, 60, 100, 110),
++                "source_order": 0},
++               {"text": "first", "bbox": _box(0, 0, 100, 50),
++                "source_order": 1}]},
++    {"name": "same_row_two_boxes_x_order", "expected": "AB CD",
++     "lines": [{"text": "CD", "bbox": _box(200, 0, 300, 50),
++                "source_order": 0},
++               {"text": "AB", "bbox": _box(0, 0, 100, 50),
++                "source_order": 1}]},
++    {"name": "same_row_diff_centre", "expected": "AB CD",
++     "lines": [{"text": "CD", "bbox": _box(200, 2, 300, 48),
++                "source_order": 0},
++               {"text": "AB", "bbox": _box(0, 0, 100, 52),
++                "source_order": 1}]},
++    {"name": "overlap_rows", "expected": "top\nbottom",
++     "lines": [{"text": "bottom", "bbox": _box(0, 55, 100, 105),
++                "source_order": 0},
++               {"text": "top", "bbox": _box(0, 0, 100, 60),
++                "source_order": 1}]},
++    {"name": "numeric_missing", "expected": "a1b",
++     "lines": [{"text": "ab", "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "numeric_extra", "expected": "ab",
++     "lines": [{"text": "a1b", "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "multi_sub_mixed_types", "expected": "a1",
++     "lines": [{"text": "b2", "bbox": _box(0, 0, 100, 50)}]},
++    {"name": "repeated_char_missing", "expected": "aaa",
++     "lines": [{"text": "aa", "bbox": _box(0, 0, 100, 50)}]},
++]
++
++
++def _prod_report_for_case(case: dict) -> dict:
++    from textproof.core.report import compare as prod_compare
++    lines = []
++    for i, line in enumerate(case["lines"]):
++        bbox = line["bbox"]
++        lines.append(OCRLine(
++            line_index=i, text=line["text"],
++            confidence=line.get("confidence", 0.99),
++            bbox_xyxy=(bbox[0], bbox[1], bbox[2], bbox[3]),
++            quad=((bbox[0], bbox[1]), (bbox[2], bbox[1]),
++                  (bbox[2], bbox[3]), (bbox[0], bbox[3])),
++            source_order=line.get("source_order", i)))
++    result = prod_compare(case["expected"], lines)
++    return {"verdict": result.verdict, "errors": result.errors,
++            "warnings": result.warnings, "summary": result.summary,
++            "expected_text": result.expected_text,
++            "recognized_text": result.recognized_text}
++
++
++def _oracle_report_for_case(case: dict) -> dict:
++    records = []
++    for i, line in enumerate(case["lines"]):
++        bbox = line["bbox"]
++        records.append({
++            "line_index": i, "text": line["text"],
++            "confidence": line.get("confidence", 0.99),
++            "bbox_xyxy": [float(v) for v in bbox],
++            "quad": [[bbox[0], bbox[1]], [bbox[2], bbox[1]],
++                     [bbox[2], bbox[3]], [bbox[0], bbox[3]]],
++            "source_order": line.get("source_order", i)})
++    return oracle.compare(case["expected"], records)
++
++
++def run_edge_battery() -> dict:
++    """Run the diagnostic edge battery; classify every difference."""
++    diffs: list[dict] = []
++    for case in EDGE_CASES:
++        prod = _prod_report_for_case(case)
++        orep = _oracle_report_for_case(case)
++        diff = compare_reports(prod, orep)
++        # Representation-only differences (warning object shape, absent-side
++        # span null vs [0,0], bbox_scope null vs "none") are recorded with
++        # full fidelity in "raw_diff" so the report can adjudicate them.
++        raw: dict = {}
++        if prod["warnings"] != orep["warnings"]:
++            raw["warnings"] = {"production": prod["warnings"],
++                               "oracle": orep["warnings"]}
++        if diff or raw:
++            diffs.append({"case": case["name"], "diff": diff,
++                          "raw_warning_diff": raw.get("warnings")})
++    return {
++        "scope": "diagnostic only; NOT part of the frozen S0 gate scope",
++        "total": len(EDGE_CASES),
++        "differing": len(diffs),
++        "matching": len(EDGE_CASES) - len(diffs),
++        "differences": diffs,
++        "adjudication_groups": {
++            "R": "representation in spec-silent fields (absent-side span "
++                 "null vs [0,0]; bbox_scope null vs 'none'; warning object "
++                 "shape). §5.4 sample fixes none of these values.",
++            "V1": "empty expected + empty OCR verdict (OCR_FAILED vs "
++                  "MATCH). §7.6 sentence supports production; case "
++                  "unreachable via T002 blank rejection (§4.2).",
++            "V2": "single-char confusion substitution O->0: production "
++                  "AMBIGUOUS (float 0.7-0.65 < 0.05) vs Oracle MISMATCH. "
++                  "Exact decimal 0.70-0.65 = 0.05, NOT < 0.05 (§4.4): "
++                  "Oracle correct, production float defect (finding F-01).",
++            "V3": "same-row boxes, different centres: production orders "
++                  "by x within the overlapping row (§4.4), Oracle sorts "
++                  "by centre-y. Production follows §4.4; Oracle deviates.",
++        },
++        "named_readings_agree": {
++            "confusion_pair_set": "both use only the six listed pairs; "
++                "lowercase o/0 is NOT a confusion pair on either side "
++                "(case confusion_lower_o agrees on error type).",
++            "punctuation_both_sides": "both require both characters to be "
++                "Unicode punctuation for the 0.50 cost (cases punct_sub, "
++                "punct_vs_letter agree on error type).",
++            "gap_order": "both emit EXTRA_LINE before MISSING_LINE for a "
++                "trailing missing+extra run (cases high_cost_pair, "
++                "multi_sub_mixed_types agree on error order).",
++        },
++    }
++
++
++def main(argv: list[str] | None = None) -> int:
++    parser = argparse.ArgumentParser(
++        description="Production-vs-Oracle parity check (T006).")
++    parser.add_argument("--manifest", type=Path, required=True)
++    parser.add_argument("--out", type=Path, default=None)
++    args = parser.parse_args(argv)
++
++    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
++    fixtures_dir = args.manifest.resolve().parent
++    fixed = run_fixed_parity(manifest, fixtures_dir)
++    edge = run_edge_battery()
++    report = {"fixed_fixtures": fixed, "edge_battery": edge}
++    if args.out is not None:
++        args.out.parent.mkdir(parents=True, exist_ok=True)
++        args.out.write_text(
++            json.dumps(report, indent=2, ensure_ascii=False) + "\n",
++            encoding="utf-8")
++        print(f"parity report written to {args.out}")
++    print(f"fixed fixtures: {fixed['matched']}/{fixed['total']} match "
++          f"({fixed['parity_pct']:.1f}%)")
++    if fixed["mismatches"]:
++        for entry in fixed["mismatches"]:
++            print(f"  MISMATCH {entry['id']}: "
++                  f"{json.dumps(entry['diff'], ensure_ascii=False)}")
++    print(f"edge battery (diagnostic): {edge['matching']}/{edge['total']} "
++          f"match; differing: "
++          f"{[d['case'] for d in edge['differences']]}")
++    return 0 if fixed["mismatched"] == 0 else 1
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/scripts/validate_report_schema.py b/scripts/validate_report_schema.py
+new file mode 100644
+index 0000000..70ac4be
+--- /dev/null
++++ b/scripts/validate_report_schema.py
+@@ -0,0 +1,380 @@
++"""Validate a ``textproof.report/v1`` report against PROJECT_BOOK.md §5.
++
++T006 deliverable (plan §5.2 / T006 card item 6).  The formal
++``.schema.json`` file is a T009 deliverable; this module is the S0
++validator, implemented by hand against the frozen contract text
++because no JSON-Schema library is in the locked dependency set
++(``requirements.lock``; checked 2026-11-25: ``jsonschema`` is not
++installed and no new package may be added).
++
++Rules enforced, each anchored to a §5 clause:
++
++* §5.1 — ``schema`` is exactly ``"textproof.report/v1"``; encoding is
++  UTF-8 (callers read files as UTF-8); ``coordinate_system`` is
++  ``"oriented_image_px_top_left"``; character spans are half-open
++  code-point spans into normalised text.
++* §5.2 — ``verdict`` is one of ``MATCH`` / ``MISMATCH`` /
++  ``REVIEW_REQUIRED`` / ``OCR_FAILED``.
++* §5.3 — error ``type`` is one of the seven frozen types; warning
++  ``code`` is one of ``LOW_OCR_CONFIDENCE`` /
++  ``POSSIBLE_MULTI_COLUMN`` / ``ROTATED_TEXT_NOT_SUPPORTED`` /
++  ``OCR_EMPTY``.
++* §5.4 — top-level keys are exactly the sample's keys; the ``image``
++  block has ``sha256`` (64 lowercase hex chars), ``format`` (``PNG`` /
++  ``JPEG`` / ``WEBP``), positive integer ``width`` / ``height`` and
++  the coordinate system above; ``tool_version`` is a non-empty
++  string; ``expected_text`` / ``recognized_text`` are strings;
++  ``ocr_lines`` entries have ``line_index`` (int >= 0), ``text``
++  (str), ``confidence`` (number in [0, 1]), ``bbox_xyxy`` (four
++  numbers, x1 <= x2, y1 <= y2) and ``quad`` (four [x, y] points);
++  ``errors`` entries have ``id`` matching ``E`` + three digits,
++  sequential from ``E001``; ``expected_line_index`` /
++  ``ocr_line_index`` are ints >= 0 or ``null``; ``expected_text`` /
++  ``recognized_text`` are strings; spans are ``null`` or ``[int,
++  int]`` with ``0 <= start <= end``; fragments are strings;
++  ``bbox_xyxy`` is ``null`` or four numbers inside the image bounds;
++  ``bbox_scope`` is ``"ocr_line"`` or ``null``; ``confidence`` is
++  ``null`` or a number in [0, 1]; ``summary`` counts equal the
++  lengths of the arrays they count.
++* §4.6 / §7.5 — a ``MISSING_LINE`` error has ``bbox_xyxy`` ``null``
++  (no fabricated box); every other error has a non-null line bbox.
++* §5.4 sample — error spans must lie inside the error's own
++  ``expected_text`` / ``recognized_text`` (the normalised line texts
++  the spans index into, §4.3.6).
++
++Deliberately NOT enforced here (spec-silent, see S0_REPORT.md
++finding F-03): whether the absent side of a ``MISSING_LINE`` /
++``EXTRA_LINE`` span is ``null`` or the empty span ``[0, 0]``, and
++whether a missing-line ``bbox_scope`` is ``null`` or ``"none"``.
++The frozen text fixes neither value, so this validator accepts both
++and records which form was seen.
++
++Usage::
++
++    python scripts/validate_report_schema.py report.json [report2.json ...]
++    python scripts/validate_report_schema.py --reports-dir dir/
++
++Exit code 0 iff every report is valid; every violation is printed
++with its JSON path.
++"""
++
++from __future__ import annotations
++
++import argparse
++import json
++import re
++import sys
++from pathlib import Path
++from typing import Any
++
++SCHEMA_ID = "textproof.report/v1"
++COORDINATE_SYSTEM = "oriented_image_px_top_left"
++VERDICTS = {"MATCH", "MISMATCH", "REVIEW_REQUIRED", "OCR_FAILED"}
++ERROR_TYPES = {
++    "SUBSTITUTION",
++    "MISSING_CHARACTER",
++    "EXTRA_CHARACTER",
++    "NUMERIC_CHANGE",
++    "MISSING_LINE",
++    "EXTRA_LINE",
++    "AMBIGUOUS_ALIGNMENT",
++}
++WARNING_CODES = {
++    "LOW_OCR_CONFIDENCE",
++    "POSSIBLE_MULTI_COLUMN",
++    "ROTATED_TEXT_NOT_SUPPORTED",
++    "OCR_EMPTY",
++}
++IMAGE_FORMATS = {"PNG", "JPEG", "WEBP"}
++TOP_LEVEL_KEYS = {
++    "schema",
++    "tool_version",
++    "verdict",
++    "image",
++    "expected_text",
++    "recognized_text",
++    "ocr_lines",
++    "errors",
++    "warnings",
++    "summary",
++}
++OCR_LINE_KEYS = {"line_index", "text", "confidence", "bbox_xyxy", "quad"}
++ERROR_KEYS = {
++    "id",
++    "type",
++    "expected_line_index",
++    "ocr_line_index",
++    "expected_text",
++    "recognized_text",
++    "expected_span",
++    "recognized_span",
++    "expected_fragment",
++    "recognized_fragment",
++    "bbox_xyxy",
++    "bbox_scope",
++    "confidence",
++}
++WARNING_KEYS = {"code", "message"}
++SUMMARY_KEYS = {"expected_lines", "ocr_lines", "error_count", "warning_count"}
++
++_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
++_ERROR_ID_RE = re.compile(r"^E\d{3}$")
++
++
++def _is_number(value: Any) -> bool:
++    return isinstance(value, (int, float)) and not isinstance(value, bool)
++
++
++def _check_bbox(value: Any, path: str, errors: list[str],
++                width: int | None, height: int | None) -> None:
++    if value is None:
++        return
++    if not isinstance(value, list) or len(value) != 4 \
++            or not all(_is_number(v) for v in value):
++        errors.append(f"{path}: bbox must be null or [x1, y1, x2, y2] numbers")
++        return
++    x1, y1, x2, y2 = value
++    if not (x1 <= x2 and y1 <= y2):
++        errors.append(f"{path}: bbox corners out of order: {value}")
++    if width is not None and height is not None:
++        if x1 < 0 or y1 < 0 or x2 > width or y2 > height:
++            errors.append(
++                f"{path}: bbox {value} outside image bounds "
++                f"{width}x{height} (§5.4 / §8.1)")
++        if x1 < 0 or y1 < 0:
++            errors.append(f"{path}: bbox has negative coordinates: {value}")
++
++
++def _check_span(value: Any, path: str, errors: list[str],
++                line_text: str | None) -> None:
++    if value is None:
++        return
++    if not isinstance(value, list) or len(value) != 2 \
++            or not all(isinstance(v, int) and not isinstance(v, bool)
++                       for v in value):
++        errors.append(f"{path}: span must be null or [int, int]")
++        return
++    start, end = value
++    if not (0 <= start <= end):
++        errors.append(f"{path}: span not half-open with 0 <= start <= end: {value}")
++    if line_text is not None and end > len(line_text):
++        errors.append(
++            f"{path}: span end {end} exceeds its line text length "
++            f"{len(line_text)} (§4.3.6)")
++
++
++def validate_report(report: Any) -> list[str]:
++    """Return the list of §5 violations in ``report`` (empty = valid)."""
++    errors: list[str] = []
++    if not isinstance(report, dict):
++        return ["$: report must be a JSON object"]
++    if set(report.keys()) != TOP_LEVEL_KEYS:
++        errors.append(
++            f"$: top-level keys must be exactly {sorted(TOP_LEVEL_KEYS)}; "
++            f"got {sorted(report.keys())} (§5.4)")
++    if report.get("schema") != SCHEMA_ID:
++        errors.append(f"$.schema: must be {SCHEMA_ID!r} (§5.1)")
++    tool_version = report.get("tool_version")
++    if not isinstance(tool_version, str) or not tool_version:
++        errors.append("$.tool_version: must be a non-empty string (§5.4)")
++    if report.get("verdict") not in VERDICTS:
++        errors.append(f"$.verdict: must be one of {sorted(VERDICTS)} (§5.2)")
++    if not isinstance(report.get("expected_text"), str):
++        errors.append("$.expected_text: must be a string (§5.4)")
++    if not isinstance(report.get("recognized_text"), str):
++        errors.append("$.recognized_text: must be a string (§5.4)")
++
++    image = report.get("image")
++    width = height = None
++    if not isinstance(image, dict):
++        errors.append("$.image: must be an object (§5.4)")
++    else:
++        if set(image.keys()) != {"sha256", "format", "width", "height",
++                                 "coordinate_system"}:
++            errors.append(
++                "$.image: keys must be sha256/format/width/height/"
++                "coordinate_system (§5.4)")
++        sha = image.get("sha256")
++        if not isinstance(sha, str) or not _SHA256_RE.match(sha):
++            errors.append("$.image.sha256: must be 64 lowercase hex chars (§5.4)")
++        if image.get("format") not in IMAGE_FORMATS:
++            errors.append(f"$.image.format: must be one of {sorted(IMAGE_FORMATS)}")
++        width, height = image.get("width"), image.get("height")
++        for name, value in (("width", width), ("height", height)):
++            if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
++                errors.append(f"$.image.{name}: must be a positive integer (§5.4)")
++        if image.get("coordinate_system") != COORDINATE_SYSTEM:
++            errors.append(
++                f"$.image.coordinate_system: must be {COORDINATE_SYSTEM!r} (§5.1)")
++
++    ocr_lines = report.get("ocr_lines")
++    if not isinstance(ocr_lines, list):
++        errors.append("$.ocr_lines: must be a list (§5.4)")
++        ocr_lines = []
++    for i, line in enumerate(ocr_lines):
++        path = f"$.ocr_lines[{i}]"
++        if not isinstance(line, dict):
++            errors.append(f"{path}: must be an object")
++            continue
++        if set(line.keys()) != OCR_LINE_KEYS:
++            errors.append(f"{path}: keys must be exactly {sorted(OCR_LINE_KEYS)}")
++        if not isinstance(line.get("line_index"), int) \
++                or isinstance(line.get("line_index"), bool) \
++                or line.get("line_index", -1) < 0:
++            errors.append(f"{path}.line_index: must be an int >= 0")
++        elif line.get("line_index") != i:
++            errors.append(
++                f"{path}.line_index: must equal its position {i} (§7.1)")
++        if not isinstance(line.get("text"), str):
++            errors.append(f"{path}.text: must be a string")
++        conf = line.get("confidence")
++        if conf is not None and (not _is_number(conf) or not 0.0 <= conf <= 1.0):
++            errors.append(f"{path}.confidence: must be null or a number in [0, 1]")
++        _check_bbox(line.get("bbox_xyxy"), f"{path}.bbox_xyxy", errors,
++                    width, height)
++        quad = line.get("quad")
++        if not isinstance(quad, list) or len(quad) != 4 or any(
++                not isinstance(p, list) or len(p) != 2
++                or not all(_is_number(v) for v in p) for p in quad):
++            errors.append(f"{path}.quad: must be four [x, y] points (§5.4)")
++
++    error_list = report.get("errors")
++    if not isinstance(error_list, list):
++        errors.append("$.errors: must be a list (§5.4)")
++        error_list = []
++    for i, err in enumerate(error_list):
++        path = f"$.errors[{i}]"
++        if not isinstance(err, dict):
++            errors.append(f"{path}: must be an object")
++            continue
++        if set(err.keys()) != ERROR_KEYS:
++            errors.append(f"{path}: keys must be exactly {sorted(ERROR_KEYS)}")
++        err_id = err.get("id")
++        if not isinstance(err_id, str) or not _ERROR_ID_RE.match(err_id):
++            errors.append(f"{path}.id: must match E### (§5.4)")
++        elif err_id != f"E{i + 1:03d}":
++            errors.append(
++                f"{path}.id: ids must be sequential E001...; expected "
++                f"E{i + 1:03d}, got {err_id}")
++        if err.get("type") not in ERROR_TYPES:
++            errors.append(f"{path}.type: must be one of {sorted(ERROR_TYPES)} (§5.3)")
++        for field in ("expected_line_index", "ocr_line_index"):
++            value = err.get(field)
++            if value is not None and (not isinstance(value, int)
++                                      or isinstance(value, bool) or value < 0):
++                errors.append(f"{path}.{field}: must be null or an int >= 0")
++        exp_text = err.get("expected_text")
++        rec_text = err.get("recognized_text")
++        if not isinstance(exp_text, str):
++            errors.append(f"{path}.expected_text: must be a string")
++            exp_text = None
++        if not isinstance(rec_text, str):
++            errors.append(f"{path}.recognized_text: must be a string")
++            rec_text = None
++        _check_span(err.get("expected_span"), f"{path}.expected_span",
++                    errors, exp_text)
++        _check_span(err.get("recognized_span"), f"{path}.recognized_span",
++                    errors, rec_text)
++        if not isinstance(err.get("expected_fragment"), str):
++            errors.append(f"{path}.expected_fragment: must be a string")
++        if not isinstance(err.get("recognized_fragment"), str):
++            errors.append(f"{path}.recognized_fragment: must be a string")
++        bbox = err.get("bbox_xyxy")
++        _check_bbox(bbox, f"{path}.bbox_xyxy", errors, width, height)
++        if err.get("type") == "MISSING_LINE":
++            if bbox is not None:
++                errors.append(
++                    f"{path}.bbox_xyxy: MISSING_LINE must have null bbox "
++                    "(§4.6 / §7.5)")
++        elif bbox is None and err.get("type") != "AMBIGUOUS_ALIGNMENT":
++            errors.append(
++                f"{path}.bbox_xyxy: non-MISSING_LINE error must carry its "
++                "OCR line bbox (§4.6 / §7.5)")
++        scope = err.get("bbox_scope")
++        if scope not in ("ocr_line", "none", None):
++            errors.append(
++                f"{path}.bbox_scope: must be 'ocr_line', 'none' or null")
++        if bbox is None and scope == "ocr_line":
++            errors.append(f"{path}.bbox_scope: 'ocr_line' with null bbox")
++        if bbox is not None and scope != "ocr_line":
++            errors.append(
++                f"{path}.bbox_scope: error with a bbox must have scope "
++                "'ocr_line'")
++        conf = err.get("confidence")
++        if conf is not None and (not _is_number(conf) or not 0.0 <= conf <= 1.0):
++            errors.append(f"{path}.confidence: must be null or a number in [0, 1]")
++
++    warnings = report.get("warnings")
++    if not isinstance(warnings, list):
++        errors.append("$.warnings: must be a list (§5.4)")
++        warnings = []
++    for i, warn in enumerate(warnings):
++        path = f"$.warnings[{i}]"
++        if not isinstance(warn, dict):
++            errors.append(f"{path}: must be an object")
++            continue
++        if warn.get("code") not in WARNING_CODES:
++            errors.append(
++                f"{path}.code: must be one of {sorted(WARNING_CODES)} (§5.3)")
++        if not isinstance(warn.get("message"), str):
++            errors.append(f"{path}.message: must be a string")
++
++    summary = report.get("summary")
++    if not isinstance(summary, dict):
++        errors.append("$.summary: must be an object (§5.4)")
++    else:
++        if set(summary.keys()) != SUMMARY_KEYS:
++            errors.append(
++                f"$.summary: keys must be exactly {sorted(SUMMARY_KEYS)}")
++        expected_counts = {
++            "expected_lines": report.get("expected_text", "").count("\n") + 1
++            if isinstance(report.get("expected_text"), str) else None,
++            "ocr_lines": len(ocr_lines),
++            "error_count": len(error_list),
++            "warning_count": len(warnings),
++        }
++        for key, value in expected_counts.items():
++            actual = summary.get(key)
++            if value is not None and actual != value:
++                errors.append(
++                    f"$.summary.{key}: must be {value}, got {actual} (§5.4)")
++
++    return errors
++
++
++def main(argv: list[str] | None = None) -> int:
++    parser = argparse.ArgumentParser(
++        description="Validate textproof.report/v1 reports against §5.")
++    parser.add_argument("reports", nargs="*", help="Report JSON file(s).")
++    parser.add_argument("--reports-dir", type=Path, default=None,
++                        help="Validate every *.json in this directory.")
++    args = parser.parse_args(argv)
++
++    paths: list[Path] = [Path(p) for p in args.reports]
++    if args.reports_dir is not None:
++        paths.extend(sorted(args.reports_dir.glob("*.json")))
++    if not paths:
++        parser.error("no reports given")
++
++    total_bad = 0
++    for path in paths:
++        try:
++            report = json.loads(path.read_text(encoding="utf-8"))
++        except Exception as exc:  # noqa: BLE001 - report and continue
++            print(f"{path}: UNREADABLE: {exc}")
++            total_bad += 1
++            continue
++        violations = validate_report(report)
++        if violations:
++            total_bad += 1
++            print(f"{path}: INVALID ({len(violations)} violation(s))")
++            for violation in violations:
++                print(f"  - {violation}")
++        else:
++            print(f"{path}: VALID")
++    print(f"schema validation: {len(paths) - total_bad}/{len(paths)} valid")
++    return 0 if total_bad == 0 else 1
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/scripts/verify_s0.py b/scripts/verify_s0.py
+new file mode 100644
+index 0000000..885f0fe
+--- /dev/null
++++ b/scripts/verify_s0.py
+@@ -0,0 +1,354 @@
++"""S0 gate runner for P033 TextProof (T006).
++
++Runs every S0 check in one place and prints a per-item PASS/FAIL
++table (PROJECT_BOOK.md §8.3-§8.4; IMPLEMENTATION_PLAN.md T006 card):
++
++1. Oracle independence — ``oracle/reference_compare.py`` imports
++   only the standard library and never imports ``textproof``
++   (source + AST check, re-verified here; the Oracle's own test
++   suite asserts the same in a fresh subprocess).
++2. Production-Oracle parity on the manifest's fixed OCR line records
++   — 300/300 required (see ``scripts/parity_check.py``).
++3. The four fixed S0 samples against §8.1 — type, fragments, spans,
++   bbox rule and verdict, on the fixed-record path, for BOTH
++   implementations (see ``scripts/parity_check.py`` + the checks
++   below).
++4. 300-sample detection recall >= 95% overall, >= 90% per class
++   (live OCR; see ``scripts/compute_s0_metrics.py``).
++5. Clean false-positive rate <= 8% (live OCR, strict MISMATCH
++   reading of §8.3).
++6. JSON schema legality 100% over the 300 live reports (§5; see
++   ``scripts/validate_report_schema.py``) with OCR CER reported
++   separately, never as a recall substitute.
++7. Network 0 / CPU-only — the ONNX providers asserted here are
++   exactly ``CPUExecutionProvider``; the network half is proven by
++   running THIS script under ``unshare -n`` (no network namespace),
++   which is how the S0 evidence run was executed (see S0_REPORT.md
++   §7).  This script itself never opens a socket.
++8. ``independent_verify.py`` — a separate script, not called from
++   here; its result is recorded in S0_REPORT.md, not faked by this
++   runner.
++9. S0 report completeness — this runner writes the machine-readable
++   evidence (metrics, parity, live results, schema log) that
++   S0_REPORT.md cites; the report itself is the human record.
++
++TP-S0-NUM-001 live-OCR note: on the fixed-record path the sample
++yields exactly one ``NUMERIC_CHANGE`` (the §8.1 expectation).  On
++the live-OCR path RapidOCR reads the drawn ``￥`` (U+FFE5) as ``¥``
++(U+00A5), adding one ``SUBSTITUTION``; the ``NUMERIC_CHANGE`` itself
++is present with the exact §8.1 fragment and span.  The ruling is
++recorded verbatim in S0_REPORT.md §6(a): §8.1's "恰好 1 条
++NUMERIC_CHANGE" constrains the count of ``NUMERIC_CHANGE`` errors,
++and the fixed expectation is defined on the fixed sample; the extra
++live error is OCR behaviour, recorded as-is, not deleted.
++
++Usage::
++
++    python scripts/verify_s0.py --manifest tests/fixtures/s0/manifest.json
++        [--blind tests/fixtures/s0/blind_subset.json]
++        [--expected-output tests/fixtures/s0/expected_output.json]
++        [--out-dir task_handoffs/T006] [--force-live]
++
++Exit code 0 iff items 1-7 and 9 pass on their defined scopes.
++"""
++
++from __future__ import annotations
++
++import argparse
++import ast
++import hashlib
++import json
++import sys
++from pathlib import Path
++
++REPO_ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(REPO_ROOT / "src"))
++sys.path.insert(0, str(REPO_ROOT))
++
++from scripts.compute_s0_metrics import (  # noqa: E402
++    gate_pass as metrics_gate_pass,
++)
++from scripts.compute_s0_metrics import run_live, score  # noqa: E402
++from scripts.parity_check import (  # noqa: E402
++    S0_IDS,
++    fixed_oracle_record,
++    fixed_ocr_line,
++    run_edge_battery,
++    run_fixed_parity,
++)
++from scripts.validate_report_schema import validate_report  # noqa: E402
++
++import oracle.reference_compare as oracle  # noqa: E402
++from textproof.core.report import build_report  # noqa: E402
++from textproof.io.image_loader import load_image  # noqa: E402
++from textproof.ocr.rapidocr_adapter import (  # noqa: E402
++    ALLOWED_PROVIDERS,
++    RapidOCRAdapter,
++)
++
++
++def sha256_file(path: Path) -> str:
++    digest = hashlib.sha256()
++    with open(path, "rb") as fh:
++        for chunk in iter(lambda: fh.read(1 << 20), b""):
++            digest.update(chunk)
++    return digest.hexdigest()
++
++
++def check_oracle_independence() -> tuple[bool, list[str]]:
++    """Item 1: the Oracle imports stdlib only, never ``textproof``.
++
++    The check is AST-based: only real ``import`` / ``from ... import``
++    statements count.  The literal string ``"textproof.report/v1"``
++    (the frozen schema id, §5.1) and prose mentions of the word in
++    docstrings/comments are NOT imports and must not fail this check
++    (a naive substring test would false-positive on the schema id).
++    The Oracle's own test suite asserts the same in a fresh
++    subprocess (``tests/oracle/test_reference_compare.py``)."""
++    path = REPO_ROOT / "oracle" / "reference_compare.py"
++    source = path.read_text(encoding="utf-8")
++    problems: list[str] = []
++    tree = ast.parse(source)
++    for node in ast.walk(tree):
++        if isinstance(node, ast.Import):
++            for alias in node.names:
++                if alias.name.split(".")[0] not in {
++                        "re", "unicodedata", "fractions", "typing",
++                        "__future__"}:
++                    problems.append(f"oracle imports non-stdlib: {alias.name}")
++        elif isinstance(node, ast.ImportFrom):
++            if node.module and node.module.split(".")[0] not in {
++                    "re", "unicodedata", "fractions", "typing",
++                    "__future__"}:
++                problems.append(f"oracle imports from: {node.module}")
++    return (not problems, problems)
++
++
++def check_fixed_s0_samples(manifest: dict, expected_output: dict,
++                           fixtures_dir: Path) -> tuple[bool, list[dict]]:
++    """Item 3: the four §8.1 samples on the fixed-record path, for
++    BOTH implementations, against expected_output.json."""
++    by_id = {f["id"]: f for f in manifest["fixtures"]}
++    checks: list[dict] = []
++    all_ok = True
++    for fid in S0_IDS:
++        fixture = by_id[fid]
++        expected = expected_output["fixtures"][fid]
++        data = (fixtures_dir / fixture["filename"]).read_bytes()
++        image = load_image(data)
++        prod = build_report(image, fixture["expected_text"],
++                            [fixed_ocr_line(fixture)])
++        orep = oracle.compare(
++            fixture["expected_text"], [fixed_oracle_record(fixture)],
++            image_info={"sha256": image.sha256_hex(),
++                        "format": image.format,
++                        "width": image.width, "height": image.height})
++        entry: dict = {"id": fid, "checks": {}, "ok": True}
++        for impl_name, report in (("production", prod), ("oracle", orep)):
++            problems: list[str] = []
++            if report["verdict"] != expected["verdict"]:
++                problems.append(
++                    f"verdict {report['verdict']} != {expected['verdict']}")
++            exp_errors = expected["errors"]
++            got_errors = report["errors"]
++            if len(got_errors) != len(exp_errors):
++                problems.append(
++                    f"error count {len(got_errors)} != {len(exp_errors)}")
++            else:
++                for got, want in zip(got_errors, exp_errors):
++                    if got["type"] != want["type"]:
++                        problems.append(
++                            f"type {got['type']} != {want['type']}")
++                    if got["expected_fragment"] != want["expected_fragment"]:
++                        problems.append(
++                            "expected_fragment "
++                            f"{got['expected_fragment']!r} != "
++                            f"{want['expected_fragment']!r}")
++                    if got["recognized_fragment"] != want["recognized_fragment"]:
++                        problems.append(
++                            "recognized_fragment "
++                            f"{got['recognized_fragment']!r} != "
++                            f"{want['recognized_fragment']!r}")
++                    if list(got["expected_span"]) != list(want["expected_span"]):
++                        problems.append(
++                            f"expected_span {got['expected_span']} != "
++                            f"{want['expected_span']}")
++                    if list(got["recognized_span"]) != list(
++                            want["recognized_span"]):
++                        problems.append(
++                            f"recognized_span {got['recognized_span']} != "
++                            f"{want['recognized_span']}")
++                    if got["bbox_xyxy"] is None:
++                        problems.append("error bbox is null (§8.1: bbox "
++                                        "must point at the OCR line)")
++                    elif list(got["bbox_xyxy"]) != [
++                            float(v) for v in fixture["target_region_xyxy"]]:
++                        problems.append(
++                            "fixed-path error bbox != target_region_xyxy")
++                    if got.get("bbox_scope") != "ocr_line":
++                        problems.append(
++                            f"bbox_scope {got.get('bbox_scope')!r} != "
++                            "'ocr_line'")
++            entry["checks"][impl_name] = {
++                "ok": not problems, "problems": problems,
++                "verdict": report["verdict"],
++                "error_count": len(got_errors)}
++            if problems:
++                entry["ok"] = False
++        checks.append(entry)
++        all_ok = all_ok and entry["ok"]
++    return all_ok, checks
++
++
++def check_manifest_integrity(manifest: dict, fixtures_dir: Path,
++                             manifest_path: Path) -> tuple[bool, list[str]]:
++    """Recompute every fixture PNG SHA-256 and compare with the manifest."""
++    problems: list[str] = []
++    for fixture in manifest["fixtures"]:
++        path = fixtures_dir / fixture["filename"]
++        if not path.is_file():
++            problems.append(f"{fixture['id']}: file missing")
++            continue
++        actual = sha256_file(path)
++        if actual != fixture["sha256"]:
++            problems.append(f"{fixture['id']}: sha256 {actual} != "
++                            f"manifest {fixture['sha256']}")
++        if path.stat().st_size != fixture["bytes"]:
++            problems.append(f"{fixture['id']}: bytes mismatch")
++    return (not problems, problems)
++
++
++def main(argv: list[str] | None = None) -> int:
++    parser = argparse.ArgumentParser(description="S0 gate runner (T006).")
++    parser.add_argument("--manifest", type=Path, required=True)
++    parser.add_argument("--blind", type=Path, default=None)
++    parser.add_argument("--expected-output", type=Path, default=None)
++    parser.add_argument("--out-dir", type=Path, default=None)
++    parser.add_argument("--force-live", action="store_true",
++                        help="Re-run live OCR even if cached results exist.")
++    args = parser.parse_args(argv)
++
++    manifest_path = args.manifest
++    fixtures_dir = manifest_path.resolve().parent
++    blind_path = args.blind or fixtures_dir / "blind_subset.json"
++    expected_path = (args.expected_output
++                     or fixtures_dir / "expected_output.json")
++    out_dir = args.out_dir or (REPO_ROOT / "task_handoffs" / "T006")
++    out_dir.mkdir(parents=True, exist_ok=True)
++
++    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
++    expected_output = json.loads(expected_path.read_text(encoding="utf-8"))
++    blind = json.loads(blind_path.read_text(encoding="utf-8"))
++    blind_ids = {entry["id"] for entry in blind["fixtures"]}
++
++    results: dict[str, dict] = {}
++
++    # Item 1 — Oracle independence.
++    ok, problems = check_oracle_independence()
++    results["1_oracle_independence"] = {"pass": ok, "problems": problems}
++    print(f"[1] oracle independence: {'PASS' if ok else 'FAIL'} {problems}")
++
++    # Manifest integrity (precondition for every other item).
++    ok, problems = check_manifest_integrity(manifest, fixtures_dir,
++                                            manifest_path)
++    results["0_manifest_integrity"] = {"pass": ok, "problems": problems}
++    print(f"[0] manifest integrity (300 PNG SHA-256): "
++          f"{'PASS' if ok else 'FAIL'} {problems[:5]}")
++
++    # Item 3 — four fixed S0 samples (§8.1), fixed-record path.
++    ok, checks = check_fixed_s0_samples(manifest, expected_output,
++                                        fixtures_dir)
++    results["3_fixed_s0_samples"] = {"pass": ok, "checks": checks}
++    for entry in checks:
++        print(f"[3] {entry['id']}: {'PASS' if entry['ok'] else 'FAIL'} "
++              f"{entry['checks']}")
++
++    # Item 2 — parity on the manifest's fixed OCR line records.
++    fixed = run_fixed_parity(manifest, fixtures_dir)
++    edge = run_edge_battery()
++    results["2_parity"] = {"pass": fixed["mismatched"] == 0,
++                           "fixed": fixed, "edge_battery": edge}
++    print(f"[2] parity fixed fixtures: {fixed['matched']}/{fixed['total']} "
++          f"({'PASS' if fixed['mismatched'] == 0 else 'FAIL'})")
++    print(f"[2] edge battery (diagnostic): {edge['matching']}/"
++          f"{edge['total']} match; differing: "
++          f"{[d['case'] for d in edge['differences']]}")
++
++    # Items 4-6 + IoU + CER — live OCR over all 300 fixtures.
++    live_results_path = out_dir / "live_ocr_results.jsonl"
++    live = run_live(manifest, fixtures_dir, live_results_path,
++                    force=args.force_live)
++    metrics = score(live, manifest, blind_ids)
++    metrics_ok = metrics_gate_pass(metrics)
++    results["4_5_6_metrics"] = {"pass": metrics_ok, "metrics": metrics}
++    print(f"[4] recall: {metrics['recall']['recall_pct']:.2f}% "
++          f"(per class: " + ", ".join(
++              f"{c} {v['recall_pct']:.2f}%" for c, v in
++              metrics['recall']['per_class'].items()) + ") "
++          f"threshold >=95% / >=90% each: "
++          f"{'PASS' if metrics['recall']['recall_pct'] >= 95.0 and all(v['recall_pct'] >= 90.0 for v in metrics['recall']['per_class'].values()) else 'FAIL'}")
++    print(f"[5] clean FPR: {metrics['clean']['false_positive_rate_pct']:.2f}% "
++          f"({metrics['clean']['mismatch']}/{metrics['clean']['total']}) "
++          f"threshold <=8%: "
++          f"{'PASS' if metrics['clean']['false_positive_rate_pct'] <= 8.0 else 'FAIL'}")
++    print(f"[6] schema legality: {metrics['schema']['legality_pct']:.1f}% "
++          f"({'PASS' if metrics['schema']['legality_pct'] == 100.0 else 'FAIL'}); "
++          f"CER: {metrics['cer']['cer']:.4f} (reported separately, §8.3)")
++    print(f"[I] IoU: min {metrics['iou']['min']:.3f} mean "
++          f"{metrics['iou']['mean']:.3f} below 0.80: "
++          f"{metrics['iou']['below_0.80']} "
++          f"({'PASS' if metrics['iou']['below_0.80'] == 0 else 'FAIL'}); "
++          f"blind min {metrics['iou']['blind_subset']['min']:.3f}")
++
++    # Item 7 — CPU-only providers (network half: this run is executed
++    # under `unshare -n`; see S0_REPORT.md §7 for the evidence).
++    adapter = RapidOCRAdapter()
++    providers = adapter.providers
++    cpu_ok = all(p == list(ALLOWED_PROVIDERS) for p in providers.values())
++    results["7_cpu_only"] = {"pass": cpu_ok, "providers": providers,
++                             "network": "proven by unshare -n execution; "
++                             "see S0_REPORT.md §7"}
++    print(f"[7] ONNX providers: {json.dumps(providers)} "
++          f"({'PASS' if cpu_ok else 'FAIL'})")
++
++    # Item 9 — machine-readable evidence written.
++    (out_dir / "s0_metrics.json").write_text(
++        json.dumps(metrics, indent=2, ensure_ascii=False) + "\n",
++        encoding="utf-8")
++    (out_dir / "parity_report.json").write_text(
++        json.dumps({"fixed_fixtures": fixed, "edge_battery": edge},
++                   indent=2, ensure_ascii=False) + "\n",
++        encoding="utf-8")
++    schema_log = out_dir / "schema_validation.log"
++    bad = metrics["schema"]["invalid_reports"]
++    schema_log.write_text(
++        f"schema validation over {metrics['schema']['total']} live reports: "
++        f"{metrics['schema']['total'] - len(bad)} valid, {len(bad)} invalid\n"
++        + "".join(f"{entry['id']}: {entry['violations']}\n"
++                  for entry in bad),
++        encoding="utf-8")
++    results["9_evidence"] = {
++        "pass": True,
++        "files": ["s0_metrics.json", "parity_report.json",
++                  "live_ocr_results.jsonl", "schema_validation.log"]}
++    print("[9] evidence written to "
++          f"{out_dir} (s0_metrics.json, parity_report.json, "
++          "live_ocr_results.jsonl, schema_validation.log)")
++
++    all_pass = all([
++        results["0_manifest_integrity"]["pass"],
++        results["1_oracle_independence"]["pass"],
++        results["2_parity"]["pass"],
++        results["3_fixed_s0_samples"]["pass"],
++        results["4_5_6_metrics"]["pass"],
++        results["7_cpu_only"]["pass"],
++        results["9_evidence"]["pass"],
++    ])
++    print(f"S0 VERDICT: {'PASS' if all_pass else 'FAIL'}")
++    print("NOTE: item 8 (independent_verify.py) is a separate script and "
++          "is not run by this runner; see S0_REPORT.md.")
++    return 0 if all_pass else 1
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/tests/s0/test_s0_gate.py b/tests/s0/test_s0_gate.py
+new file mode 100644
+index 0000000..65d8e7d
+--- /dev/null
++++ b/tests/s0/test_s0_gate.py
+@@ -0,0 +1,169 @@
++"""S0 gate tests (T006; PROJECT_BOOK.md §8.1-§8.4).
++
++Fast, deterministic checks that run inside the normal ``pytest -q``
++acceptance command:
++
++* the four fixed §8.1 samples on the fixed-record path, for BOTH the
++  production compare and the Oracle, against
++  ``expected_output.json`` (type, fragments, spans, verdict, bbox);
++* production-Oracle parity over all 300 manifest fixed OCR line
++  records (verdict + errors + warning codes + summary);
++* the Oracle's independence (stdlib only, no ``textproof`` import)
++  in a fresh subprocess;
++* ONNX Runtime providers are exactly ``CPUExecutionProvider``;
++* the four fixed-record production reports pass the §5 schema
++  validator;
++* TP-S0-NUM-001 live OCR is recorded VERBATIM: RapidOCR reads the
++  drawn ``￥`` (U+FFE5) as ``¥`` (U+00A5), so the live report has
++  one extra ``SUBSTITUTION`` next to the expected ``NUMERIC_CHANGE``
++  (see S0_REPORT.md §6(a) for the ruling; this test locks the
++  observed behaviour in so it cannot be silently dropped).
++
++The full 300-image live-OCR metrics run is NOT in pytest; it lives
++in ``scripts/verify_s0.py`` / ``scripts/compute_s0_metrics.py``
++(live OCR over 300 images takes minutes and belongs to the gate
++runner, not the unit suite).
++"""
++
++from __future__ import annotations
++
++import json
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++REPO_ROOT = Path(__file__).resolve().parents[2]
++FIXTURES_DIR = REPO_ROOT / "tests" / "fixtures" / "s0"
++
++import oracle.reference_compare as oracle  # noqa: E402
++from scripts.parity_check import (  # noqa: E402
++    S0_IDS,
++    compare_reports,
++    fixed_oracle_record,
++    fixed_ocr_line,
++)
++from scripts.validate_report_schema import validate_report  # noqa: E402
++from textproof.core.report import build_report  # noqa: E402
++from textproof.io.image_loader import load_image  # noqa: E402
++
++
++@pytest.fixture(scope="module")
++def manifest() -> dict:
++    return json.loads((FIXTURES_DIR / "manifest.json").read_text(
++        encoding="utf-8"))
++
++
++@pytest.fixture(scope="module")
++def expected_output() -> dict:
++    return json.loads((FIXTURES_DIR / "expected_output.json").read_text(
++        encoding="utf-8"))
++
++
++def _prod_fixed_report(manifest_entry: dict) -> dict:
++    data = (FIXTURES_DIR / manifest_entry["filename"]).read_bytes()
++    image = load_image(data)
++    return build_report(image, manifest_entry["expected_text"],
++                        [fixed_ocr_line(manifest_entry)])
++
++
++def _oracle_fixed_report(manifest_entry: dict) -> dict:
++    data = (FIXTURES_DIR / manifest_entry["filename"]).read_bytes()
++    image = load_image(data)
++    return oracle.compare(
++        manifest_entry["expected_text"],
++        [fixed_oracle_record(manifest_entry)],
++        image_info={"sha256": image.sha256_hex(),
++                    "format": image.format,
++                    "width": image.width, "height": image.height})
++
++
++@pytest.mark.parametrize("case_id", S0_IDS)
++def test_fixed_s0_sample_matches_book_section_8_1(
++        manifest, expected_output, case_id):
++    """§8.1, fixed-record path: type, fragments, spans, verdict, bbox."""
++    entry = next(f for f in manifest["fixtures"] if f["id"] == case_id)
++    want = expected_output["fixtures"][case_id]
++    for report in (_prod_fixed_report(entry), _oracle_fixed_report(entry)):
++        assert report["verdict"] == want["verdict"]
++        assert len(report["errors"]) == len(want["errors"])
++        for got, wanted in zip(report["errors"], want["errors"]):
++            assert got["type"] == wanted["type"]
++            assert got["expected_fragment"] == wanted["expected_fragment"]
++            assert got["recognized_fragment"] == wanted["recognized_fragment"]
++            assert list(got["expected_span"]) == list(wanted["expected_span"])
++            assert list(got["recognized_span"]) == list(
++                wanted["recognized_span"])
++            assert got["bbox_xyxy"] is not None
++            assert [float(v) for v in got["bbox_xyxy"]] == [
++                float(v) for v in entry["target_region_xyxy"]]
++            assert got["bbox_scope"] == "ocr_line"
++
++
++def test_production_oracle_parity_on_all_fixed_records(manifest):
++    """T006 item 2: 300/300 fixed-record parity (verdict + errors +
++    warning codes + summary)."""
++    mismatches = []
++    for entry in manifest["fixtures"]:
++        diff = compare_reports(_prod_fixed_report(entry),
++                               _oracle_fixed_report(entry))
++        if diff:
++            mismatches.append((entry["id"], diff))
++    assert mismatches == []
++
++
++def test_oracle_does_not_import_production_code():
++    """T006 item 1, in a fresh subprocess (no shared sys.modules)."""
++    code = (
++        "import sys; sys.path.insert(0, r'%s'); "
++        "import oracle.reference_compare; "
++        "assert 'textproof' not in sys.modules, sorted(sys.modules); "
++        "import ast; tree = ast.parse(open(r'%s/oracle/reference_compare.py').read()); "
++        "imports = [n.names[0].name for n in ast.walk(tree) if isinstance(n, ast.Import)]; "
++        "imports += [n.module for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)]; "
++        "assert all(m.split('.')[0] in {'re', 'unicodedata', 'fractions', 'typing', '__future__'} for m in imports), imports; "
++        "print('oracle independent OK')" % (REPO_ROOT, REPO_ROOT)
++    )
++    result = subprocess.run([sys.executable, "-c", code],
++                            capture_output=True, text=True, check=False)
++    assert result.returncode == 0, result.stdout + result.stderr
++
++
++def test_onnx_providers_cpu_only():
++    """T006 item 7 (provider half): exactly CPUExecutionProvider."""
++    from textproof.ocr.rapidocr_adapter import ALLOWED_PROVIDERS, RapidOCRAdapter
++    adapter = RapidOCRAdapter()
++    for name, providers in adapter.providers.items():
++        assert providers == list(ALLOWED_PROVIDERS), (name, providers)
++
++
++@pytest.mark.parametrize("case_id", S0_IDS)
++def test_fixed_s0_reports_pass_section_5_schema(manifest, case_id):
++    """T006 item 6 (fixed-path reports): §5 schema validation, 0 violations."""
++    entry = next(f for f in manifest["fixtures"] if f["id"] == case_id)
++    violations = validate_report(_prod_fixed_report(entry))
++    assert violations == []
++
++
++def test_num_001_live_ocr_yen_reading_recorded_verbatim(manifest):
++    """TP-S0-NUM-001 live OCR reads drawn ￥ (U+FFE5) as ¥ (U+00A5).
++
++    Locks the observed behaviour in: exactly one NUMERIC_CHANGE
++    (8 -> 0, span [4, 5]) plus one extra SUBSTITUTION (￥ -> ¥,
++    span [0, 1]); verdict MISMATCH.  See S0_REPORT.md §6(a)."""
++    from textproof.ocr.rapidocr_adapter import RapidOCRAdapter
++    entry = next(f for f in manifest["fixtures"]
++                 if f["id"] == "TP-S0-NUM-001")
++    data = (FIXTURES_DIR / entry["filename"]).read_bytes()
++    image = load_image(data)
++    lines = RapidOCRAdapter().recognize(image.pil_image)
++    assert len(lines) == 1
++    assert lines[0].text == "¥28.00"
++    report = build_report(image, entry["expected_text"], lines)
++    assert report["verdict"] == "MISMATCH"
++    assert [(e["type"], e["expected_fragment"], e["recognized_fragment"],
++             list(e["expected_span"])) for e in report["errors"]] == [
++        ("SUBSTITUTION", "￥", "¥", [0, 1]),
++        ("NUMERIC_CHANGE", "8", "0", [4, 5]),
++    ]

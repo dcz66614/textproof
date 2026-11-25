@@ -1,0 +1,11 @@
+oracle/__init__.py
+oracle/reference_compare.py
+task_handoffs/T006-oracle/SHA256SUMS.txt
+task_handoffs/T006-oracle/TASK_RESULT.md
+task_handoffs/T006-oracle/changed_files.txt
+task_handoffs/T006-oracle/exit_codes.txt
+task_handoffs/T006-oracle/git_diff.patch
+task_handoffs/T006-oracle/test_commands.txt
+task_handoffs/T006-oracle/test_stderr.log
+task_handoffs/T006-oracle/test_stdout.log
+tests/oracle/test_reference_compare.py

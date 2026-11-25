@@ -1,0 +1,15 @@
+{
+  "request": {
+    "image_mime": "image/png",
+    "image_base64": "iVBORw0KGgoAAAANSUhEUgAAIygAAAAKCAIAAABWhmLRAAAAAElFTkSuQmCC",
+    "expected_text": "限时优惠"
+  },
+  "response_status": 400,
+  "response": {
+    "error": {
+      "code": "IMAGE_DIMENSION_EXCEEDED",
+      "message": "Input failed validation.",
+      "detail": "image_dimension_exceeded"
+    }
+  }
+}
