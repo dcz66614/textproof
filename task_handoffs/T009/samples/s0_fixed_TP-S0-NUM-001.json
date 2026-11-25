@@ -1,0 +1,80 @@
+{
+  "schema": "textproof.report/v1",
+  "tool_version": "0.1.0",
+  "verdict": "MISMATCH",
+  "image": {
+    "sha256": "1b373beb673efe44d2562c1cbbf4164740ea0656c17f8ff302cae6860a6c6a3a",
+    "format": "PNG",
+    "width": 1200,
+    "height": 480,
+    "coordinate_system": "oriented_image_px_top_left"
+  },
+  "expected_text": "￥28.80",
+  "recognized_text": "￥28.00",
+  "ocr_lines": [
+    {
+      "line_index": 0,
+      "text": "￥28.00",
+      "confidence": 0.99,
+      "bbox_xyxy": [
+        470.0,
+        193.0,
+        730.0,
+        286.0
+      ],
+      "quad": [
+        [
+          470.0,
+          193.0
+        ],
+        [
+          730.0,
+          193.0
+        ],
+        [
+          730.0,
+          286.0
+        ],
+        [
+          470.0,
+          286.0
+        ]
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "id": "E001",
+      "type": "NUMERIC_CHANGE",
+      "expected_line_index": 0,
+      "ocr_line_index": 0,
+      "expected_text": "￥28.80",
+      "recognized_text": "￥28.00",
+      "expected_span": [
+        4,
+        5
+      ],
+      "recognized_span": [
+        4,
+        5
+      ],
+      "expected_fragment": "8",
+      "recognized_fragment": "0",
+      "bbox_xyxy": [
+        470.0,
+        193.0,
+        730.0,
+        286.0
+      ],
+      "bbox_scope": "ocr_line",
+      "confidence": 0.99
+    }
+  ],
+  "warnings": [],
+  "summary": {
+    "expected_lines": 1,
+    "ocr_lines": 1,
+    "error_count": 1,
+    "warning_count": 0
+  }
+}

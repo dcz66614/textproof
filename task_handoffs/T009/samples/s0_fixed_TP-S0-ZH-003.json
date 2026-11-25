@@ -1,0 +1,80 @@
+{
+  "schema": "textproof.report/v1",
+  "tool_version": "0.1.0",
+  "verdict": "MISMATCH",
+  "image": {
+    "sha256": "1951e5d0899502ea841a662908e81ce5a6bd9af3c669853bdbdd987429743887",
+    "format": "PNG",
+    "width": 1200,
+    "height": 480,
+    "coordinate_system": "oriented_image_px_top_left"
+  },
+  "expected_text": "新客立减20元",
+  "recognized_text": "新客立减元",
+  "ocr_lines": [
+    {
+      "line_index": 0,
+      "text": "新客立减元",
+      "confidence": 0.99,
+      "bbox_xyxy": [
+        423.0,
+        191.0,
+        777.0,
+        288.0
+      ],
+      "quad": [
+        [
+          423.0,
+          191.0
+        ],
+        [
+          777.0,
+          191.0
+        ],
+        [
+          777.0,
+          288.0
+        ],
+        [
+          423.0,
+          288.0
+        ]
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "id": "E001",
+      "type": "MISSING_CHARACTER",
+      "expected_line_index": 0,
+      "ocr_line_index": 0,
+      "expected_text": "新客立减20元",
+      "recognized_text": "新客立减元",
+      "expected_span": [
+        4,
+        6
+      ],
+      "recognized_span": [
+        4,
+        4
+      ],
+      "expected_fragment": "20",
+      "recognized_fragment": "",
+      "bbox_xyxy": [
+        423.0,
+        191.0,
+        777.0,
+        288.0
+      ],
+      "bbox_scope": "ocr_line",
+      "confidence": 0.99
+    }
+  ],
+  "warnings": [],
+  "summary": {
+    "expected_lines": 1,
+    "ocr_lines": 1,
+    "error_count": 1,
+    "warning_count": 0
+  }
+}

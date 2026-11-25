@@ -1,0 +1,2 @@
+health_status=200{'status': 'ok', 'service': 'textproof', 'tool_version': '0.1.0', 'schema': 'textproof.report/v1'}
+ui_status=200has_textproof=Truehas_export_warning=True

@@ -1,0 +1,649 @@
+{
+  "fixed_fixtures": {
+    "scope": "manifest fixed OCR line records (drawn_text, target_region_xyxy bbox, confidence 0.99)",
+    "total": 300,
+    "matched": 300,
+    "mismatched": 0,
+    "parity_pct": 100.0,
+    "mismatches": []
+  },
+  "edge_battery": {
+    "scope": "diagnostic only; NOT part of the frozen S0 gate scope",
+    "total": 26,
+    "differing": 13,
+    "matching": 13,
+    "differences": [
+      {
+        "case": "empty_expected_empty_ocr",
+        "diff": {
+          "verdict": {
+            "production": "OCR_FAILED",
+            "oracle": "MATCH"
+          },
+          "warning_codes": {
+            "production": [
+              "OCR_EMPTY"
+            ],
+            "oracle": []
+          },
+          "summary": {
+            "production": {
+              "expected_lines": 1,
+              "ocr_lines": 0,
+              "error_count": 0,
+              "warning_count": 1
+            },
+            "oracle": {
+              "expected_lines": 1,
+              "ocr_lines": 0,
+              "error_count": 0,
+              "warning_count": 0
+            }
+          }
+        },
+        "raw_warning_diff": {
+          "production": [
+            {
+              "code": "OCR_EMPTY",
+              "message": "OCR produced no usable text."
+            }
+          ],
+          "oracle": []
+        }
+      },
+      {
+        "case": "empty_expected_one_ocr",
+        "diff": {
+          "errors": {
+            "production": [
+              {
+                "type": "EXTRA_LINE",
+                "expected_fragment": "",
+                "recognized_fragment": "abc",
+                "expected_span": null,
+                "recognized_span": [
+                  0,
+                  3
+                ],
+                "bbox_xyxy": [
+                  0.0,
+                  0.0,
+                  100.0,
+                  50.0
+                ],
+                "bbox_scope": "ocr_line"
+              },
+              {
+                "type": "MISSING_LINE",
+                "expected_fragment": "",
+                "recognized_fragment": "",
+                "expected_span": [
+                  0,
+                  0
+                ],
+                "recognized_span": null,
+                "bbox_xyxy": null,
+                "bbox_scope": null
+              }
+            ],
+            "oracle": [
+              {
+                "type": "EXTRA_LINE",
+                "expected_fragment": "",
+                "recognized_fragment": "abc",
+                "expected_span": [
+                  0,
+                  0
+                ],
+                "recognized_span": [
+                  0,
+                  3
+                ],
+                "bbox_xyxy": [
+                  0.0,
+                  0.0,
+                  100.0,
+                  50.0
+                ],
+                "bbox_scope": "ocr_line"
+              },
+              {
+                "type": "MISSING_LINE",
+                "expected_fragment": "",
+                "recognized_fragment": "",
+                "expected_span": [
+                  0,
+                  0
+                ],
+                "recognized_span": [
+                  0,
+                  0
+                ],
+                "bbox_xyxy": null,
+                "bbox_scope": "none"
+              }
+            ]
+          }
+        },
+        "raw_warning_diff": null
+      },
+      {
+        "case": "low_conf_match",
+        "diff": {},
+        "raw_warning_diff": {
+          "production": [
+            {
+              "code": "LOW_OCR_CONFIDENCE",
+              "message": "OCR line confidence 0.5 is below 0.65.",
+              "ocr_line_index": 0
+            }
+          ],
+          "oracle": [
+            {
+              "code": "LOW_OCR_CONFIDENCE",
+              "message": "OCR line 0 confidence 0.50 is below 0.65.",
+              "ocr_line_index": 0,
+              "confidence": 0.5
+            }
+          ]
+        }
+      },
+      {
+        "case": "low_conf_diff",
+        "diff": {},
+        "raw_warning_diff": {
+          "production": [
+            {
+              "code": "LOW_OCR_CONFIDENCE",
+              "message": "OCR line confidence 0.5 is below 0.65.",
+              "ocr_line_index": 0
+            }
+          ],
+          "oracle": [
+            {
+              "code": "LOW_OCR_CONFIDENCE",
+              "message": "OCR line 0 confidence 0.50 is below 0.65.",
+              "ocr_line_index": 0,
+              "confidence": 0.5
+            }
+          ]
+        }
+      },
+      {
+        "case": "missing_line",
+        "diff": {
+          "errors": {
+            "production": [
+              {
+                "type": "MISSING_LINE",
+                "expected_fragment": "line2",
+                "recognized_fragment": "",
+                "expected_span": [
+                  0,
+                  5
+                ],
+                "recognized_span": null,
+                "bbox_xyxy": null,
+                "bbox_scope": null
+              }
+            ],
+            "oracle": [
+              {
+                "type": "MISSING_LINE",
+                "expected_fragment": "line2",
+                "recognized_fragment": "",
+                "expected_span": [
+                  0,
+                  5
+                ],
+                "recognized_span": [
+                  0,
+                  0
+                ],
+                "bbox_xyxy": null,
+                "bbox_scope": "none"
+              }
+            ]
+          }
+        },
+        "raw_warning_diff": null
+      },
+      {
+        "case": "extra_line",
+        "diff": {
+          "errors": {
+            "production": [
+              {
+                "type": "EXTRA_LINE",
+                "expected_fragment": "",
+                "recognized_fragment": "line2",
+                "expected_span": null,
+                "recognized_span": [
+                  0,
+                  5
+                ],
+                "bbox_xyxy": [
+                  0.0,
+                  60.0,
+                  100.0,
+                  110.0
+                ],
+                "bbox_scope": "ocr_line"
+              }
+            ],
+            "oracle": [
+              {
+                "type": "EXTRA_LINE",
+                "expected_fragment": "",
+                "recognized_fragment": "line2",
+                "expected_span": [
+                  0,
+                  0
+                ],
+                "recognized_span": [
+                  0,
+                  5
+                ],
+                "bbox_xyxy": [
+                  0.0,
+                  60.0,
+                  100.0,
+                  110.0
+                ],
+                "bbox_scope": "ocr_line"
+              }
+            ]
+          }
+        },
+        "raw_warning_diff": null
+      },
+      {
+        "case": "high_cost_pair",
+        "diff": {
+          "errors": {
+            "production": [
+              {
+                "type": "EXTRA_LINE",
+                "expected_fragment": "",
+                "recognized_fragment": "xyz",
+                "expected_span": null,
+                "recognized_span": [
+                  0,
+                  3
+                ],
+                "bbox_xyxy": [
+                  0.0,
+                  0.0,
+                  100.0,
+                  50.0
+                ],
+                "bbox_scope": "ocr_line"
+              },
+              {
+                "type": "MISSING_LINE",
+                "expected_fragment": "abc",
+                "recognized_fragment": "",
+                "expected_span": [
+                  0,
+                  3
+                ],
+                "recognized_span": null,
+                "bbox_xyxy": null,
+                "bbox_scope": null
+              }
+            ],
+            "oracle": [
+              {
+                "type": "EXTRA_LINE",
+                "expected_fragment": "",
+                "recognized_fragment": "xyz",
+                "expected_span": [
+                  0,
+                  0
+                ],
+                "recognized_span": [
+                  0,
+                  3
+                ],
+                "bbox_xyxy": [
+                  0.0,
+                  0.0,
+                  100.0,
+                  50.0
+                ],
+                "bbox_scope": "ocr_line"
+              },
+              {
+                "type": "MISSING_LINE",
+                "expected_fragment": "abc",
+                "recognized_fragment": "",
+                "expected_span": [
+                  0,
+                  3
+                ],
+                "recognized_span": [
+                  0,
+                  0
+                ],
+                "bbox_xyxy": null,
+                "bbox_scope": "none"
+              }
+            ]
+          }
+        },
+        "raw_warning_diff": null
+      },
+      {
+        "case": "confusion_lower_o",
+        "diff": {
+          "errors": {
+            "production": [
+              {
+                "type": "EXTRA_LINE",
+                "expected_fragment": "",
+                "recognized_fragment": "0",
+                "expected_span": null,
+                "recognized_span": [
+                  0,
+                  1
+                ],
+                "bbox_xyxy": [
+                  0.0,
+                  0.0,
+                  100.0,
+                  50.0
+                ],
+                "bbox_scope": "ocr_line"
+              },
+              {
+                "type": "MISSING_LINE",
+                "expected_fragment": "o",
+                "recognized_fragment": "",
+                "expected_span": [
+                  0,
+                  1
+                ],
+                "recognized_span": null,
+                "bbox_xyxy": null,
+                "bbox_scope": null
+              }
+            ],
+            "oracle": [
+              {
+                "type": "EXTRA_LINE",
+                "expected_fragment": "",
+                "recognized_fragment": "0",
+                "expected_span": [
+                  0,
+                  0
+                ],
+                "recognized_span": [
+                  0,
+                  1
+                ],
+                "bbox_xyxy": [
+                  0.0,
+                  0.0,
+                  100.0,
+                  50.0
+                ],
+                "bbox_scope": "ocr_line"
+              },
+              {
+                "type": "MISSING_LINE",
+                "expected_fragment": "o",
+                "recognized_fragment": "",
+                "expected_span": [
+                  0,
+                  1
+                ],
+                "recognized_span": [
+                  0,
+                  0
+                ],
+                "bbox_xyxy": null,
+                "bbox_scope": "none"
+              }
+            ]
+          }
+        },
+        "raw_warning_diff": null
+      },
+      {
+        "case": "confusion_upper_O",
+        "diff": {
+          "verdict": {
+            "production": "REVIEW_REQUIRED",
+            "oracle": "MISMATCH"
+          },
+          "errors": {
+            "production": [
+              {
+                "type": "AMBIGUOUS_ALIGNMENT",
+                "expected_fragment": "",
+                "recognized_fragment": "",
+                "expected_span": null,
+                "recognized_span": null,
+                "bbox_xyxy": null,
+                "bbox_scope": null
+              }
+            ],
+            "oracle": [
+              {
+                "type": "SUBSTITUTION",
+                "expected_fragment": "O",
+                "recognized_fragment": "0",
+                "expected_span": [
+                  0,
+                  1
+                ],
+                "recognized_span": [
+                  0,
+                  1
+                ],
+                "bbox_xyxy": [
+                  0.0,
+                  0.0,
+                  100.0,
+                  50.0
+                ],
+                "bbox_scope": "ocr_line"
+              }
+            ]
+          }
+        },
+        "raw_warning_diff": null
+      },
+      {
+        "case": "trailing_newline",
+        "diff": {
+          "errors": {
+            "production": [
+              {
+                "type": "MISSING_LINE",
+                "expected_fragment": "",
+                "recognized_fragment": "",
+                "expected_span": [
+                  0,
+                  0
+                ],
+                "recognized_span": null,
+                "bbox_xyxy": null,
+                "bbox_scope": null
+              }
+            ],
+            "oracle": [
+              {
+                "type": "MISSING_LINE",
+                "expected_fragment": "",
+                "recognized_fragment": "",
+                "expected_span": [
+                  0,
+                  0
+                ],
+                "recognized_span": [
+                  0,
+                  0
+                ],
+                "bbox_xyxy": null,
+                "bbox_scope": "none"
+              }
+            ]
+          }
+        },
+        "raw_warning_diff": null
+      },
+      {
+        "case": "same_row_two_boxes_x_order",
+        "diff": {
+          "errors": {
+            "production": [
+              {
+                "type": "AMBIGUOUS_ALIGNMENT",
+                "expected_fragment": "",
+                "recognized_fragment": "",
+                "expected_span": null,
+                "recognized_span": null,
+                "bbox_xyxy": null,
+                "bbox_scope": null
+              }
+            ],
+            "oracle": [
+              {
+                "type": "AMBIGUOUS_ALIGNMENT",
+                "expected_fragment": "",
+                "recognized_fragment": "",
+                "expected_span": null,
+                "recognized_span": null,
+                "bbox_xyxy": null,
+                "bbox_scope": "none"
+              }
+            ]
+          }
+        },
+        "raw_warning_diff": null
+      },
+      {
+        "case": "same_row_diff_centre",
+        "diff": {
+          "recognized_text": {
+            "production": "AB\nCD",
+            "oracle": "CD\nAB"
+          },
+          "errors": {
+            "production": [
+              {
+                "type": "AMBIGUOUS_ALIGNMENT",
+                "expected_fragment": "",
+                "recognized_fragment": "",
+                "expected_span": null,
+                "recognized_span": null,
+                "bbox_xyxy": null,
+                "bbox_scope": null
+              }
+            ],
+            "oracle": [
+              {
+                "type": "AMBIGUOUS_ALIGNMENT",
+                "expected_fragment": "",
+                "recognized_fragment": "",
+                "expected_span": null,
+                "recognized_span": null,
+                "bbox_xyxy": null,
+                "bbox_scope": "none"
+              }
+            ]
+          }
+        },
+        "raw_warning_diff": null
+      },
+      {
+        "case": "multi_sub_mixed_types",
+        "diff": {
+          "errors": {
+            "production": [
+              {
+                "type": "EXTRA_LINE",
+                "expected_fragment": "",
+                "recognized_fragment": "b2",
+                "expected_span": null,
+                "recognized_span": [
+                  0,
+                  2
+                ],
+                "bbox_xyxy": [
+                  0.0,
+                  0.0,
+                  100.0,
+                  50.0
+                ],
+                "bbox_scope": "ocr_line"
+              },
+              {
+                "type": "MISSING_LINE",
+                "expected_fragment": "a1",
+                "recognized_fragment": "",
+                "expected_span": [
+                  0,
+                  2
+                ],
+                "recognized_span": null,
+                "bbox_xyxy": null,
+                "bbox_scope": null
+              }
+            ],
+            "oracle": [
+              {
+                "type": "EXTRA_LINE",
+                "expected_fragment": "",
+                "recognized_fragment": "b2",
+                "expected_span": [
+                  0,
+                  0
+                ],
+                "recognized_span": [
+                  0,
+                  2
+                ],
+                "bbox_xyxy": [
+                  0.0,
+                  0.0,
+                  100.0,
+                  50.0
+                ],
+                "bbox_scope": "ocr_line"
+              },
+              {
+                "type": "MISSING_LINE",
+                "expected_fragment": "a1",
+                "recognized_fragment": "",
+                "expected_span": [
+                  0,
+                  2
+                ],
+                "recognized_span": [
+                  0,
+                  0
+                ],
+                "bbox_xyxy": null,
+                "bbox_scope": "none"
+              }
+            ]
+          }
+        },
+        "raw_warning_diff": null
+      }
+    ],
+    "adjudication_groups": {
+      "R": "representation in spec-silent fields (absent-side span null vs [0,0]; bbox_scope null vs 'none'; warning object shape). §5.4 sample fixes none of these values.",
+      "V1": "empty expected + empty OCR verdict (OCR_FAILED vs MATCH). §7.6 sentence supports production; case unreachable via T002 blank rejection (§4.2).",
+      "V2": "single-char confusion substitution O->0: production AMBIGUOUS (float 0.7-0.65 < 0.05) vs Oracle MISMATCH. Exact decimal 0.70-0.65 = 0.05, NOT < 0.05 (§4.4): Oracle correct, production float defect (finding F-01).",
+      "V3": "same-row boxes, different centres: production orders by x within the overlapping row (§4.4), Oracle sorts by centre-y. Production follows §4.4; Oracle deviates."
+    },
+    "named_readings_agree": {
+      "confusion_pair_set": "both use only the six listed pairs; lowercase o/0 is NOT a confusion pair on either side (case confusion_lower_o agrees on error type).",
+      "punctuation_both_sides": "both require both characters to be Unicode punctuation for the 0.50 cost (cases punct_sub, punct_vs_letter agree on error type).",
+      "gap_order": "both emit EXTRA_LINE before MISSING_LINE for a trailing missing+extra run (cases high_cost_pair, multi_sub_mixed_types agree on error order)."
+    }
+  }
+}

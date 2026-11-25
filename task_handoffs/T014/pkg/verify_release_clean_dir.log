@@ -1,0 +1,36 @@
+repository root: /home/hatch/workspace/t014r3-clean
+mode: full release verification
+  [ok] release document present: LICENSE
+  [ok] release document present: README.md
+  [ok] release document present: SECURITY.md
+  [ok] release document present: THIRD_PARTY_NOTICES.md
+  [ok] dictionary not tracked in git
+  [ok] tool_version is 0.1.0 (product version, not packaging version) — 0.1.0
+  [ok] package version is 1.0.0 (pyproject.toml)
+  [ok] spec_version is 1.0.0
+  [ok] lock has 37 packages / 753 hashes — 37 packages, 753 hashes
+  [ok] dictionary licence recorded UNVERIFIED
+  [ok] banned-token scan over new scripts (full text): no hits
+  [ok] setup_dictionary.py present
+  [ok] RELEASE_MANIFEST.json parses
+  [ok] manifest source_commit is a real commit — 93d1b7c65036bb16f596117f26a48f6ee62f99e1
+  [ok] manifest versions match frozen values
+  [ok] source.zip matches frozen commit file-by-file — 699 files in zip, 699 in commit
+  [ok] wheel is textproof 1.0.0 with package files, no dictionary — METADATA version 1.0.0
+  [ok] wheelhouse matches lock (37 pinned wheels, hashes verified) — 37 wheels
+  [ok] SHA256SUMS.txt covers all release files, all recompute — 39 entries
+  [ok] manifest file hashes/sizes recompute — 10 entries
+  [ok] review pack files present
+  [ok] review pack records the DOCX sync verdict
+  [ok] verify_review_pack.py passes on REVIEW_INDEX.md — VERIFY_REVIEW_PACK: PASS
+  [ok] committed pytest log shows 495 passed
+  [ok] committed exit codes show pytest exit=0
+  [ok] offline smoke: installed wheel runs standalone — install 0, help 0, versions 0.1.0/1.0.0/1.0.0, standalone check exit 1 MISMATCH
+  [ok] dictionary absent from tracked files
+
+KNOWN UNRESOLVED ITEMS:
+  - U-02 [non-blocking]: DOCX body-text drift: 7 T013 wording clarifications in PROJECT_BOOK.md not in PROJECT_BOOK.docx (structure in sync)
+  - U-03 [non-blocking]: omegaconf 2.4.0 has no licence statement in installed distribution metadata (SBOM_LICENSES.md)
+
+checks: 27/27 passed
+VERIFY_RELEASE: PASS

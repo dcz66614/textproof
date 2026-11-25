@@ -1,0 +1,15 @@
+........................................................................ [ 14%]
+........................................................................ [ 29%]
+........................................................................ [ 43%]
+........................................................................ [ 58%]
+........................................................................ [ 72%]
+........................................................................ [ 87%]
+...............................................................          [100%]
+=============================== warnings summary ===============================
+tests/unit/test_image_loader.py::test_pixels_over_40m_rejected
+tests/unit/test_image_loader.py::test_all_rejections_share_the_unified_code
+  /home/hatch/workspace/p033-textproof/.venv/lib/python3.12/site-packages/PIL/Image.py:3452: DecompressionBombWarning: Image size (40008000 pixels) exceeds limit of 40000000 pixels, could be decompression bomb DOS attack.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+495 passed, 2 warnings in 194.46s (0:03:14)

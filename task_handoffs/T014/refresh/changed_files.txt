@@ -1,0 +1,22 @@
+ M release/RELEASE_MANIFEST.json
+ M release/SHA256SUMS.txt
+ M release/source.zip
+ M release/textproof-1.0.0-py3-none-any.whl
+ M review/REVIEW_INDEX.md
+ A review/REVIEW_PACK_T014R2.md
+ M task_handoffs/T014/pkg/offline_install.log
+ M task_handoffs/T014/pkg/offline_smoke.txt
+ M task_handoffs/T014/pkg/smoke_serve2.log
+ A task_handoffs/T014/pkg/smoke_serve_probe.txt
+ M task_handoffs/T014/pkg/test_stdout.log
+ M task_handoffs/T014/pkg/verify_release.log
+ M task_handoffs/T014/pkg/verify_release_clean_dir.log
+ A task_handoffs/T014/refresh/SHA256SUMS.txt
+ A task_handoffs/T014/refresh/TASK_RESULT.md
+ A task_handoffs/T014/refresh/changed_files.txt
+ A task_handoffs/T014/refresh/exit_codes.txt
+A  task_handoffs/T014/refresh/git_diff.patch
+ A task_handoffs/T014/refresh/smoke_run.sh
+ A task_handoffs/T014/refresh/test_commands.txt
+ A task_handoffs/T014/refresh/test_stderr.log
+ A task_handoffs/T014/refresh/test_stdout.log

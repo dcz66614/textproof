@@ -1,0 +1,281 @@
+{
+  "fixtures": 300,
+  "recall": {
+    "injected_chars": 201,
+    "detected_chars": 201,
+    "recall_pct": 100.0,
+    "per_class": {
+      "substitution": {
+        "injected_chars": 70,
+        "detected_chars": 70,
+        "recall_pct": 100.0
+      },
+      "omission": {
+        "injected_chars": 71,
+        "detected_chars": 71,
+        "recall_pct": 100.0
+      },
+      "numeric_change": {
+        "injected_chars": 60,
+        "detected_chars": 60,
+        "recall_pct": 100.0
+      }
+    },
+    "missed": []
+  },
+  "clean": {
+    "total": 100,
+    "mismatch": 0,
+    "false_positive_rate_pct": 0.0,
+    "non_match": 0,
+    "non_match_rate_pct": 0.0
+  },
+  "cer": {
+    "substitutions": 1,
+    "deletions": 1,
+    "insertions": 0,
+    "n_chars": 2496,
+    "cer": 0.0008012820512820513
+  },
+  "iou": {
+    "count": 300,
+    "min": 0.8286825638423811,
+    "mean": 0.9380288527961715,
+    "below_0.80": 0,
+    "failures": [],
+    "blind_subset": {
+      "count": 60,
+      "min": 0.834687368357706,
+      "mean": 0.9401371596139415,
+      "below_0.80": 0
+    }
+  },
+  "schema": {
+    "total": 300,
+    "invalid": 0,
+    "legality_pct": 100.0,
+    "invalid_reports": []
+  },
+  "timing_seconds": {
+    "p50": 2.2321999999999997,
+    "p95": 2.977725,
+    "max": 3.5225,
+    "note": "1200x480 fixtures, OCR+compare per image, single warmed adapter. The §8.3 runtime threshold is defined for 1920x1080 pre-warmed P95 <= 5s and is NOT_MEASURED in S0; T011 owns the performance report."
+  },
+  "s0_live": {
+    "TP-S0-ZH-001": {
+      "expected_text": "限时优惠",
+      "drawn_text": "限时优",
+      "ocr_text": "限时优",
+      "ocr_confidence": [
+        0.99929
+      ],
+      "ocr_bboxes": [
+        [
+          491.0,
+          190.0,
+          713.0,
+          291.0
+        ]
+      ],
+      "iou": 0.9641382868937048,
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "id": "E001",
+          "type": "MISSING_CHARACTER",
+          "expected_line_index": 0,
+          "ocr_line_index": 0,
+          "expected_text": "限时优惠",
+          "recognized_text": "限时优",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            3
+          ],
+          "expected_fragment": "惠",
+          "recognized_fragment": "",
+          "bbox_xyxy": [
+            491.0,
+            190.0,
+            713.0,
+            291.0
+          ],
+          "bbox_scope": "ocr_line",
+          "confidence": 0.99929
+        }
+      ],
+      "warnings": []
+    },
+    "TP-S0-ZH-002": {
+      "expected_text": "新品上市",
+      "drawn_text": "新口上市",
+      "ocr_text": "新口上市",
+      "ocr_confidence": [
+        0.99978
+      ],
+      "ocr_bboxes": [
+        [
+          453.0,
+          189.0,
+          742.0,
+          292.0
+        ]
+      ],
+      "iou": 0.9545348721189344,
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "id": "E001",
+          "type": "SUBSTITUTION",
+          "expected_line_index": 0,
+          "ocr_line_index": 0,
+          "expected_text": "新品上市",
+          "recognized_text": "新口上市",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "expected_fragment": "品",
+          "recognized_fragment": "口",
+          "bbox_xyxy": [
+            453.0,
+            189.0,
+            742.0,
+            292.0
+          ],
+          "bbox_scope": "ocr_line",
+          "confidence": 0.99978
+        }
+      ],
+      "warnings": []
+    },
+    "TP-S0-NUM-001": {
+      "expected_text": "￥28.80",
+      "drawn_text": "￥28.00",
+      "ocr_text": "¥28.00",
+      "ocr_confidence": [
+        0.93004
+      ],
+      "ocr_bboxes": [
+        [
+          478.0,
+          188.0,
+          729.0,
+          291.0
+        ]
+      ],
+      "iou": 0.8745972274260022,
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "id": "E001",
+          "type": "SUBSTITUTION",
+          "expected_line_index": 0,
+          "ocr_line_index": 0,
+          "expected_text": "￥28.80",
+          "recognized_text": "¥28.00",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "expected_fragment": "￥",
+          "recognized_fragment": "¥",
+          "bbox_xyxy": [
+            478.0,
+            188.0,
+            729.0,
+            291.0
+          ],
+          "bbox_scope": "ocr_line",
+          "confidence": 0.93004
+        },
+        {
+          "id": "E002",
+          "type": "NUMERIC_CHANGE",
+          "expected_line_index": 0,
+          "ocr_line_index": 0,
+          "expected_text": "￥28.80",
+          "recognized_text": "¥28.00",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "expected_fragment": "8",
+          "recognized_fragment": "0",
+          "bbox_xyxy": [
+            478.0,
+            188.0,
+            729.0,
+            291.0
+          ],
+          "bbox_scope": "ocr_line",
+          "confidence": 0.93004
+        }
+      ],
+      "warnings": []
+    },
+    "TP-S0-ZH-003": {
+      "expected_text": "新客立减20元",
+      "drawn_text": "新客立减元",
+      "ocr_text": "新客立减元",
+      "ocr_confidence": [
+        0.94255
+      ],
+      "ocr_bboxes": [
+        [
+          427.0,
+          194.0,
+          772.0,
+          286.0
+        ]
+      ],
+      "iou": 0.9243403809190984,
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "id": "E001",
+          "type": "MISSING_CHARACTER",
+          "expected_line_index": 0,
+          "ocr_line_index": 0,
+          "expected_text": "新客立减20元",
+          "recognized_text": "新客立减元",
+          "expected_span": [
+            4,
+            6
+          ],
+          "recognized_span": [
+            4,
+            4
+          ],
+          "expected_fragment": "20",
+          "recognized_fragment": "",
+          "bbox_xyxy": [
+            427.0,
+            194.0,
+            772.0,
+            286.0
+          ],
+          "bbox_scope": "ocr_line",
+          "confidence": 0.94255
+        }
+      ],
+      "warnings": []
+    }
+  }
+}

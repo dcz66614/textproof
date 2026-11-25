@@ -1,0 +1,2 @@
+{"kind": "getaddrinfo", "target": "127.0.0.1", "allowed": true}
+{"kind": "connect", "target": "('127.0.0.1', 59789)", "allowed": true}

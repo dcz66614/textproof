@@ -1,0 +1,44 @@
+# T013-U01 executed commands (main-tree venv: ~/workspace/p033-textproof/.venv/bin/python)
+# Worktree: ~/workspace/p033-textproof-t013-u01, branch t013-u01.
+# Exit codes are recorded in exit_codes.txt; full logs are the sibling files.
+
+# 1. Dictionary rebuild in the worktree (needed before tests)
+mkdir -p tmp
+TMPDIR=$PWD/tmp ~/workspace/p033-textproof/.venv/bin/python scripts/setup_dictionary.py
+
+# 2. Validator wrapper spot checks
+~/workspace/p033-textproof/.venv/bin/python scripts/validate_report_schema.py task_handoffs/T014/pkg/smoke_report_repo.json
+PYTHONPATH=src ~/workspace/p033-textproof/.venv/bin/python -m textproof.setup_dictionary --check
+
+# 3. Wheel build from the worktree (scratch check) + contents listing
+TMPDIR=$PWD/tmp ~/workspace/p033-textproof/.venv/bin/python -m build --wheel --no-isolation --outdir tmp/wheel-test
+
+# 4. New tests only, then the end-to-end smoke test alone
+mkdir -p tmp
+TMPDIR=$PWD/tmp ~/workspace/p033-textproof/.venv/bin/python -m pytest tests/integration/test_installed_wheel.py -q -p no:cacheprovider -k "not offline_smoke"
+TMPDIR=$PWD/tmp ~/workspace/p033-textproof/.venv/bin/python -m pytest tests/integration/test_installed_wheel.py::test_installed_wheel_offline_smoke -q -p no:cacheprovider
+
+# 5. Full suite (twice: pre-commit baseline 495 passed / 188.93s, and final on HEAD 717b813: 495 passed / 194.46s)
+mkdir -p tmp
+TMPDIR=$PWD/tmp ~/workspace/p033-textproof/.venv/bin/python -m pytest -q -p no:cacheprovider
+
+# 6. Wheel built from fix commit 717b813 + manual offline smoke (script: task_handoffs/T013/u01/smoke_run.sh)
+TMPDIR=$PWD/tmp ~/workspace/p033-textproof/.venv/bin/python -m build --wheel --no-isolation --outdir tmp/smoke/dist
+bash tmp/smoke/run_smoke.sh
+
+# 7. Release verification
+~/workspace/p033-textproof/.venv/bin/python scripts/verify_release.py --preflight
+~/workspace/p033-textproof/.venv/bin/python scripts/verify_release.py
+~/workspace/p033-textproof/.venv/bin/python scripts/verify_review_pack.py review/REVIEW_INDEX.md
+
+# 8. Clean-directory release verification (detached worktree at c209a2e, removed afterwards)
+git worktree add --detach ~/workspace/p033-textproof-t013-u01-clean c209a2e
+~/workspace/p033-textproof/.venv/bin/python scripts/verify_release.py --root ~/workspace/p033-textproof-t013-u01-clean
+git worktree remove --force ~/workspace/p033-textproof-t013-u01-clean
+
+# 9. Ban / exclusion proofs
+grep -n "urlopen\|urlretrieve\|os.system\|shell=True\|requests\|httpx\|urllib\|http.client\|socket" scripts/validate_report_schema.py scripts/setup_dictionary.py src/textproof/core/report_schema.py src/textproof/setup_dictionary.py src/textproof/cli.py src/textproof/ocr/rapidocr_adapter.py src/textproof/assets/__init__.py
+git ls-files | grep ppocrv6_dict
+python -c "import zipfile; print([n for n in zipfile.ZipFile('release/source.zip').namelist() if 'ppocrv6_dict' in n])"
+python -c "import zipfile; print([n for n in zipfile.ZipFile('tmp/smoke/dist/textproof-1.0.0-py3-none-any.whl').namelist() if 'ppocrv6_dict' in n])"
+git diff a08dcc0 HEAD -- tests/fixtures/s0/manifest.json schemas requirements.lock src/textproof/core/report.py PROJECT_BOOK.md IMPLEMENTATION_PLAN.md PROJECT_BOOK.docx IMPLEMENTATION_PLAN.docx

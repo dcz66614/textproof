@@ -1,0 +1,33 @@
+# T010 changed files (vs master 74200c1)
+# M = modified, A = added
+M src/textproof/ocr/rapidocr_adapter.py
+M src/textproof/ui/index.html
+A PRIVACY_TEST_REPORT.md
+A task_handoffs/T010/PRIVACY_TEST_REPORT.md
+A task_handoffs/T010/TASK_RESULT.md
+A task_handoffs/T010/changed_files.txt
+A task_handoffs/T010/evidence/browser_network_requests.jsonl
+A task_handoffs/T010/evidence/fs_write_observation.md
+A task_handoffs/T010/evidence/socket_intercept_tests_privacy_test_no_external_requests.py__test_api_check_zero_external_connections.jsonl
+A task_handoffs/T010/evidence/socket_intercept_tests_privacy_test_no_external_requests.py__test_cli_check_zero_external_connections.jsonl
+A task_handoffs/T010/evidence/socket_intercept_tests_privacy_test_no_external_requests.py__test_version_and_health_zero_external_connections.jsonl
+A task_handoffs/T010/evidence/socket_intercept_tests_privacy_test_no_persistence.py__test_http_check_logs_contain_no_user_data.jsonl
+A task_handoffs/T010/evidence/strace_cli_check.log
+A task_handoffs/T010/evidence/verify_s0_offline_stdout.log
+A task_handoffs/T010/exit_codes.txt
+A task_handoffs/T010/test_stderr.log
+A task_handoffs/T010/test_stdout.log
+A tests/offline/_serve_probe.py
+A tests/offline/conftest.py
+A tests/offline/t010_offline_helpers.py
+A tests/offline/test_offline_namespace.py
+A tests/offline/test_offline_static.py
+A tests/offline/test_strace.py
+A tests/privacy/conftest.py
+A tests/privacy/t010_privacy_helpers.py
+A tests/privacy/test_local_assets.py
+A tests/privacy/test_loopback_and_fail_closed.py
+A tests/privacy/test_no_external_requests.py
+A tests/privacy/test_no_persistence.py
+A tests/privacy/test_ort_telemetry_disabled.py
+A tests/privacy/test_ui_clear_privacy.py

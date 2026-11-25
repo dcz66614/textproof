@@ -1,0 +1,20 @@
+TextProof T009 schema validation report
+Schema file: schemas/textproof.report.v1.schema.json ($id https://textproof.local/schemas/textproof.report.v1.schema.json)
+Validator: scripts/validate_report_schema.py (handwritten §5, stdlib only; jsonschema is NOT in the frozen lock)
+
+s0_fixed_TP-S0-ZH-001.json: VALID (verdict MISMATCH)
+s0_fixed_TP-S0-ZH-002.json: VALID (verdict MISMATCH)
+s0_fixed_TP-S0-NUM-001.json: VALID (verdict MISMATCH)
+s0_fixed_TP-S0-ZH-003.json: VALID (verdict MISMATCH)
+
+report_clean_match.json: VALID
+report_ocr_failed.json: VALID
+report_zh001_mismatch.json: VALID
+s0_fixed_TP-S0-NUM-001.json: VALID
+s0_fixed_TP-S0-ZH-001.json: VALID
+s0_fixed_TP-S0-ZH-002.json: VALID
+s0_fixed_TP-S0-ZH-003.json: VALID
+
+handwritten validator: 7/7 valid
+jsonschema cross-check: 7/7 valid (schema file itself valid draft 2020-12)
+jsonschema negatives rejected: 4/4

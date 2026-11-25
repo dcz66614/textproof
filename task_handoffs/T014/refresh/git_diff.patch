@@ -1,0 +1,1075 @@
+diff --git a/release/RELEASE_MANIFEST.json b/release/RELEASE_MANIFEST.json
+index 94a5139..dd5a02f 100644
+--- a/release/RELEASE_MANIFEST.json
++++ b/release/RELEASE_MANIFEST.json
+@@ -1,23 +1,23 @@
+ {
+   "release": "P033 TextProof",
+-  "source_commit": "167594e0442090c057baba7c067c323dd88cf530",
+-  "source_branch": "t014-pkg",
++  "source_commit": "1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6",
++  "source_branch": "t014-refresh",
+   "tool_version": "0.1.0",
+   "package_version": "1.0.0",
+   "spec_version": "1.0.0",
+-  "built_from": "git archive 167594e0442090c057baba7c067c323dd88cf530 (source.zip); python -m build --wheel --no-isolation from a clean export of the same commit (wheel); pip download -r requirements.lock --no-deps (wheelhouse)",
++  "built_from": "git archive 1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6 (source.zip); python -m build --wheel --no-isolation from a clean export of the same commit (wheel); pip download -r requirements.lock --no-deps (wheelhouse, unchanged from T014: 37 wheels re-verified against the lock)",
+   "wheel": "textproof-1.0.0-py3-none-any.whl",
+   "files": {
+     "release/source.zip": {
+-      "sha256": "82a01a1480c8f7fe545a86ca8ca3f3287afea7ab939aa6fed31e196b167ef0ad",
+-      "size": 42734094
++      "sha256": "9fb6ca9747177aebf5f932054b509439f245020054f75441e954f5ae78465bab",
++      "size": 263808324
+     },
+     "release/textproof-1.0.0-py3-none-any.whl": {
+-      "sha256": "939dbb5774394a8fdbee2099f9eb94c4271e839984b7600b0f35c0dddfb8478b",
+-      "size": 51656
++      "sha256": "cffd51836449a83efeeb9d407582b26c358526ba374d685cdb925e2f7dd17c0c",
++      "size": 27176403
+     },
+     "release/SHA256SUMS.txt": {
+-      "sha256": "0ecf797d9261233ddfbfbb4f8350d8cec08cf85bf7122c701f37ac0f295d408c",
++      "sha256": "b62cf635a680181f80295b2370d62d24af62cb04270bbfd2ddb1acfb3be6f8df",
+       "size": 4680
+     },
+     "release/SBOM_LICENSES.md": {
+@@ -25,13 +25,17 @@
+       "size": 2766
+     },
+     "review/REVIEW_INDEX.md": {
+-      "sha256": "b29bae537bacd61f50d23f7e31bcdb574dd70be8e2a2866981ac38bac6048783",
+-      "size": 53378
++      "sha256": "fe0a307c9a7047a2c1ec40065ec9aed70b4115ec20a7a76a6a5cdea5bb98dd88",
++      "size": 70169
+     },
+     "review/REVIEW_PACK_T014.md": {
+       "sha256": "1f8393a567a0a1f481b4a89585389757854b1eca4374947dc2350332f2890a7a",
+       "size": 14246
+     },
++    "review/REVIEW_PACK_T014R2.md": {
++      "sha256": "0b781edb37d127efde3f7e4105dbcf4016df5028935c96256aa126f870c70808",
++      "size": 14285
++    },
+     "scripts/verify_release.py": {
+       "sha256": "00a57db5e11dee6e9624d6981b249db9fa47040a7228e106160cc17324b468f0",
+       "size": 24915
+@@ -230,7 +234,7 @@
+   ],
+   "wheelhouse_packages": 37,
+   "test_evidence": {
+-    "pytest": "495 passed, 0 failed, exit 0 (194.46s)",
++    "pytest": "495 passed, 0 failed, exit 0 (176.27s)",
+     "pytest_log": "task_handoffs/T014/pkg/test_stdout.log",
+     "exit_codes": "task_handoffs/T014/pkg/exit_codes.txt",
+     "offline_smoke": "task_handoffs/T014/pkg/offline_smoke.txt"
+@@ -238,13 +242,17 @@
+   "exclusions": [
+     "assets/ocr/dictionaries/ppocrv6_dict.txt (licence UNVERIFIED; rebuild locally with scripts/setup_dictionary.py; absent from git tree, source.zip, wheel and wheelhouse)"
+   ],
+-  "known_unresolved_items": [
++  "resolved_items": [
+     {
+       "id": "U-01",
+-      "blocking": true,
++      "blocking_was": true,
+       "title": "Installed wheel cannot run check/serve/verify-s0 standalone (repo-layout assumptions + ui/ not packaged)",
+-      "detail": "See review/REVIEW_PACK_T014.md section 3. verify_release.py FAILS on the offline-smoke check until a fix round lands."
+-    },
++      "fixed_in": "717b813",
++      "merged_in": "1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6",
++      "verification": "verify_release.py 27/27 PASS (worktree and clean directory) on the wheel rebuilt from 1f02358; offline smoke: check exit 1 MISMATCH (E001), serve health/UI 200. See review/REVIEW_PACK_T014R2.md section 3."
++    }
++  ],
++  "known_unresolved_items": [
+     {
+       "id": "U-02",
+       "blocking": false,
+diff --git a/release/SHA256SUMS.txt b/release/SHA256SUMS.txt
+index 9f693ef..fbbaa6b 100644
+--- a/release/SHA256SUMS.txt
++++ b/release/SHA256SUMS.txt
+@@ -1,5 +1,5 @@
+-82a01a1480c8f7fe545a86ca8ca3f3287afea7ab939aa6fed31e196b167ef0ad  source.zip
+-939dbb5774394a8fdbee2099f9eb94c4271e839984b7600b0f35c0dddfb8478b  textproof-1.0.0-py3-none-any.whl
++9fb6ca9747177aebf5f932054b509439f245020054f75441e954f5ae78465bab  source.zip
++cffd51836449a83efeeb9d407582b26c358526ba374d685cdb925e2f7dd17c0c  textproof-1.0.0-py3-none-any.whl
+ 6bc31bbbec6dfaaedc1676dbc11dbda96fe22a2b5c400e9ebad113fec44a9dc6  wheelhouse/annotated_doc-0.0.7-py3-none-any.whl
+ f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0  wheelhouse/annotated_types-0.8.0-py3-none-any.whl
+ c66ae634e0b8228396b801741beb3294326d4b6102f7bba4041c0dfb58c29026  wheelhouse/anyio-4.16.0-py3-none-any.whl
+diff --git a/release/source.zip b/release/source.zip
+index 423a071..0cc98f4 100644
+Binary files a/release/source.zip and b/release/source.zip differ
+diff --git a/release/textproof-1.0.0-py3-none-any.whl b/release/textproof-1.0.0-py3-none-any.whl
+index 867cf74..7b4a02a 100644
+Binary files a/release/textproof-1.0.0-py3-none-any.whl and b/release/textproof-1.0.0-py3-none-any.whl differ
+diff --git a/review/REVIEW_INDEX.md b/review/REVIEW_INDEX.md
+index b66b283..5e10b5e 100644
+--- a/review/REVIEW_INDEX.md
++++ b/review/REVIEW_INDEX.md
+@@ -1,18 +1,18 @@
+ # P033 TextProof — T014 发布审查索引（REVIEW_INDEX.md)
+ 
+-- 锚定 commit：`167594e0442090c057baba7c067c323dd88cf530`（分支 `t014-pkg`；T014 冻结源码 commit，含 R-13 发布文件与 R-30 审查脚本）
+-- 审查报告：`review/REVIEW_PACK_T014.md`（本索引的定稿说明与 T012/T013 审查证据链）；T012 原始审查报告见 `review/REVIEW_FINDINGS_T012.md`（自 T011 审查工作树逐字复制，见 §6）
++- 锚定 commit：`1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6`（分支 `t014-refresh`；T014 重冻源码 commit，含 R-13 发布文件、R-30 审查脚本与 T013-U01 修复）
++- 审查报告：`review/REVIEW_PACK_T014R2.md`（本次重冻的定稿说明；旧包 `review/REVIEW_PACK_T014.md` 记录 U-01 失败证据，原文保留）；T012 原始审查报告见 `review/REVIEW_FINDINGS_T012.md`（自 T011 审查工作树逐字复制，见 §6）
+ - 本表每行的字节数、SHA-256、行数均取自锚定 commit 本身（`git archive <commit>`），不受工作树脏文件影响；行数按 `wc -l` 口径（换行符个数）。
+-- 覆盖率：**全文列 296 / 锚定 commit 追踪文件总数 596**；其余 300 张 fixture PNG 以一行聚合记录（逐文件 SHA 见 `tests/fixtures/s0/manifest.json`，由 `scripts/verify_s0.py` 全量重算验证）。
++- 覆盖率：**全文列 388 / 锚定 commit 追踪文件总数 688**；其余 300 张 fixture PNG 以一行聚合记录（逐文件 SHA 见 `tests/fixtures/s0/manifest.json`，由 `scripts/verify_s0.py` 全量重算验证）。
+ - 校验命令：`python scripts/verify_review_pack.py review/REVIEW_INDEX.md`（逐行核对路径、字节数、SHA-256、行数，并核对覆盖完整性）。
+-- 本索引本身与 `review/REVIEW_PACK_T014.md` 不在锚定 commit 内（它们是 T014 发布证据，在随后的 release 提交中入库）；其哈希见 `release/RELEASE_MANIFEST.json`。
++- 本索引本身与 `review/REVIEW_PACK_T014.md`、`review/REVIEW_PACK_T014R2.md` 不在锚定 commit 内（它们是 T014 发布证据，在随后的 release 提交中入库）；其哈希见 `release/RELEASE_MANIFEST.json`。
+ - 字典 `assets/ocr/dictionaries/ppocrv6_dict.txt` 不在锚定 commit 内（T014/R-03 起不再追踪，见 `THIRD_PARTY_NOTICES.md` §4），故本表无此行；它是唯一被排除的源文件。
+ 
+ ## 1. 覆盖表
+ 
+ | 文件 | 字节数 | SHA-256 | 行数 | 读取状态 | 备注 |
+ |---|---:|---|---|---|---|
+-| `.gitignore` | 285 | `da1ef5763c9d614b62ee6910375023085c2855e1989d3d5994cb2811802f0c42` | 10 | 已列 | 冻结源码 commit 文件 |
++| `.gitignore` | 470 | `be229dc86c2a8ee818f99c0385d43a164414ec4739028463ccec13c7b1207bae` | 13 | 已列 | 冻结源码 commit 文件 |
+ | `API_CONTRACT.md` | 8218 | `32209a2cb1c2dbef3a6f04af4ddd59601bcfd2c571e04e8b339ee7ec1d513ce2` | 177 | 已列 | 冻结源码 commit 文件 |
+ | `ENVIRONMENT.md` | 6002 | `3635a7d56f4e9cd983b55165df664537e9a0731a818f91ffa9113f5f5806e056` | 115 | 已列 | 冻结源码 commit 文件 |
+ | `FULL_TEST_REPORT.md` | 7439 | `4016d03f6fdfa83bb3694c41744fbd5858005f7737daba3fc1ea322cb55b34be` | 139 | 已列 | 冻结源码 commit 文件 |
+@@ -24,7 +24,7 @@
+ | `PRIVACY_TEST_REPORT.md` | 15760 | `230459a168b15b162e61460909339903888274e69bcb27c84e125a49ed71e820` | 139 | 已列 | 冻结源码 commit 文件 |
+ | `PROJECT_BOOK.docx` | 64339 | `4b788b1c85d6066b5889163c4b8a03f5ef19ff902691aff5b1af75adde81aba7` | 250 | 已列 | 冻结源码 commit 文件 |
+ | `PROJECT_BOOK.md` | 46114 | `8a2b6e565df88a2f6371879cdcfbb613500c8cc2ecee50376b8da95d7ecc496a` | 775 | 已列 | 冻结源码 commit 文件 |
+-| `README.md` | 10216 | `e38de2aff1332d58cfe9c718e8af52713efc59fd6ae660bf83527fe9ca9f7479` | 239 | 已列 | 冻结源码 commit 文件 |
++| `README.md` | 10418 | `eabd5523a7eccb433fa038208cc949315927ba4ac121dd75f20e11a25d5b41bb` | 246 | 已列 | 冻结源码 commit 文件 |
+ | `S0_MAINCHAT_VERDICT.md` | 4308 | `ec75cf85faca9c8e79d9c1e499c894dc01b8a735a64b725e78c2997c5ca9cf9a` | 44 | 已列 | 冻结源码 commit 文件 |
+ | `S0_REPORT.md` | 29600 | `add1f385e6423b0686843dbbca11e617195459c58eeab0381350772b862c0e21` | 419 | 已列 | 冻结源码 commit 文件 |
+ | `SECURITY.md` | 3606 | `a8c7221936dbf8c466a4e39405f7cb3fe6ca2269b519d449543f3f9675f03a10` | 74 | 已列 | 冻结源码 commit 文件 |
+@@ -32,7 +32,7 @@
+ | `T001_RESULT.md` | 10157 | `d448c1375be7a9ff01d6e178bdcdcd3dcdf880598fa3e1116d63307412206c8f` | 159 | 已列 | 冻结源码 commit 文件 |
+ | `T011_MAINCHAT_VERDICT.md` | 3697 | `376b8c7686bedf239005e26568ab32c040e4a30d689d16cdd8621c3ca88df1b1` | 54 | 已列 | 冻结源码 commit 文件 |
+ | `T013_MAINCHAT_VERDICT.md` | 3137 | `994a768e163e9f7289aec9e29cc758cdf18ed8865d292ffc3436de0cf243cd45` | 32 | 已列 | 冻结源码 commit 文件 |
+-| `THIRD_PARTY_NOTICES.md` | 12834 | `eeb4c89955dc99c326608d0a9ea97dac01b616dd34f4511029ab01798f6603c5` | 217 | 已列 | 冻结源码 commit 文件 |
++| `THIRD_PARTY_NOTICES.md` | 13668 | `abc16ca0d469c5d6d4f2e76be104477ba4ccbd1d40baaed524c7227a8a57ff6e` | 231 | 已列 | 冻结源码 commit 文件 |
+ | `assets/ocr/SHA256SUMS.txt` | 400 | `8a815bc577f4b6b60f2675eee8c3b6e329f88a8df21caaf1d185f35059cece9e` | 4 | 已列 | 冻结源码 commit 文件 |
+ | `assets/ocr/models/PP-OCRv6_det_small.onnx` | 9929594 | `090f04abcd9d9a7498bc4ebf677e4cb9bdce1fe4197ddb7e529f1ef44e1ff94f` | 33550 | 已列 | 冻结源码 commit 文件 |
+ | `assets/ocr/models/PP-OCRv6_rec_small.onnx` | 21234383 | `6f327246b50388f3c176ae304bd95767ea6dc0c9ae92153ef8cbe210b3c14884` | 97095 | 已列 | 冻结源码 commit 文件 |
+@@ -40,8 +40,54 @@
+ | `conftest.py` | 463 | `ba310c9260e597cf3356a3757d99cb3f20983b907f07c946438c9b55eeb44d21` | 12 | 已列 | 冻结源码 commit 文件 |
+ | `oracle/__init__.py` | 146 | `a2613c46c556b794eb72e502e284144c6e5c5d8c8e993376c081da8b97d67b72` | 5 | 已列 | 冻结源码 commit 文件 |
+ | `oracle/reference_compare.py` | 29172 | `afb372da91ac762e7ab159245eac2678dcab7426acc4d23f55f1b4eab8231520` | 751 | 已列 | 冻结源码 commit 文件 |
+-| `pyproject.toml` | 1249 | `5bcebcc11ab184e5449ed2fe0200198869aaa1a1d1a813015f54d5911a9d5511` | 38 | 已列 | 冻结源码 commit 文件 |
++| `pyproject.toml` | 1825 | `23080e18ca755f3575d7e284b3086e180bfcb52118e046816fa197d08a107712` | 52 | 已列 | 冻结源码 commit 文件 |
++| `release/RELEASE_MANIFEST.json` | 10417 | `4ef748daf6d76277a75573acd1712b8f087009618ac9be8cc8065513460ac8a5` | 261 | 已列 | 冻结源码 commit 文件 |
++| `release/SBOM_LICENSES.md` | 2766 | `362c3bd8dcae783ea550819a9d1def4840b3c6314eb4850160705daba1ee2cd2` | 55 | 已列 | 冻结源码 commit 文件 |
++| `release/SHA256SUMS.txt` | 4680 | `0ecf797d9261233ddfbfbb4f8350d8cec08cf85bf7122c701f37ac0f295d408c` | 39 | 已列 | 冻结源码 commit 文件 |
++| `release/source.zip` | 42734094 | `82a01a1480c8f7fe545a86ca8ca3f3287afea7ab939aa6fed31e196b167ef0ad` | 163500 | 已列 | 冻结源码 commit 文件 |
++| `release/textproof-1.0.0-py3-none-any.whl` | 51656 | `939dbb5774394a8fdbee2099f9eb94c4271e839984b7600b0f35c0dddfb8478b` | 250 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/annotated_doc-0.0.7-py3-none-any.whl` | 5286 | `6bc31bbbec6dfaaedc1676dbc11dbda96fe22a2b5c400e9ebad113fec44a9dc6` | 31 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/annotated_types-0.8.0-py3-none-any.whl` | 13427 | `f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0` | 47 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/anyio-4.16.0-py3-none-any.whl` | 134521 | `c66ae634e0b8228396b801741beb3294326d4b6102f7bba4041c0dfb58c29026` | 531 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/certifi-2026.11.20-py3-none-any.whl` | 127913 | `7422df25243767b9877031a2248cb14d09ddac9beee846f4cef3d5c9191d488f` | 476 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/charset_normalizer-3.5.3-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl` | 257134 | `e5e4785d8a0adeadfbdf75f4efc357911842674651cbafd7e97f69b11ec3cbc6` | 899 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/click-8.5.1-py3-none-any.whl` | 126163 | `8bb5376d2006950386f8c6427613334a2acadc5f559cb80e638d00b4df957e37` | 497 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/colorlog-6.12.0-py3-none-any.whl` | 12239 | `30d392604e9110045a2c2aeefc27d7a017abbab63f3a8aee594eac0801df784e` | 34 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/fastapi-0.165.0-py3-none-any.whl` | 159475 | `896f48462042bb4f162147eb8fac7e858753dc1f486765709baf105d70e4fc5b` | 594 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/flatbuffers-25.12.19-py2.py3-none-any.whl` | 26661 | `7634f50c427838bb021c2d66a3d1168e9d199b0607e6329399f04846d42e20b4` | 120 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/h11-0.16.0-py3-none-any.whl` | 37515 | `63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86` | 137 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/idna-3.20-py3-none-any.whl` | 69583 | `ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c` | 226 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/iniconfig-2.3.1-py3-none-any.whl` | 7552 | `9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7` | 26 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/numpy-2.5.5-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl` | 15720599 | `704d819265e5d1064d932968e9ee85fff2103ccc78c05b878c06943ba27b8507` | 56271 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/omegaconf-2.4.0-py3-none-any.whl` | 254152 | `f141a664c777582405e3cc6e0545ecc79429e79f844995b1a6e71c35946a025c` | 992 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/onnxruntime-1.32.0-cp312-cp312-manylinux_2_28_x86_64.whl` | 27780211 | `99e1074c4b2197accd5073052a465361be17b89c093b8ffb6e6bd8f986c52df8` | 99201 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/opencv_python_headless-5.1.0.95-cp37-abi3-manylinux_2_28_x86_64.whl` | 63704594 | `7d387d4a64abe0c737440d38b5a90822f9bbcc10c8ce06a35904d6ecf7a2fb30` | 225580 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/opentelemetry_api-1.45.2-py3-none-any.whl` | 60335 | `2cbd737377e710ee740d261c94e93fa0f08e6d037c18f17513cc0a2d94479a34` | 219 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/packaging-26.4-py3-none-any.whl` | 140049 | `81383611a09c1bc0b08b76e0fd5829d7c6824c65b27a6aee339da133f4233ea2` | 516 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/pillow-11.3.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl` | 6645236 | `676b2815362456b5b3216b4fd5bd89d362100dc6f4945154ff172e206a22c024` | 24351 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/pluggy-1.7.0-py3-none-any.whl` | 27082 | `7dd7b0d8832ba3cb632c306926ded123429211b83641b35dc5c41ad2d34f9bec` | 100 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/protobuf-7.36.2-cp310-abi3-manylinux2014_x86_64.whl` | 343223 | `89f23aa53c24553a2416fd4fd1ec06f74fa42b14b546d8883128813f775bbfd2` | 1204 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/pyclipper-1.4.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl` | 978235 | `d1f807e2b4760a8e5c6d6b4e8c1d71ef52b7fe1946ff088f4fa41e16a881a5ca` | 3659 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/pydantic-2.14.4-py3-none-any.whl` | 494865 | `653a2ad9f6d8858529c77c72717d0ea991d6c6837fe683246b2f4b2bbfc3fadc` | 1937 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/pydantic_core-2.50.5-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl` | 2264846 | `470bbc2495367f60d3ca849a8039e4c164701d10637e7743f4427d92651bdb6d` | 8556 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/pygments-2.21.0-py3-none-any.whl` | 1250147 | `2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9` | 4881 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/pytest-8.4.2-py3-none-any.whl` | 365750 | `872f880de3fc3a5bdc88a11b39c9710c3497a547cfa9320bc3c5e62fbf272e79` | 1408 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/pyyaml-6.0.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl` | 849249 | `93bfb2459195406a518e2f487a9bbf01df240175f31e06f5a252ac6734c7bbf0` | 3138 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/rapidocr-3.10.0-py3-none-any.whl` | 27288134 | `2fc34e26cd0f48514804a94f8832283039c7334076bff60768b1fed9ad068050` | 101217 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/requests-2.34.2-py3-none-any.whl` | 73075 | `2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0` | 236 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/shapely-2.2.0-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl` | 2300970 | `650a5f4d8a8e3c96982079d8c99b6ddbe6602bbd1e34c75c2b95dbc0d28ac997` | 7553 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/six-1.17.0-py2.py3-none-any.whl` | 11050 | `4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274` | 47 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/starlette-1.10.0-py3-none-any.whl` | 80571 | `478c0ab3b4ced6e82719849c118fa406f0278a3499c1a898cd15cd31bdc38ce4` | 310 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/tqdm-4.70.1-py3-none-any.whl` | 80199 | `c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73` | 311 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/typing_extensions-4.16.0-py3-none-any.whl` | 45571 | `481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8` | 161 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/typing_inspection-0.4.5-py3-none-any.whl` | 14874 | `bc210535442b39e1bf2805e0c7a17dfd6a4ace760c84c7f7d16245d23a6b1c39` | 48 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/urllib3-2.8.0-py3-none-any.whl` | 135717 | `0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3` | 509 | 已列 | 冻结源码 commit 文件 |
++| `release/wheelhouse/uvicorn-0.54.0-py3-none-any.whl` | 87427 | `505bdb0f318731d45f1f712071fc781a8981f6847a31c902c9f5e652d4f67faf` | 300 | 已列 | 冻结源码 commit 文件 |
+ | `requirements.lock` | 66057 | `8726d13cb20bb731b491a4119629c176b699f035b75d8547d853ca3585d1564d` | 858 | 已列 | 冻结源码 commit 文件 |
++| `review/REVIEW_FINDINGS_T012.md` | 53197 | `35b2260d2d79ac375cd4499f54084dc03744b8c44d6f0174bec6b75e0c30f3c9` | 374 | 已列 | 冻结源码 commit 文件 |
++| `review/REVIEW_INDEX.md` | 53378 | `b29bae537bacd61f50d23f7e31bcdb574dd70be8e2a2866981ac38bac6048783` | 346 | 已列 | 冻结源码 commit 文件 |
++| `review/REVIEW_INDEX_T012.md` | 13375 | `f91dd1a022fd00f8abcd91a643eac78744745287905b78cb525ecf921f89715a` | 126 | 已列 | 冻结源码 commit 文件 |
++| `review/REVIEW_PACK_T014.md` | 14246 | `1f8393a567a0a1f481b4a89585389757854b1eca4374947dc2350332f2890a7a` | 116 | 已列 | 冻结源码 commit 文件 |
+ | `schemas/textproof.report.v1.schema.json` | 15422 | `6b65f6a4c52a4c8b2cf802e2c6ef53d2a0f1c9b458404d9b2e1abf9c0d37a8c1` | 481 | 已列 | 冻结源码 commit 文件 |
+ | `scripts/benchmark_perf.py` | 11178 | `f0f1d3d5564b8def9e07e1eb1e4860d8796be1efc9360d4f606e859e14192a0b` | 296 | 已列 | 冻结源码 commit 文件 |
+ | `scripts/compute_s0_metrics.py` | 20228 | `8fa687f198682f9a20a28a11bf9d8b00742437c5be309b1d7c94ee64e05ff15d` | 470 | 已列 | 冻结源码 commit 文件 |
+@@ -49,16 +95,20 @@
+ | `scripts/generate_fixtures.py` | 40131 | `261e4b12193323e9394f1163a34d9ccbfae1aefb503f0deaaf211754e411ee5f` | 888 | 已列 | 冻结源码 commit 文件 |
+ | `scripts/independent_verify.py` | 13865 | `48c112e88dd827081eb3fdf22d15b085c7f1d8a8e91024fc9880e929a3f763fe` | 303 | 已列 | 冻结源码 commit 文件 |
+ | `scripts/parity_check.py` | 18327 | `82309bd4f744d857314e62c0b19d567d43b4a8250c873a39a57bee81ec3aeb20` | 397 | 已列 | 冻结源码 commit 文件 |
+-| `scripts/setup_dictionary.py` | 9390 | `949e76d87a1fa63a17a31b71d32abf5cc6f683b3715b30c7c35d48e096dca3a6` | 254 | 已列 | 冻结源码 commit 文件 |
+-| `scripts/validate_report_schema.py` | 22119 | `864b853444dea41a94dfe23fa79127f5327dc414d9b2bd0086d3290c3dfb9c6e` | 493 | 已列 | 冻结源码 commit 文件 |
+-| `scripts/verify_release.py` | 24893 | `cbc21cbe835d1a1ae22625382bb6cbd8c9ef7493120a0320d383e480d365b74c` | 618 | 已列 | 冻结源码 commit 文件 |
++| `scripts/setup_dictionary.py` | 3395 | `e1d358dea47afd466fc3e018811025e213bbe86ccb6a9f80d4027d136330cc12` | 89 | 已列 | 冻结源码 commit 文件 |
++| `scripts/validate_report_schema.py` | 1922 | `7ec85c0cc553f007141d345bf3fa71206a411cca1f15b205da3401fe0f050a1d` | 66 | 已列 | 冻结源码 commit 文件 |
++| `scripts/verify_release.py` | 24915 | `00a57db5e11dee6e9624d6981b249db9fa47040a7228e106160cc17324b468f0` | 618 | 已列 | 冻结源码 commit 文件 |
+ | `scripts/verify_review_pack.py` | 7931 | `35dc4b79edc4d5b1962342833b79145311b9e173274cc491991e60f695791379` | 228 | 已列 | 冻结源码 commit 文件 |
+ | `scripts/verify_s0.py` | 22224 | `2ec805c7ed927ef8d7e1faccb04a494f48113cb528ab39f444a96ed3d2ff7cad` | 459 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/__init__.py` | 219 | `e232dd2b615ad7e49fb62a16a329244521f73d7ad82972fd16561c94d4d29827` | 8 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/api/__init__.py` | 1639 | `fabf726b5c51ba6de3370a0caf1ed0ca61707ba717d1d924a010f2f8a024338c` | 45 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/api/app.py` | 6816 | `1f11d0a29a87118643fb5edb3338138fb7df118e5a51c5a5d69df95dd21e5631` | 195 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/api/routes.py` | 13852 | `6029bce4806d5e8c8e2f6a58892f9b4c3aa65f35842d425873b5815299ba3cd1` | 396 | 已列 | 冻结源码 commit 文件 |
+-| `src/textproof/cli.py` | 13257 | `e6bd45bdee373dd81a6e01124ee5a7fa821fd3abce088b5a5a837e39b8fa61f7` | 342 | 已列 | 冻结源码 commit 文件 |
++| `src/textproof/assets/__init__.py` | 902 | `26e4b87085748b44453b29ae562ab77f251978335839a9cfa0bf2ffb631d66b1` | 19 | 已列 | 冻结源码 commit 文件 |
++| `src/textproof/assets/ocr/models/PP-OCRv6_det_small.onnx` | 9929594 | `090f04abcd9d9a7498bc4ebf677e4cb9bdce1fe4197ddb7e529f1ef44e1ff94f` | 33550 | 已列 | 冻结源码 commit 文件 |
++| `src/textproof/assets/ocr/models/PP-OCRv6_rec_small.onnx` | 21234383 | `6f327246b50388f3c176ae304bd95767ea6dc0c9ae92153ef8cbe210b3c14884` | 97095 | 已列 | 冻结源码 commit 文件 |
++| `src/textproof/assets/ocr/models/ch_ppocr_mobile_v2.0_cls_mobile.onnx` | 585532 | `e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c` | 3622 | 已列 | 冻结源码 commit 文件 |
++| `src/textproof/cli.py` | 14598 | `4b1945a60567f64d0dd242dbbd85325fe0e4c39cc62284cd5e07c03d1c437361` | 369 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/contracts.py` | 6901 | `bda7c3cc4ced5d2cfc43410710bbbb28bbef484bc2cef5dd0fca92e5da787c8c` | 170 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/core/__init__.py` | 1525 | `c9f14b8c7b9eab1ecf75e3572b83ab9c64225cb1fc6892e6ccd6f403b6d4d875` | 62 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/core/align_lines.py` | 12797 | `8134d10c127e73355c5f372e8eca769051597372f4e1069d890c1082896a86ca` | 330 | 已列 | 冻结源码 commit 文件 |
+@@ -66,11 +116,13 @@
+ | `src/textproof/core/line_order.py` | 3723 | `1cd7d449d6b8a7c06118268481f5a79280137042e3dc78d63ee8254e3168402e` | 104 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/core/normalize.py` | 4756 | `8e4ba5e1c67b205bac8ddfe4d1af965cefa060184900eb554b7f50334b9ee359` | 130 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/core/report.py` | 14069 | `78479b9996da0929a33385134aa70c884aeda011089bf5fa745574ec812d01de` | 390 | 已列 | 冻结源码 commit 文件 |
++| `src/textproof/core/report_schema.py` | 22695 | `27863c61b3446a71c05e214ed0f4c4a1db07f1938261f546518f011e355a6507` | 503 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/core/weighted_edit.py` | 11557 | `ef8d0bdfd97e915ec091f568dd4fe07d042db0f908ff47ea275383710e755047` | 313 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/io/__init__.py` | 299 | `1384c9dd8046da9fbebe6682c58b0e61f696e21a72dacb02c1a4331e0dfeee5d` | 15 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/io/image_loader.py` | 10844 | `4ce009315c1c9ecdd52df5edccdcefe03216e9a993d68f12e8ba21a419ddd4c9` | 304 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/ocr/__init__.py` | 66 | `6df53f43ddb2a2c9ec855b21aa8c797d0621943aa3f1645806ec9d0dfae77ecf` | 1 | 已列 | 冻结源码 commit 文件 |
+-| `src/textproof/ocr/rapidocr_adapter.py` | 18029 | `dd333fc8de246379b227b9bc07b14322733f026fdbcfe16f02b271da4e67b846` | 426 | 已列 | 冻结源码 commit 文件 |
++| `src/textproof/ocr/rapidocr_adapter.py` | 19811 | `6cc03f97d5db53ce1b9b6385ae231820787a16f4ccd03fac9c52e83c35e3021d` | 467 | 已列 | 冻结源码 commit 文件 |
++| `src/textproof/setup_dictionary.py` | 10349 | `1422e197c7d250075b1fd4d01a6c0ea5b08f3eeac40e4916c1e016e29ba253a6` | 284 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/ui/app.js` | 18134 | `066c64a376963525952fe661fc73300baf1fd55b5d06138e7b083a5f5ac277bb` | 512 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/ui/index.html` | 3393 | `5de3f39e260f97404a87d8aed959b62f4a69b44dea3f6e630d08c91cb82df976` | 86 | 已列 | 冻结源码 commit 文件 |
+ | `src/textproof/ui/style.css` | 4590 | `bfac91af09d053fe88bceaa5dac8410ed2f1f30c48af4678a3cca5761ac420ed` | 221 | 已列 | 冻结源码 commit 文件 |
+@@ -259,6 +311,45 @@
+ | `task_handoffs/T013/r04/TASK_RESULT.md` | 6555 | `10f808b16c27401b674250a88b94484bc1a7f376261030503adc839b99e7f0b5` | 105 | 已列 | 冻结源码 commit 文件 |
+ | `task_handoffs/T013/r05/TASK_RESULT.md` | 6466 | `aa9fb60222804f0f30af004a3b950608aee7a73ea17acbd657f7ebd0cebad69b` | 112 | 已列 | 冻结源码 commit 文件 |
+ | `task_handoffs/T013/r09/TASK_RESULT.md` | 6405 | `60c66db2889cd2c6912c75426c2e7e6a6a55750334fe37001f06dfa63b16ecb9` | 94 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T013/u01/SHA256SUMS.txt` | 834 | `a2a72dc237d3b529f34b1a1150027e491dcb3376df1951a162ffd9f923ba451b` | 10 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T013/u01/TASK_RESULT.md` | 13906 | `a0dc43b9c7d77a391c959d459c60256fc2d847d3c1d42646c332aee950d4905a` | 107 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T013/u01/changed_files.txt` | 1442 | `579c3358339a335cefd09f162d3bd8bb8b13f35a78eaef55ddc335437ce81fa6` | 36 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T013/u01/exit_codes.txt` | 955 | `c956d68263166863cb6154c7db1642e42cc503b1879f1eedaec72f835119255c` | 19 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T013/u01/git_diff.patch` | 115207 | `0f5329c54957bb04f6e2683f3e882e433e80ab4ff4b4903459638cd82263c602` | 2627 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T013/u01/smoke_run.sh` | 2902 | `73bb9faf97b65446f13185979bb9bd4cc210d1f92ca9e285e2ec151ad3cee3b8` | 75 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T013/u01/test_commands.txt` | 3205 | `8efd0fa8141edd14c47f7df7f307d84f167afee60d0fb946e7833c16022b576f` | 44 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T013/u01/test_stderr.log` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` | 0 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T013/u01/test_stdout.log` | 1138 | `214a214891ae78d15b4e5994dd8f9d4e5cbf30047303bba8681568d9003d96f8` | 15 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T013/u01/verify_release.log` | 2154 | `b15822c098d4ed50c9a764a7cf50e4acc587a5fe28021830b7c460f977d18d86` | 37 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T013/u01/verify_release_clean_dir.log` | 2160 | `056e27509adf83c936dc20e938dc404141701a79e1467a0b71e8c09d0ed910bb` | 37 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/TASK_RESULT.md` | 12404 | `5241e6556a5a132b0ddcfb87000fe8f941e5b8ff3fda683ae59ca45abeecd3a5` | 151 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/changed_files.txt` | 3789 | `4596e93eb73fda1c4bd718e56d1ed6bdc3695cb215c33981c811ec1ce2f264a0` | 77 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/editable_install.log` | 6036 | `8cdc429fc8e11a53c16e68d5a479010f8781bd8bcb9faf814c9a20841a09e5d8` | 72 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/exit_codes.txt` | 14 | `76f4ecff061dc42bf8a232321d8e6d62506931e9c77089816131bb1269b3ebea` | 1 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/offline_install.log` | 5579 | `e9bc15aa304ba311325f8abd6fd9fe81b15572025d19b7763df188d41590456a` | 41 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/offline_smoke.txt` | 1594 | `af84f300c02c43eadc49dbb33efc740bbc98fa7efeacc42597b01a1236704340` | 33 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/setup_dictionary_install.log` | 212 | `cb8ee375d572967adc99f5d69a64afddb8ffeddbb1efb1c54a44e0c5f9a363e0` | 4 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/smoke_api_check.json` | 58 | `20f832fe81c53c59bb87987baf91bc44e860b77a486d3dc7ee535cf9de99b664` | 1 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/smoke_api_err.log` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` | 0 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/smoke_check.log` | 70 | `2a2d7a3be3b3772c6e38005f82b74b9fe01244fe545d610af1389617534d0a78` | 1 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/smoke_check_repo.log` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` | 0 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/smoke_check_standalone.log` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` | 0 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/smoke_check_wpp.log` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` | 0 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/smoke_help.log` | 647 | `0eb46804ac07ca33d26fb25072e8f918f3d3b4c32097d926a36bd68dd32ddc08` | 15 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/smoke_help2.log` | 647 | `0eb46804ac07ca33d26fb25072e8f918f3d3b4c32097d926a36bd68dd32ddc08` | 15 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/smoke_report_repo.json` | 1491 | `a8bfdcba7641224e54d90508f1f62675ea596417b39f687f1a1343fe44931cae` | 80 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/smoke_report_standalone.json` | 1491 | `a8bfdcba7641224e54d90508f1f62675ea596417b39f687f1a1343fe44931cae` | 80 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/smoke_report_wpp.json` | 1491 | `a8bfdcba7641224e54d90508f1f62675ea596417b39f687f1a1343fe44931cae` | 80 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/smoke_serve.log` | 1441 | `0bba14222ccdce81675e0090ea36ceb8a941862fc8b4cd4038d6cf1ba9eae716` | 18 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/smoke_serve2.log` | 449 | `3552fed73702fd1bdddebb141a068bc303104d96c6cde6583c27e08ed85d6206` | 6 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/smoke_version.err` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` | 0 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/smoke_version.json` | 264 | `92df21c147afd1d3f92e350315fc9d4615786f5db9b2d0b35d245034c802c4d1` | 12 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/standalone_check_exit.txt` | 1 | `6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b` | 0 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/test_commands.txt` | 4490 | `fb3ac93ebc23f2fcc43fe7917f3791b3b36dcc61adc583e29c90011c017f8d8e` | 64 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/test_stderr.log` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` | 0 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/test_stdout.log` | 1138 | `214a214891ae78d15b4e5994dd8f9d4e5cbf30047303bba8681568d9003d96f8` | 15 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/verify_release.log` | 2146 | `05a1a54703f33e2f0e586f0147e842f13909792b46c1380d829bd283299c0143` | 37 | 已列 | 冻结源码 commit 文件 |
++| `task_handoffs/T014/pkg/verify_release_clean_dir.log` | 2116 | `914dadf0aad488c850f0bad2667eee09a4dfcf457bc74b25975d00b812796de3` | 37 | 已列 | 冻结源码 commit 文件 |
+ | `task_handoffs/T014/r03/LICENSE_VERIFICATION_R03.md` | 7167 | `72e5a440a96ef06712b400706d01a17df19dee0e2a94648396e1db828fd0b018` | 78 | 已列 | 冻结源码 commit 文件 |
+ | `task_handoffs/T014/r03/TASK_RESULT.md` | 9604 | `e2c0529630b10dab239b9933b57668e67f6b829a93159aff374cc9a2e36af12b` | 78 | 已列 | 冻结源码 commit 文件 |
+ | `task_handoffs/T014/r03/changed_files.txt` | 128 | `611ee07e02116a2b18df968fc5a8288bf2cdd2492f68edd7adacf418c1f4e213` | 5 | 已列 | 冻结源码 commit 文件 |
+@@ -280,6 +371,7 @@
+ | `tests/fixtures/s0/manifest.json` | 302924 | `cc9a0ea9ed75fda800882c226665fa61cfc8d7213682655d52358cf5c128f959` | 12550 | 已列 | 冻结源码 commit 文件 |
+ | `tests/integration/test_api.py` | 20768 | `e91b3b3cd9dd66d0b118bd415546f36cdc299ac10d8df14ff8dbd5977af0625c` | 556 | 已列 | 冻结源码 commit 文件 |
+ | `tests/integration/test_cli.py` | 22288 | `1fe47b4ebdbbda482fcd4108fe8632b0130746e77a2e0574685b6e7ae38d8bf4` | 596 | 已列 | 冻结源码 commit 文件 |
++| `tests/integration/test_installed_wheel.py` | 12659 | `63f4ae1255c3ccc1cbfc25ee46f48dc4885d6c28d07159a85ddd1b3b810493d6` | 314 | 已列 | 冻结源码 commit 文件 |
+ | `tests/integration/test_ocr_adapter.py` | 9476 | `bde07674a724a0d1627a740a10deeb56f4524c66b072b09572ac2d110dc487bb` | 262 | 已列 | 冻结源码 commit 文件 |
+ | `tests/offline/_serve_probe.py` | 3215 | `50a33630c18093ee6ec3dd7782b8b3034657f497fb80fc26ed46ff46edcb0528` | 89 | 已列 | 冻结源码 commit 文件 |
+ | `tests/offline/conftest.py` | 715 | `273f7edc7f8e6a83760a717a8bb1b0fc0471f31dc6d859fcc2d77d7bf2d6831c` | 25 | 已列 | 冻结源码 commit 文件 |
+@@ -310,15 +402,15 @@
+ | `tests/unit/test_verify_s0.py` | 4863 | `bebf01ae8af0640345c5f50a0d68bb5a95115e7a2763a087da1aa7ec688ffa51` | 135 | 已列 | 冻结源码 commit 文件 |
+ | `tests/fixtures/s0/*.png` | 3476554 | `d92d7ef9b6560acab61362a29ba5667454e40618b9b88750940d9f3163c042bf` | — | 聚合行 | 300 张 S0 fixture PNG 的聚合记录：字节数为合计，SHA-256 为按路径排序的 `"<sha256>  <path>"` 行的 SHA-256；逐文件 SHA 见 manifest.json |
+ 
+-## 2. 验收结论（与 REVIEW_PACK_T014.md §1 一致）
++## 2. 验收结论（与 REVIEW_PACK_T014R2.md §1 一致）
+ 
+ | 验收 | 结论 |
+ |---|---|
+ | 1. §4–§9 契约与实现一致 | T012 审查结论 + T013 修复复审 PASS（见 REVIEW_PACK §2） |
+ | 2. 模型/字典/字体许可与离线资产哈希 | 模型 3 个文件 SHA 已核；字典许可 UNVERIFIED，不随公开产物分发（THIRD_PARTY_NOTICES.md §4） |
+ | 3. TP-S0-ZH-001 独立复核 | T012 PASS（IoU 0.964，Oracle 一致）；T013 后 S0 --force-live PASS（见 S0 证据） |
+-| 4. JSON schema、CLI 退出码、API/UI/CLI 一致性 | T013 修复后复审 PASS；全量 pytest 489 passed |
+-| 5. 日志、缓存、临时文件、网络访问、loopback 绑定 | T010 隐私/离线套件全过（489 passed 的一部分） |
++| 4. JSON schema、CLI 退出码、API/UI/CLI 一致性 | T013-U01 修复后复审 PASS；全量 pytest 495 passed |
++| 5. 日志、缓存、临时文件、网络访问、loopback 绑定 | T010 隐私/离线套件全过（495 passed 的一部分） |
+ | 6. 每 finding 含路径、行号、影响、复现命令、严重级别 | T012 的 31 条 findings 全部满足 |
+ | 7. 覆盖率（本表 / 锚定 commit 追踪文件） | 见表头；PNG 聚合行 + manifest.json 逐文件 SHA |
+ 
+@@ -330,7 +422,9 @@
+ | T012 审查索引（复制件） | `review/REVIEW_INDEX_T012.md` | 冻结候选 ffe53ea 的覆盖表（61/75 全文读） |
+ | T013 集成线交接 | `task_handoffs/T013/T013_INTEGRATION.md` | 31 项逐项处置；R-31 已修；R-30 豁免记录（已被本 T014 的 verify_review_pack.py 取代，见 REVIEW_PACK §4） |
+ | T013 P3 批量处置 | `task_handoffs/T013/p3/P3_DISPOSITION.md` | R-12…R-31 处置明细 |
+-| T014 审查包 | `review/REVIEW_PACK_T014.md` | 锚定最终冻结 commit 的定稿包 |
++| T013-U01 修复交接 | `task_handoffs/T013/u01/TASK_RESULT.md` | U-01 根因、设计决策与修复证据 |
++| T014 审查包（旧） | `review/REVIEW_PACK_T014.md` | 旧冻结 commit 的审查包，记录 U-01 失败证据，原文保留 |
++| T014R2 审查包（本次重冻） | `review/REVIEW_PACK_T014R2.md` | 锚定新冻结 commit 的定稿包；U-01 已修复 |
+ | 本索引 | `review/REVIEW_INDEX.md` | 覆盖表（本文件） |
+ | S0 主聊天裁决 | `S0_MAINCHAT_VERDICT.md` | S0 PASS；F-01→T013；NUM-001 按类型计数读法 |
+ | T013 主聊天裁决 | `T013_MAINCHAT_VERDICT.md` | T013 PASS；全量 pytest 489 passed；S0 PASS |
+@@ -342,5 +436,6 @@
+ 
+ - 300 张 fixture PNG 不逐行列出：逐文件 SHA 由 `tests/fixtures/s0/manifest.json`（本表已列）记录，并由 `scripts/verify_s0.py` 在每次 S0 运行时全量重算；本表聚合行只作总数与聚合哈希的交叉核对。
+ - `review/` 与 `release/` 的生成物不在锚定 commit 内：它们由锚定 commit 的内容生成，其哈希由 `release/RELEASE_MANIFEST.json` 与 `verify_release.py` 校验。
+-- DOCX 同步：结构（标题 67/40、表格 14/4、顺序）已核对同步；`PROJECT_BOOK.md` 正文有 7 处 T013 文字澄清未进 DOCX（见 REVIEW_PACK §5，未解决项 U-01）。
++- DOCX 同步：结构（标题 67/40、表格 14/4、顺序）已核对同步；`PROJECT_BOOK.md` 正文有 7 处 T013 文字澄清未进 DOCX（见 REVIEW_PACK_T014 §5，未解决项 U-02）。
++- U-01 已修复：T013-U01 轮次把校验器、UI 与模型打进 wheel；本次重冻从新 commit 重建全部产物，离线冒烟以新 wheel 实测通过（见 REVIEW_PACK_T014R2.md §3）。
+ - 外部 URL 内容（RapidOCR 许可页、ModelScope、PaddleOCR 上游）未验证可达性——哈希与本地文件一致已核（T012 残余风险，原文保留）。
+diff --git a/review/REVIEW_PACK_T014R2.md b/review/REVIEW_PACK_T014R2.md
+new file mode 100644
+index 0000000..a0ae205
+--- /dev/null
++++ b/review/REVIEW_PACK_T014R2.md
+@@ -0,0 +1,118 @@
++# P033 TextProof — T014 重冻审查包 R2（REVIEW_PACK_T014R2.md）
++
++- 锚定 commit：`1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6`（分支 `t014-refresh`；T014 重冻源码 commit = main + R-03 字典方案 + R-13 发布文件 + T014 打包 + T013-U01 修复）
++- 审查索引：`review/REVIEW_INDEX.md`（389 行：388 个文件 + 1 行 PNG 聚合；锚定 commit 追踪文件 688 个，全部覆盖）
++- 发布清单：`release/RELEASE_MANIFEST.json`
++- 验证命令：`python scripts/verify_release.py`（全量）、`python scripts/verify_review_pack.py review/REVIEW_INDEX.md`
++- **结论：全部通过。U-01 已修复并经新 wheel 实测；`verify_release.py` 为 PASS（27/27，工作树与干净目录一致）。未解决项只剩非阻断的 U-02、U-03。本包是本次重冻的定稿包；旧包 `review/REVIEW_PACK_T014.md` 记录 U-01 失败证据，原文保留，未改动。**
++
++## 1. 冻结与版本身份
++
++| 项 | 值 |
++|---|---|
++| 冻结源码 commit | `1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6`（含 R-13 发布文件、R-30 审查脚本与 T013-U01 修复；不含 `release/`、`review/` 生成物与 T014 交接日志，那些在随后的 release 提交中入库） |
++| 追踪文件数（锚定 commit） | 688（含 300 张 S0 fixture PNG） |
++| `source.zip` | 263,808,324 B，SHA-256 `9fb6ca9747177aebf5f932054b509439f245020054f75441e954f5ae78465bab`，688 个文件，与锚定 commit 逐文件一致（`verify_release.py` 核对：文件名集合 + 逐文件 SHA-256）。体积较 T014 的 42,734,094 B 增大，因为锚定 commit 本身已包含 T014 的 `release/` 产物（旧 source.zip 42,734,094 B + 全部 wheelhouse，合计约 195 MB）与 T013-U01 打进包的模型复制（`src/textproof/assets/ocr/models/`，约 32 MB）；`git archive` 忠实收录冻结树，这是重冻的预期结果，不是污染 |
++| wheel | `textproof-1.0.0-py3-none-any.whl`，27,176,403 B，SHA-256 `cffd51836449a83efeeb9d407582b26c358526ba374d685cdb925e2f7dd17c0c`；METADATA：Name `textproof`，Version `1.0.0`，License MIT；32 个条目：包文件 + `textproof/ui/*`（3 个）+ `textproof/assets/ocr/models/*.onnx`（3 个）+ dist-info，无字典文件 |
++| wheelhouse | 37 个 wheel（与 `requirements.lock` 37 个包逐一对应，版本与哈希逐项核对），151,973,630 B；与 T014 的 wheelhouse 逐文件哈希一致，未重下、未升级 |
++| `tool_version`（产品版本） | `0.1.0`（`src/textproof/core/report.py`；每份报告所带版本） |
++| `package_version`（打包版本） | `1.0.0`（`pyproject.toml`；wheel METADATA 一致） |
++| `spec_version`（规格版本） | `1.0.0`（`src/textproof/api/routes.py`） |
++| 三版本关系 | 三个不同维度，非不一致——只解释，不“修复”（T012 审查 §3 第 1 项已确认；`textproof version` 三者区分输出，实测一致） |
++| 字典 | `assets/ocr/dictionaries/ppocrv6_dict.txt` 不在锚定 commit 内、不在 `source.zip`、wheel、wheelhouse 中（`git archive` 清单与 zip 清单双重验证零命中）；许可 UNVERIFIED（THIRD_PARTY_NOTICES.md §4）；全新检出须先跑 `scripts/setup_dictionary.py`（实测 exit 0、SHA `b5f2bfe2…`、18,708 行） |
++
++## 2. T012 → T013 → T013-U01 证据链
++
++- T012 独立审查（冻结候选 `ffe53ea`）：findings R-01…R-31（P0 × 0、P1 × 4、P2 × 7、P3 × 20），覆盖率全文读 61/75。报告正本与索引以复制件收入本包（§6）。
++- T013 修复与复审：P0/P1 全部关闭（R-01 精确算术、R-02 脚本移出扫描树、R-03 归属 T014、R-04 日志去绝对路径）；P2 逐项修复或书面非阻断；P3 批量处置（`task_handoffs/T013/p3/P3_DISPOSITION.md`）。R-31（锁文件“33 个包”）已由 T013 修复：`ENVIRONMENT.md` §4 现为 37 个包；T014 独立复核 `grep -cE '^[a-z0-9_.-]+==[0-9]' requirements.lock` = 37、`grep -c 'sha256:'` = 753、lock SHA `8726d13c…` 不变。
++- T013 主聊天裁决（`T013_MAINCHAT_VERDICT.md`）：T013 PASS；全量 pytest 489 passed；S0 `--force-live` PASS（召回 100%、clean FPR 0%、CER 0.0008、IoU 最小 0.829、parity 300/300）。
++- T014 首次冻结（commit `167594e`）：全量 pytest 489 passed；`verify_release.py` 26/27，唯一失败是离线冒烟 U-01（已安装 wheel 无法 standalone 运行；见旧包 §3）。
++- T013-U01 修复（commit `717b813`，合并进 `1f02358`）：校验器移进包内（`src/textproof/core/report_schema.py`）、UI 与模型打进 wheel（package-data）、资产解析顺序（`TEXTPROOF_ASSETS_DIR` → checkout `assets/ocr` → 包内 `textproof/assets/ocr`）、字典改由 `python -m textproof.setup_dictionary` 在安装后本地重建、`verify-s0` 在已安装布局下明确 exit 3 拒绝。设计决策全文见 `task_handoffs/T013/u01/TASK_RESULT.md`。本轮重冻未改任何源码：`git diff 1f02358` 在 `src/`、`tests/`、`schemas/`、fixture PNG、manifest 上为空（见交接禁令证明）。
++
++## 3. T014R2 验证证据（本轮实测，新 wheel）
++
++| 检查 | 命令 / 方法 | 结果 |
++|---|---|---|
++| 字典重建 | `.venv/bin/python scripts/setup_dictionary.py`（主树 venv） | exit 0；SHA `b5f2bfe2bdd9448429e3e82b51c789775d9b42f2403d082b00662eb77e401c5d`；18,708 行 |
++| 全量 pytest | `TMPDIR=$PWD/tmp .venv/bin/python -m pytest -q -p no:cacheprovider` | **495 passed、0 failed、exit 0**（176.27s；2 warnings；日志 `task_handoffs/T014/pkg/test_stdout.log`） |
++| `verify_review_pack.py` | `python scripts/verify_review_pack.py review/REVIEW_INDEX.md` | **PASS**（389 行；688 文件全覆盖；聚合行重算一致） |
++| `verify_release.py --preflight` | `python scripts/verify_release.py --preflight` | **PASS**（12/12） |
++| `verify_release.py` 全量 | `python scripts/verify_release.py` | **PASS（27/27）**；见 `task_handoffs/T014/pkg/verify_release.log` |
++| `verify_release.py` 干净目录 | 全新 clone + 复制 `release/`、`review/`、`task_handoffs/T014/pkg/` 后 `--root` 运行 | **PASS（27/27）**；见 `task_handoffs/T014/pkg/verify_release_clean_dir.log` |
++| source.zip 一致性 | `verify_release.py` 内核对 `git archive 1f02358` | 688 文件，文件名集合 + 逐文件 SHA-256 全部一致；字典零命中 |
++| wheelhouse 对照锁文件 | `verify_release.py` 内逐包核对版本与文件哈希（本轮另以独立脚本复核） | 37/37 包各 1 个 wheel；每文件 SHA-256 均在锁文件该包的哈希列表中；无多余 wheel |
++| SHA256SUMS.txt | 独立重算（`verify_release.py` 内 + 本轮独立脚本） | 覆盖 source.zip + wheel + 37 个 wheelhouse wheel（39 条），全部一致 |
++| 离线安装（新 wheel） | 全新 venv；`pip install --no-index --find-links release/wheelhouse release/textproof-1.0.0-py3-none-any.whl` | **exit 0**；37 个包全部安装（`Successfully installed ... textproof-1.0.0`；日志 `task_handoffs/T014/pkg/offline_install.log`） |
++| `textproof --help`（新 wheel） | 离线 venv 内运行 | exit 0 |
++| `textproof version`（新 wheel） | 离线 venv 内运行 | exit 0；tool 0.1.0 / package 1.0.0 / spec 1.0.0 / rapidocr 3.10.0 / onnxruntime 1.32.0 / providers 仅 `CPUExecutionProvider` |
++| `textproof check` 冒烟（新 wheel，standalone） | 离线 venv 内运行，`TP-S0-ZH-001.png` + 期望文本 `限时优惠`（无 checkout 在路径上） | **exit 1，verdict `MISMATCH`，错误 `E001 MISSING_CHARACTER`（缺字“惠”），报告通过包内校验**（`task_handoffs/T014/pkg/smoke_report_standalone.json`；U-01 已修复的直接证据） |
++| `textproof serve`（新 wheel） | 离线 venv 内运行，`--host 127.0.0.1 --port 8792` | **启动成功**；健康检查 200（`status ok`）+ UI 200（含 TextProof 与“可能包含敏感文字”）；探针记录 `task_handoffs/T014/pkg/smoke_serve_probe.txt` |
++| `textproof verify-s0`（新 wheel） | 离线 venv 内运行（默认 + 带 manifest 各一次） | 两次均为 **exit 3**（定义行为：默认 `S0 manifest not found`；带 manifest 时 `verify-s0 requires a source checkout`），符合 T013-U01 §2.3 |
++| SBOM 复核 | 构建 venv 已安装发行版元数据逐项对照 `release/SBOM_LICENSES.md` | 37 包版本与许可记录全部一致；唯一无许可声明的仍是 `omegaconf` 2.4.0（U-03，如实保留） |
++| README 复核 | 全文检查“已知限制”与安装说明 | 无已失效的限制描述：U-01 限制已改为“Installing from the wheel”使用说明；“Known limitations”节为“(None currently recorded.)”，与修复状态一致 |
++
++### U-01 已修复（对照旧包 §3 的失败证据）
++
++| 旧失败（T014，旧 wheel 939dbb57…） | 新结果（T014R2，新 wheel cffd5183…） |
++|---|---|
++| `check` exit 5，`generated report failed schema validation` | `check` exit 1，`MISMATCH` + `E001 MISSING_CHARACTER`，报告通过包内校验 |
++| `serve` 启动崩溃 exit 1，`textproof/ui does not exist` | `serve` 启动成功，健康 200 + UI 200 |
++| `verify-s0` 在 checkout 外找不到 runner/manifest（未定义行为） | 两次 exit 3，文案明确定义（见上表） |
++
++## 4. R-30 处置（沿用 T014）
++
++`scripts/verify_review_pack.py` 按 `REVIEW_INDEX.md` 的锚定 commit（`git archive` 取数）逐行核对路径、字节数、SHA-256、行数，并核对覆盖完整性（含 300 张 PNG 的聚合行）；T012 的索引格式（路径、字节数、SHA-256、行数、读取状态）被沿用，SHA 为完整 64 位（T012 用 16 位截断）。T013 交接中的豁免记录已作废（见旧包 §4）。
++
++## 5. DOCX 同步核对
++
++DOCX_SYNC_VERDICT: STRUCTURE PASS / BODY-TEXT DRIFT (7 lines in PROJECT_BOOK.md, recorded as unresolved item U-02; IMPLEMENTATION_PLAN.md fully in sync)
++
++核对方法与 T014 相同（标准库 `zipfile` + XML 解析，无新增依赖；结果沿用 T014 的核对，因为 `PROJECT_BOOK.md`、`PROJECT_BOOK.docx`、`IMPLEMENTATION_PLAN.md`、`IMPLEMENTATION_PLAN.docx` 在 `167594e` → `1f02358` 之间零改动，`git diff` 为空）：
++
++| 项 | PROJECT_BOOK | IMPLEMENTATION_PLAN |
++|---|---|---|
++| MD 标题数 vs DOCX 样式段落数（Title + Heading） | 67 vs 67 | 40 vs 40 |
++| 标题文本逐项同序 | 一致 | 一致 |
++| 表格数（DOCX `w:tbl`） | 14（与 SPECS_VERIFICATION.md 一致） | 4（一致） |
++| 缺节 | 无 | 无 |
++| 占位符（TODO/TBD/XXX/占位） | 无真实占位符（两处命中均为正文词语：“占位框”在证据表内、“占位符”在验收标准条文本身） | 同左 |
++| 正文漂移 | **7 行改动**：T013 commit `7540c4f` 对 MD 的文字澄清（§4.5 混淆对集合、§5.3 保留码、§5.5 verify-s0 退出码注、§7.2 歧义按配对集合计 + 错误顺序段、§7.6 OCR_FAILED 映射；`git diff 394d507 HEAD` 计 +11/−7 行），DOCX 仍冻结在 T001 基线 | **0 行**：`git diff 394d507 HEAD` 无变化 |
++
++结论：结构同步；正文漂移只影响 `PROJECT_BOOK.md` 的 7 处 T013 文字澄清，DOCX 未同步更新。按任务要求不擅自重写 DOCX，记为未解决项 U-02 报回。
++
++## 6. T012 审查复制件说明
++
++`review/REVIEW_FINDINGS_T012.md` 与 `review/REVIEW_INDEX_T012.md` 是自 T011 审查工作树（`~/workspace/p033-textproof-t011/review/`）逐字复制的文件，未作任何改动：
++
++| 文件 | SHA-256 | 与原件一致 |
++|---|---|---|
++| `REVIEW_FINDINGS_T012.md` | `35b2260d2d79ac375cd4499f54084dc03744b8c44d6f0174bec6b75e0c30f3c9` | 是 |
++| `REVIEW_INDEX_T012.md` | `f91dd1a022fd00f8abcd91a643eac78744745287905b78cb525ecf921f89715a` | 是 |
++
++T012 的覆盖结论（61/75 全文读、14 项部分读）原文保留，不由 T014 改写；T014 的覆盖表（`REVIEW_INDEX.md`）是另一份文件，锚定 T014 重冻 commit、覆盖全部 688 个追踪文件。
++
++## 7. 已知未解决项
++
++| ID | 级别 | 内容 | 影响与下一步 |
++|---|---|---|---|
++| U-01 | **已修复** | 已安装 wheel 无法 standalone 运行 `check`（exit 5）与 `serve`（启动崩溃）；`verify-s0` 同根。修复 commit `717b813`（合并进 `1f02358`）；验证：新 wheel 离线冒烟 `check` exit 1 MISMATCH、`serve` 健康/UI 200、`verify_release.py` 27/27 PASS。 | 已关闭；本包 §3 为证据。旧失败记录见 `REVIEW_PACK_T014.md` §3（原文保留）。 |
++| U-02 | 非阻断 | DOCX 正文漂移：`PROJECT_BOOK.md` 7 处 T013 文字澄清未进 DOCX（见 §5）。 | 结构同步，无缺节。由规格方决定是否重生成 DOCX；T014 不擅自重写。 |
++| U-03 | 非阻断 | SBOM 中 1 个包（`omegaconf` 2.4.0）在已安装发行版元数据中无许可声明（`release/SBOM_LICENSES.md` 如实标注，未推断）。 | 须在使用前另行核对上游 LICENSE；不影响安装与运行。 |
++
++## 8. 交付物清单
++
++| 交付物 | 位置 | 说明 |
++|---|---|---|
++| 源码包 | `release/source.zip` | §1；与锚定 commit 逐文件一致 |
++| wheel | `release/textproof-1.0.0-py3-none-any.whl` | §1；可安装；standalone 运行已验证 |
++| 离线安装包 | `release/wheelhouse/`（37 个 wheel） | 与锁文件逐包核对 |
++| 哈希清单 | `release/SHA256SUMS.txt` | 覆盖 source.zip + wheel + 37 个 wheelhouse wheel |
++| 发布清单 | `release/RELEASE_MANIFEST.json` | 冻结 commit、产物哈希、已知未解决项（U-01 已修复） |
++| SBOM / 许可报告 | `release/SBOM_LICENSES.md` | 37 个包逐项许可（元数据来源；1 项未声明，见 U-03） |
++| 审查索引 | `review/REVIEW_INDEX.md` | 锚定 commit；688 文件全覆盖；`verify_review_pack.py` PASS |
++| 本审查包 | `review/REVIEW_PACK_T014R2.md` | 本文件 |
++| 旧审查包 | `review/REVIEW_PACK_T014.md` | 旧冻结包，U-01 失败证据，原文保留 |
++| T012 审查复制件 | `review/REVIEW_FINDINGS_T012.md`、`review/REVIEW_INDEX_T012.md` | §6；逐字复制 |
++| 发布验证脚本 | `scripts/verify_release.py`、`scripts/verify_review_pack.py` | 锚定 commit 内；禁令串 grep 零命中 |
++| 发布文件 | `LICENSE`、`README.md`、`SECURITY.md` | R-13；README 含安装后使用说明，U-01 限制已移除 |
++| 交接与证据 | `task_handoffs/T014/pkg/`（冒烟与测试证据）、`task_handoffs/T014/refresh/`（本轮重冻交接） | TASK_RESULT.md、测试日志、离线冒烟原始日志、`offline_smoke.txt`、`verify_release.log` |
+diff --git a/task_handoffs/T014/pkg/offline_install.log b/task_handoffs/T014/pkg/offline_install.log
+index 96b9c4b..a97b757 100644
+--- a/task_handoffs/T014/pkg/offline_install.log
++++ b/task_handoffs/T014/pkg/offline_install.log
+@@ -1,41 +1,41 @@
+-Looking in links: /home/hatch/workspace/p033-textproof-t013-u01/release/wheelhouse
+-Processing ./tmp/smoke/dist/textproof-1.0.0-py3-none-any.whl
+-Processing ./release/wheelhouse/rapidocr-3.10.0-py3-none-any.whl (from textproof==1.0.0)
+-Processing ./release/wheelhouse/onnxruntime-1.32.0-cp312-cp312-manylinux_2_28_x86_64.whl (from textproof==1.0.0)
+-Processing ./release/wheelhouse/pillow-11.3.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (from textproof==1.0.0)
+-Processing ./release/wheelhouse/fastapi-0.165.0-py3-none-any.whl (from textproof==1.0.0)
+-Processing ./release/wheelhouse/uvicorn-0.54.0-py3-none-any.whl (from textproof==1.0.0)
+-Processing ./release/wheelhouse/pydantic-2.14.4-py3-none-any.whl (from textproof==1.0.0)
+-Processing ./release/wheelhouse/pytest-8.4.2-py3-none-any.whl (from textproof==1.0.0)
+-Processing ./release/wheelhouse/pyclipper-1.4.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (from rapidocr==3.10.0->textproof==1.0.0)
+-Processing ./release/wheelhouse/opencv_python_headless-5.1.0.95-cp37-abi3-manylinux_2_28_x86_64.whl (from rapidocr==3.10.0->textproof==1.0.0)
+-Processing ./release/wheelhouse/numpy-2.5.5-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (from rapidocr==3.10.0->textproof==1.0.0)
+-Processing ./release/wheelhouse/six-1.17.0-py2.py3-none-any.whl (from rapidocr==3.10.0->textproof==1.0.0)
+-Processing ./release/wheelhouse/shapely-2.2.0-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (from rapidocr==3.10.0->textproof==1.0.0)
+-Processing ./release/wheelhouse/pyyaml-6.0.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (from rapidocr==3.10.0->textproof==1.0.0)
+-Processing ./release/wheelhouse/tqdm-4.70.1-py3-none-any.whl (from rapidocr==3.10.0->textproof==1.0.0)
+-Processing ./release/wheelhouse/omegaconf-2.4.0-py3-none-any.whl (from rapidocr==3.10.0->textproof==1.0.0)
+-Processing ./release/wheelhouse/requests-2.34.2-py3-none-any.whl (from rapidocr==3.10.0->textproof==1.0.0)
+-Processing ./release/wheelhouse/colorlog-6.12.0-py3-none-any.whl (from rapidocr==3.10.0->textproof==1.0.0)
+-Processing ./release/wheelhouse/starlette-1.10.0-py3-none-any.whl (from fastapi<1,>=0.115->textproof==1.0.0)
+-Processing ./release/wheelhouse/anyio-4.16.0-py3-none-any.whl (from fastapi<1,>=0.115->textproof==1.0.0)
+-Processing ./release/wheelhouse/typing_extensions-4.16.0-py3-none-any.whl (from fastapi<1,>=0.115->textproof==1.0.0)
+-Processing ./release/wheelhouse/typing_inspection-0.4.5-py3-none-any.whl (from fastapi<1,>=0.115->textproof==1.0.0)
+-Processing ./release/wheelhouse/annotated_doc-0.0.7-py3-none-any.whl (from fastapi<1,>=0.115->textproof==1.0.0)
+-Processing ./release/wheelhouse/opentelemetry_api-1.45.2-py3-none-any.whl (from fastapi<1,>=0.115->textproof==1.0.0)
+-Processing ./release/wheelhouse/flatbuffers-25.12.19-py2.py3-none-any.whl (from onnxruntime<2,>=1.20->textproof==1.0.0)
+-Processing ./release/wheelhouse/packaging-26.4-py3-none-any.whl (from onnxruntime<2,>=1.20->textproof==1.0.0)
+-Processing ./release/wheelhouse/protobuf-7.36.2-cp310-abi3-manylinux2014_x86_64.whl (from onnxruntime<2,>=1.20->textproof==1.0.0)
+-Processing ./release/wheelhouse/annotated_types-0.8.0-py3-none-any.whl (from pydantic<3,>=2.9->textproof==1.0.0)
+-Processing ./release/wheelhouse/pydantic_core-2.50.5-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (from pydantic<3,>=2.9->textproof==1.0.0)
+-Processing ./release/wheelhouse/iniconfig-2.3.1-py3-none-any.whl (from pytest<9,>=8.3->textproof==1.0.0)
+-Processing ./release/wheelhouse/pluggy-1.7.0-py3-none-any.whl (from pytest<9,>=8.3->textproof==1.0.0)
+-Processing ./release/wheelhouse/pygments-2.21.0-py3-none-any.whl (from pytest<9,>=8.3->textproof==1.0.0)
+-Processing ./release/wheelhouse/click-8.5.1-py3-none-any.whl (from uvicorn<1,>=0.30->textproof==1.0.0)
+-Processing ./release/wheelhouse/h11-0.16.0-py3-none-any.whl (from uvicorn<1,>=0.30->textproof==1.0.0)
+-Processing ./release/wheelhouse/idna-3.20-py3-none-any.whl (from anyio>=4.1.0->fastapi<1,>=0.115->textproof==1.0.0)
+-Processing ./release/wheelhouse/charset_normalizer-3.5.3-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (from requests->rapidocr==3.10.0->textproof==1.0.0)
+-Processing ./release/wheelhouse/urllib3-2.8.0-py3-none-any.whl (from requests->rapidocr==3.10.0->textproof==1.0.0)
+-Processing ./release/wheelhouse/certifi-2026.11.20-py3-none-any.whl (from requests->rapidocr==3.10.0->textproof==1.0.0)
++Looking in links: /home/hatch/workspace/p033-textproof-t014-refresh/release/wheelhouse
++Processing ./workspace/p033-textproof-t014-refresh/release/textproof-1.0.0-py3-none-any.whl
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/rapidocr-3.10.0-py3-none-any.whl (from textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/onnxruntime-1.32.0-cp312-cp312-manylinux_2_28_x86_64.whl (from textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/pillow-11.3.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (from textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/fastapi-0.165.0-py3-none-any.whl (from textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/uvicorn-0.54.0-py3-none-any.whl (from textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/pydantic-2.14.4-py3-none-any.whl (from textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/pytest-8.4.2-py3-none-any.whl (from textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/pyclipper-1.4.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (from rapidocr==3.10.0->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/opencv_python_headless-5.1.0.95-cp37-abi3-manylinux_2_28_x86_64.whl (from rapidocr==3.10.0->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/numpy-2.5.5-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (from rapidocr==3.10.0->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/six-1.17.0-py2.py3-none-any.whl (from rapidocr==3.10.0->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/shapely-2.2.0-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (from rapidocr==3.10.0->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/pyyaml-6.0.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (from rapidocr==3.10.0->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/tqdm-4.70.1-py3-none-any.whl (from rapidocr==3.10.0->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/omegaconf-2.4.0-py3-none-any.whl (from rapidocr==3.10.0->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/requests-2.34.2-py3-none-any.whl (from rapidocr==3.10.0->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/colorlog-6.12.0-py3-none-any.whl (from rapidocr==3.10.0->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/starlette-1.10.0-py3-none-any.whl (from fastapi<1,>=0.115->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/anyio-4.16.0-py3-none-any.whl (from fastapi<1,>=0.115->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/typing_extensions-4.16.0-py3-none-any.whl (from fastapi<1,>=0.115->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/typing_inspection-0.4.5-py3-none-any.whl (from fastapi<1,>=0.115->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/annotated_doc-0.0.7-py3-none-any.whl (from fastapi<1,>=0.115->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/opentelemetry_api-1.45.2-py3-none-any.whl (from fastapi<1,>=0.115->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/flatbuffers-25.12.19-py2.py3-none-any.whl (from onnxruntime<2,>=1.20->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/packaging-26.4-py3-none-any.whl (from onnxruntime<2,>=1.20->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/protobuf-7.36.2-cp310-abi3-manylinux2014_x86_64.whl (from onnxruntime<2,>=1.20->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/annotated_types-0.8.0-py3-none-any.whl (from pydantic<3,>=2.9->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/pydantic_core-2.50.5-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (from pydantic<3,>=2.9->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/iniconfig-2.3.1-py3-none-any.whl (from pytest<9,>=8.3->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/pluggy-1.7.0-py3-none-any.whl (from pytest<9,>=8.3->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/pygments-2.21.0-py3-none-any.whl (from pytest<9,>=8.3->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/click-8.5.1-py3-none-any.whl (from uvicorn<1,>=0.30->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/h11-0.16.0-py3-none-any.whl (from uvicorn<1,>=0.30->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/idna-3.20-py3-none-any.whl (from anyio>=4.1.0->fastapi<1,>=0.115->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/charset_normalizer-3.5.3-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (from requests->rapidocr==3.10.0->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/urllib3-2.8.0-py3-none-any.whl (from requests->rapidocr==3.10.0->textproof==1.0.0)
++Processing ./workspace/p033-textproof-t014-refresh/release/wheelhouse/certifi-2026.11.20-py3-none-any.whl (from requests->rapidocr==3.10.0->textproof==1.0.0)
+ Installing collected packages: flatbuffers, urllib3, typing-extensions, tqdm, six, PyYAML, pygments, pyclipper, protobuf, pluggy, Pillow, packaging, numpy, iniconfig, idna, h11, colorlog, click, charset_normalizer, certifi, annotated-types, annotated-doc, uvicorn, typing-inspection, Shapely, requests, pytest, pydantic-core, opentelemetry-api, opencv-python-headless, onnxruntime, omegaconf, anyio, starlette, rapidocr, pydantic, fastapi, textproof
+ Successfully installed Pillow-11.3.0 PyYAML-6.0.4 Shapely-2.2.0 annotated-doc-0.0.7 annotated-types-0.8.0 anyio-4.16.0 certifi-2026.11.20 charset_normalizer-3.5.3 click-8.5.1 colorlog-6.12.0 fastapi-0.165.0 flatbuffers-25.12.19 h11-0.16.0 idna-3.20 iniconfig-2.3.1 numpy-2.5.5 omegaconf-2.4.0 onnxruntime-1.32.0 opencv-python-headless-5.1.0.95 opentelemetry-api-1.45.2 packaging-26.4 pluggy-1.7.0 protobuf-7.36.2 pyclipper-1.4.0 pydantic-2.14.4 pydantic-core-2.50.5 pygments-2.21.0 pytest-8.4.2 rapidocr-3.10.0 requests-2.34.2 six-1.17.0 starlette-1.10.0 textproof-1.0.0 tqdm-4.70.1 typing-extensions-4.16.0 typing-inspection-0.4.5 urllib3-2.8.0 uvicorn-0.54.0
+diff --git a/task_handoffs/T014/pkg/offline_smoke.txt b/task_handoffs/T014/pkg/offline_smoke.txt
+index 6c5ddf7..f19b7ba 100644
+--- a/task_handoffs/T014/pkg/offline_smoke.txt
++++ b/task_handoffs/T014/pkg/offline_smoke.txt
+@@ -1,18 +1,22 @@
+-# Offline wheelhouse smoke evidence (T013-U01, supersedes T014's U-01 evidence)
++# Offline wheelhouse smoke evidence (T014R2 re-freeze, supersedes T013-U01 evidence)
+ # — values extracted from the committed raw logs in this directory, not hand-typed.
+-# Wheel: built from fix commit 717b813 (T013-U01, branch t013-u01) with
+-#   python -m build --wheel --no-isolation --outdir tmp/smoke/dist
+-#   wheel SHA-256 6d2d45f13a3647f908a955492138f4c7104065736d38f9fda7f95bb62042b7ca
++# Wheel: the NEW release wheel, built from freeze commit
++#   1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6 with
++#   python -m build --wheel --no-isolation --outdir release
++#   (from a clean `git archive 1f02358` export)
++#   wheel SHA-256 cffd51836449a83efeeb9d407582b26c358526ba374d685cdb925e2f7dd17c0c
++#   size 27,176,403 B
+ #   (32 entries: UI + 3 models + validator + setup module, no dictionary).
+-# NOTE: release/textproof-1.0.0-py3-none-any.whl is still the pre-fix T014
+-# build; the re-freeze must rebuild it from the fix commit. This smoke
+-# proves the FIXED CODE, installed offline, runs standalone.
+-# Venv: fresh python3 -m venv tmp/smoke/venv-offline; install:
++# Venv: fresh python3 -m venv tmp/venv-offline; install:
+ #   pip install --no-index --find-links release/wheelhouse
+-#     tmp/smoke/dist/textproof-1.0.0-py3-none-any.whl
++#     release/textproof-1.0.0-py3-none-any.whl
+ # Then: python -m textproof.setup_dictionary (rebuilt into the installed
+ # package; log setup_dictionary_install.log). No checkout on the path
+ # (PYTHONPATH unset for every venv invocation).
++# Serve probe transcript: smoke_serve_probe.txt (health 200 + UI 200).
++# NOTE: smoke_serve.log is the superseded T014 failure log (U-01 serve
++# crash); the passing serve run for this wheel is smoke_serve2.log +
++# smoke_serve_probe.txt. verify-s0 exits 3 by design (see below).
+ offline_install_exit=0
+ textproof_help_exit=0
+ textproof_version_exit=0
+diff --git a/task_handoffs/T014/pkg/smoke_serve2.log b/task_handoffs/T014/pkg/smoke_serve2.log
+index d7431a0..e69de29 100644
+--- a/task_handoffs/T014/pkg/smoke_serve2.log
++++ b/task_handoffs/T014/pkg/smoke_serve2.log
+@@ -1,6 +0,0 @@
+-# installed `textproof serve --host 127.0.0.1 --port 8792` (uvicorn
+-# log_level=warning, so a clean start prints nothing here).
+-# Probe results from the smoke run (see task_handoffs/T013/u01/):
+-health_status=200 {'status': 'ok', 'service': 'textproof', 'tool_version': '0.1.0', 'schema': 'textproof.report/v1'}
+-ui_status=200 has_textproof=True has_export_warning=True
+-# Server terminated by SIGTERM after the probe (exit 143 = killed, not a crash).
+diff --git a/task_handoffs/T014/pkg/smoke_serve_probe.txt b/task_handoffs/T014/pkg/smoke_serve_probe.txt
+new file mode 100644
+index 0000000..198bd4f
+--- /dev/null
++++ b/task_handoffs/T014/pkg/smoke_serve_probe.txt
+@@ -0,0 +1,5 @@
++T014R2 serve probe (fresh offline venv, new release wheel cffd5183…, port 8792)
++health_status=200{'status': 'ok', 'service': 'textproof', 'tool_version': '0.1.0', 'schema': 'textproof.report/v1'}
++ui_status=200has_textproof=Truehas_export_warning=True
++serve_probe_exit=0
++serve_exit=143 (SIGTERM from stopping the server after the probe; expected)
+diff --git a/task_handoffs/T014/pkg/test_stdout.log b/task_handoffs/T014/pkg/test_stdout.log
+index 9573856..995afd1 100644
+--- a/task_handoffs/T014/pkg/test_stdout.log
++++ b/task_handoffs/T014/pkg/test_stdout.log
+@@ -12,4 +12,4 @@ tests/unit/test_image_loader.py::test_all_rejections_share_the_unified_code
+     warnings.warn(
+ 
+ -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+-495 passed, 2 warnings in 194.46s (0:03:14)
++495 passed, 2 warnings in 176.27s (0:02:56)
+diff --git a/task_handoffs/T014/pkg/verify_release.log b/task_handoffs/T014/pkg/verify_release.log
+index 8fb089c..0bcafef 100644
+--- a/task_handoffs/T014/pkg/verify_release.log
++++ b/task_handoffs/T014/pkg/verify_release.log
+@@ -1,4 +1,4 @@
+-repository root: /home/hatch/workspace/p033-textproof-t014-pkg
++repository root: /home/hatch/workspace/p033-textproof-t014-refresh
+ mode: full release verification
+   [ok] release document present: LICENSE
+   [ok] release document present: README.md
+@@ -13,25 +13,24 @@ mode: full release verification
+   [ok] banned-token scan over new scripts (full text): no hits
+   [ok] setup_dictionary.py present
+   [ok] RELEASE_MANIFEST.json parses
+-  [ok] manifest source_commit is a real commit — 167594e0442090c057baba7c067c323dd88cf530
++  [ok] manifest source_commit is a real commit — 1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6
+   [ok] manifest versions match frozen values
+-  [ok] source.zip matches frozen commit file-by-file — 596 files in zip, 596 in commit
++  [ok] source.zip matches frozen commit file-by-file — 688 files in zip, 688 in commit
+   [ok] wheel is textproof 1.0.0 with package files, no dictionary — METADATA version 1.0.0
+   [ok] wheelhouse matches lock (37 pinned wheels, hashes verified) — 37 wheels
+   [ok] SHA256SUMS.txt covers all release files, all recompute — 39 entries
+-  [ok] manifest file hashes/sizes recompute — 8 entries
++  [ok] manifest file hashes/sizes recompute — 9 entries
+   [ok] review pack files present
+   [ok] review pack records the DOCX sync verdict
+   [ok] verify_review_pack.py passes on REVIEW_INDEX.md — VERIFY_REVIEW_PACK: PASS
+-  [ok] committed pytest log shows 489 passed
++  [ok] committed pytest log shows 495 passed
+   [ok] committed exit codes show pytest exit=0
+-  [FAIL] offline smoke: installed wheel runs standalone — standalone check exit 5 (want 1); standalone check produced no report
++  [ok] offline smoke: installed wheel runs standalone — install 0, help 0, versions 0.1.0/1.0.0/1.0.0, standalone check exit 1 MISMATCH
+   [ok] dictionary absent from tracked files
+ 
+ KNOWN UNRESOLVED ITEMS:
+-  - U-01 [BLOCKING]: Installed wheel cannot run check/serve/verify-s0 standalone (repo-layout assumptions + ui/ not packaged)
+   - U-02 [non-blocking]: DOCX body-text drift: 7 T013 wording clarifications in PROJECT_BOOK.md not in PROJECT_BOOK.docx (structure in sync)
+   - U-03 [non-blocking]: omegaconf 2.4.0 has no licence statement in installed distribution metadata (SBOM_LICENSES.md)
+ 
+-checks: 26/27 passed
+-VERIFY_RELEASE: FAIL
++checks: 27/27 passed
++VERIFY_RELEASE: PASS
+diff --git a/task_handoffs/T014/pkg/verify_release_clean_dir.log b/task_handoffs/T014/pkg/verify_release_clean_dir.log
+index 8833887..671dbe8 100644
+--- a/task_handoffs/T014/pkg/verify_release_clean_dir.log
++++ b/task_handoffs/T014/pkg/verify_release_clean_dir.log
+@@ -1,4 +1,4 @@
+-repository root: /tmp/t014-clean
++repository root: /home/hatch/workspace/t014r2-clean
+ mode: full release verification
+   [ok] release document present: LICENSE
+   [ok] release document present: README.md
+@@ -13,25 +13,24 @@ mode: full release verification
+   [ok] banned-token scan over new scripts (full text): no hits
+   [ok] setup_dictionary.py present
+   [ok] RELEASE_MANIFEST.json parses
+-  [ok] manifest source_commit is a real commit — 167594e0442090c057baba7c067c323dd88cf530
++  [ok] manifest source_commit is a real commit — 1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6
+   [ok] manifest versions match frozen values
+-  [ok] source.zip matches frozen commit file-by-file — 596 files in zip, 596 in commit
++  [ok] source.zip matches frozen commit file-by-file — 688 files in zip, 688 in commit
+   [ok] wheel is textproof 1.0.0 with package files, no dictionary — METADATA version 1.0.0
+   [ok] wheelhouse matches lock (37 pinned wheels, hashes verified) — 37 wheels
+   [ok] SHA256SUMS.txt covers all release files, all recompute — 39 entries
+-  [ok] manifest file hashes/sizes recompute — 8 entries
++  [ok] manifest file hashes/sizes recompute — 9 entries
+   [ok] review pack files present
+   [ok] review pack records the DOCX sync verdict
+   [ok] verify_review_pack.py passes on REVIEW_INDEX.md — VERIFY_REVIEW_PACK: PASS
+-  [ok] committed pytest log shows 489 passed
++  [ok] committed pytest log shows 495 passed
+   [ok] committed exit codes show pytest exit=0
+-  [FAIL] offline smoke: installed wheel runs standalone — standalone check exit 5 (want 1); standalone check produced no report
++  [ok] offline smoke: installed wheel runs standalone — install 0, help 0, versions 0.1.0/1.0.0/1.0.0, standalone check exit 1 MISMATCH
+   [ok] dictionary absent from tracked files
+ 
+ KNOWN UNRESOLVED ITEMS:
+-  - U-01 [BLOCKING]: Installed wheel cannot run check/serve/verify-s0 standalone (repo-layout assumptions + ui/ not packaged)
+   - U-02 [non-blocking]: DOCX body-text drift: 7 T013 wording clarifications in PROJECT_BOOK.md not in PROJECT_BOOK.docx (structure in sync)
+   - U-03 [non-blocking]: omegaconf 2.4.0 has no licence statement in installed distribution metadata (SBOM_LICENSES.md)
+ 
+-checks: 26/27 passed
+-VERIFY_RELEASE: FAIL
++checks: 27/27 passed
++VERIFY_RELEASE: PASS
+diff --git a/task_handoffs/T014/refresh/SHA256SUMS.txt b/task_handoffs/T014/refresh/SHA256SUMS.txt
+new file mode 100644
+index 0000000..fbbaa6b
+--- /dev/null
++++ b/task_handoffs/T014/refresh/SHA256SUMS.txt
+@@ -0,0 +1,39 @@
++9fb6ca9747177aebf5f932054b509439f245020054f75441e954f5ae78465bab  source.zip
++cffd51836449a83efeeb9d407582b26c358526ba374d685cdb925e2f7dd17c0c  textproof-1.0.0-py3-none-any.whl
++6bc31bbbec6dfaaedc1676dbc11dbda96fe22a2b5c400e9ebad113fec44a9dc6  wheelhouse/annotated_doc-0.0.7-py3-none-any.whl
++f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0  wheelhouse/annotated_types-0.8.0-py3-none-any.whl
++c66ae634e0b8228396b801741beb3294326d4b6102f7bba4041c0dfb58c29026  wheelhouse/anyio-4.16.0-py3-none-any.whl
++7422df25243767b9877031a2248cb14d09ddac9beee846f4cef3d5c9191d488f  wheelhouse/certifi-2026.11.20-py3-none-any.whl
++e5e4785d8a0adeadfbdf75f4efc357911842674651cbafd7e97f69b11ec3cbc6  wheelhouse/charset_normalizer-3.5.3-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl
++8bb5376d2006950386f8c6427613334a2acadc5f559cb80e638d00b4df957e37  wheelhouse/click-8.5.1-py3-none-any.whl
++30d392604e9110045a2c2aeefc27d7a017abbab63f3a8aee594eac0801df784e  wheelhouse/colorlog-6.12.0-py3-none-any.whl
++896f48462042bb4f162147eb8fac7e858753dc1f486765709baf105d70e4fc5b  wheelhouse/fastapi-0.165.0-py3-none-any.whl
++7634f50c427838bb021c2d66a3d1168e9d199b0607e6329399f04846d42e20b4  wheelhouse/flatbuffers-25.12.19-py2.py3-none-any.whl
++63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86  wheelhouse/h11-0.16.0-py3-none-any.whl
++ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c  wheelhouse/idna-3.20-py3-none-any.whl
++9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7  wheelhouse/iniconfig-2.3.1-py3-none-any.whl
++704d819265e5d1064d932968e9ee85fff2103ccc78c05b878c06943ba27b8507  wheelhouse/numpy-2.5.5-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
++f141a664c777582405e3cc6e0545ecc79429e79f844995b1a6e71c35946a025c  wheelhouse/omegaconf-2.4.0-py3-none-any.whl
++99e1074c4b2197accd5073052a465361be17b89c093b8ffb6e6bd8f986c52df8  wheelhouse/onnxruntime-1.32.0-cp312-cp312-manylinux_2_28_x86_64.whl
++7d387d4a64abe0c737440d38b5a90822f9bbcc10c8ce06a35904d6ecf7a2fb30  wheelhouse/opencv_python_headless-5.1.0.95-cp37-abi3-manylinux_2_28_x86_64.whl
++2cbd737377e710ee740d261c94e93fa0f08e6d037c18f17513cc0a2d94479a34  wheelhouse/opentelemetry_api-1.45.2-py3-none-any.whl
++81383611a09c1bc0b08b76e0fd5829d7c6824c65b27a6aee339da133f4233ea2  wheelhouse/packaging-26.4-py3-none-any.whl
++676b2815362456b5b3216b4fd5bd89d362100dc6f4945154ff172e206a22c024  wheelhouse/pillow-11.3.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
++7dd7b0d8832ba3cb632c306926ded123429211b83641b35dc5c41ad2d34f9bec  wheelhouse/pluggy-1.7.0-py3-none-any.whl
++89f23aa53c24553a2416fd4fd1ec06f74fa42b14b546d8883128813f775bbfd2  wheelhouse/protobuf-7.36.2-cp310-abi3-manylinux2014_x86_64.whl
++d1f807e2b4760a8e5c6d6b4e8c1d71ef52b7fe1946ff088f4fa41e16a881a5ca  wheelhouse/pyclipper-1.4.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
++653a2ad9f6d8858529c77c72717d0ea991d6c6837fe683246b2f4b2bbfc3fadc  wheelhouse/pydantic-2.14.4-py3-none-any.whl
++470bbc2495367f60d3ca849a8039e4c164701d10637e7743f4427d92651bdb6d  wheelhouse/pydantic_core-2.50.5-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
++2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9  wheelhouse/pygments-2.21.0-py3-none-any.whl
++872f880de3fc3a5bdc88a11b39c9710c3497a547cfa9320bc3c5e62fbf272e79  wheelhouse/pytest-8.4.2-py3-none-any.whl
++93bfb2459195406a518e2f487a9bbf01df240175f31e06f5a252ac6734c7bbf0  wheelhouse/pyyaml-6.0.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
++2fc34e26cd0f48514804a94f8832283039c7334076bff60768b1fed9ad068050  wheelhouse/rapidocr-3.10.0-py3-none-any.whl
++2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0  wheelhouse/requests-2.34.2-py3-none-any.whl
++650a5f4d8a8e3c96982079d8c99b6ddbe6602bbd1e34c75c2b95dbc0d28ac997  wheelhouse/shapely-2.2.0-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
++4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274  wheelhouse/six-1.17.0-py2.py3-none-any.whl
++478c0ab3b4ced6e82719849c118fa406f0278a3499c1a898cd15cd31bdc38ce4  wheelhouse/starlette-1.10.0-py3-none-any.whl
++c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73  wheelhouse/tqdm-4.70.1-py3-none-any.whl
++481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8  wheelhouse/typing_extensions-4.16.0-py3-none-any.whl
++bc210535442b39e1bf2805e0c7a17dfd6a4ace760c84c7f7d16245d23a6b1c39  wheelhouse/typing_inspection-0.4.5-py3-none-any.whl
++0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3  wheelhouse/urllib3-2.8.0-py3-none-any.whl
++505bdb0f318731d45f1f712071fc781a8981f6847a31c902c9f5e652d4f67faf  wheelhouse/uvicorn-0.54.0-py3-none-any.whl
+diff --git a/task_handoffs/T014/refresh/TASK_RESULT.md b/task_handoffs/T014/refresh/TASK_RESULT.md
+new file mode 100644
+index 0000000..479be0c
+--- /dev/null
++++ b/task_handoffs/T014/refresh/TASK_RESULT.md
+@@ -0,0 +1,113 @@
++# T014 重冻刷新（R2）— TASK_RESULT.md
++
++- 任务 ID：T014-refresh（T014R2：按新冻结 commit 1f02358 重建全部 release 产物；U-01 修复已合并）
++- 分支：`t014-refresh`；工作区：`~/workspace/p033-textproof-t014-refresh`
++- 输入 commit：`1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6`（T014 集成线 HEAD = main + R-03 + R-13 + T014 打包 + T013-U01 修复）
++- 输出 commit（本轮重冻提交）：（提交后填入）
++- 回退 commit：`1f02358`（`git reset --hard 1f02358` 即可回退；旧 release 产物随之恢复——但那是含 U-01 缺陷的旧构建）
++
++## 1. 改动文件（相对 1f02358，见 changed_files.txt / git_diff.patch）
++
++修改：`release/source.zip`、`release/textproof-1.0.0-py3-none-any.whl`、
++`release/SHA256SUMS.txt`、`release/RELEASE_MANIFEST.json`、
++`review/REVIEW_INDEX.md`、
++`task_handoffs/T014/pkg/` 下证据（test_stdout.log、exit_codes.txt、
++offline_install.log、offline_smoke.txt、smoke_serve2.log、
++verify_release.log、verify_release_clean_dir.log）。
++
++新增：`review/REVIEW_PACK_T014R2.md`、
++`task_handoffs/T014/pkg/smoke_serve_probe.txt`、
++本交接目录 `task_handoffs/T014/refresh/`（本文件、changed_files.txt、
++git_diff.patch、test_commands.txt、test_stdout.log、test_stderr.log、
++exit_codes.txt、SHA256SUMS.txt、smoke_run.sh）。
++
++未修改：`release/SBOM_LICENSES.md`（复核一致，无需改动）、
++`release/wheelhouse/`（37 个 wheel 逐文件哈希与 T014 一致，未重下、未升级）、
++旧审查包 `review/REVIEW_PACK_T014.md`、旧 T012 复制件、
++`src/`、`tests/`、`schemas/`、fixture PNG、`tests/fixtures/s0/manifest.json`、
++S0 门槛、输入输出契约、`tool_version`（仍 0.1.0）、`requirements.lock`、
++`PROJECT_BOOK.md`、`IMPLEMENTATION_PLAN.md`、两份 `.docx`。
++
++## 2. 逐项交付（IMPLEMENTATION_PLAN.md §T014 验收 1–9）
++
++| 验收 | 结果 |
++|---|---|
++| 1. source.zip 与冻结 commit 逐文件一致 | PASS：688 文件，文件名集合 + 逐文件 SHA-256 全部一致（`verify_release.py` 核对 `git archive 1f02358`）。新 source.zip 263,808,324 B，SHA `9fb6ca97…`；体积较 T014 的 42,734,094 B 增大，因为锚定 commit 本身已包含 T014 的 `release/` 产物（旧 source.zip + 全部 wheelhouse，约 195 MB）与 T013-U01 打进包的模型复制（`src/textproof/assets/ocr/models/`，约 32 MB）——`git archive` 忠实收录冻结树，是重冻的预期结果 |
++| 2. wheel 可安装；离线 wheelhouse 安装和运行 | PASS：新 wheel 27,176,403 B，SHA `cffd5183…`，32 条目（ui/* 3 个 + 模型 3 个 + 校验器 + setup 模块，无字典）；全新 venv `--no-index` 安装 exit 0；`check` exit 1 MISMATCH（E001）；`serve` 健康 200 + UI 200；`verify-s0` 两次 exit 3（定义行为） |
++| 3. 模型、字典、字体及第三方依赖均有来源、版本、SHA-256 和许可证记录 | PASS：THIRD_PARTY_NOTICES.md（未动）+ `release/SBOM_LICENSES.md`（本轮按新 wheel/锁文件复核：37 包版本与许可记录与构建 venv 元数据逐项一致；唯一无许可声明仍是 `omegaconf` 2.4.0，见 U-03） |
++| 4. 300 fixture、manifest、盲测清单和 S0 报告均包含在 source / review 交付物中 | PASS：均在 source.zip（锚定 commit 树，688 文件）与 review 交付物中 |
++| 5. SHA256SUMS.txt 覆盖所有发布文件；独立重算一致 | PASS：39 条（source.zip + wheel + 37 wheelhouse wheel），独立重算全部一致 |
++| 6. DOCX 与 Markdown 同步 | 结构 PASS（标题 67/40、表格 14/4、同序、无缺节、无占位符）；正文漂移 7 行（U-02，未解决，未擅自重写 docx）。结论沿用 T014：`PROJECT_BOOK.md`/`.docx`、`IMPLEMENTATION_PLAN.md`/`.docx` 在 `167594e` → `1f02358` 之间零改动（`git diff` 为空），故 T014 的核对结果仍然成立 |
++| 7. REVIEW_INDEX / REVIEW_PACK 锚定最终冻结 commit；覆盖可追踪 | PASS：索引重锚定到 1f02358，688 文件全覆盖（388 行 + 1 聚合行 = 389 行）；`verify_review_pack.py` PASS；新包 `REVIEW_PACK_T014R2.md` 为定稿包 |
++| 8. verify_release.py 从干净目录运行 PASS | PASS：工作树与干净目录（`git worktree add --detach` 的 1f02358 全新检出 + 复制产物）均为 **27/27 PASS**。注：首次尝试用 `git clone` 进 /tmp 失败——/tmp 是 512M tmpfs，仅剩 159M，clone 写对象时报 No space left on device（环境限制，非产品问题）；改用持久磁盘上的 detached worktree（等价的全新检出）后通过 |
++| 9. 版本身份一致（commit、source.zip、wheel、测试日志） | PASS：commit 1f02358、source.zip、wheel 1.0.0、测试日志 495 passed 均一致 |
++
++## 3. 执行命令与退出码（全部真实跑出，见 test_commands.txt 与各日志）
++
++| 命令 | 退出码 | 结果 |
++|---|---|---|
++| `python scripts/setup_dictionary.py`（主树 venv） | 0 | 字典重建；SHA `b5f2bfe2…`；18,708 行 |
++| 全量 pytest（`mkdir -p tmp; TMPDIR=$PWD/tmp .venv/bin/python -m pytest -q -p no:cacheprovider`） | 0 | **495 passed、0 failed**（176.27s；2 warnings，与 T013-U01 相同的 DecompressionBomb warnings） |
++| `python scripts/verify_review_pack.py review/REVIEW_INDEX.md` | 0 | PASS（389 行；688 文件全覆盖） |
++| `python scripts/verify_release.py --preflight` | 0 | PASS（12/12） |
++| `python scripts/verify_release.py`（工作树） | 0 | **PASS（27/27）** |
++| `python scripts/verify_release.py --root ~/workspace/t014r2-clean`（干净目录） | 0 | **PASS（27/27）** |
++| `git archive 1f02358 --format=zip` → source.zip | 0 | 263,808,324 B；688 文件；字典零命中 |
++| `python -m build --wheel --no-isolation`（干净导出） | 0 | 27,176,403 B；32 条目；ui + 3 模型；字典零命中 |
++| wheelhouse 对照锁文件（独立脚本） | 0 | 37/37 版本与哈希一致；无多余、无缺失 |
++| SHA256SUMS 独立重算 | 0 | 39 条全部一致 |
++| SBOM 复核（venv 元数据逐项对照） | 0 | 37 包一致；仅 omegaconf 无许可声明（U-03） |
++| 离线安装（全新 venv，`--no-index --find-links release/wheelhouse`） | 0 | 37 包全部安装 |
++| `textproof --help`（新 wheel） | 0 | 正常 |
++| `textproof version`（新 wheel） | 0 | tool 0.1.0 / package 1.0.0 / spec 1.0.0 / rapidocr 3.10.0 / onnxruntime 1.32.0 / CPU-only |
++| `textproof check` 冒烟（新 wheel，standalone） | 1 | 正确：`MISMATCH` + `E001 MISSING_CHARACTER`（缺字“惠”）；报告通过包内校验 |
++| `textproof serve`（新 wheel） | 0（探针） | 健康 200 + UI 200（含 TextProof 与“可能包含敏感文字”）；serve 进程随后以 SIGTERM 停止（exit 143，预期） |
++| `textproof verify-s0`（新 wheel，默认 + 带 manifest） | 3 / 3 | 定义行为：`S0 manifest not found` / `verify-s0 requires a source checkout` |
++| 禁令串 grep（新脚本全文） | 1（零命中） | `urlopen/urlretrieve/os.system/shell=True/requests/httpx/urllib/http.client/socket` 全文零命中（本轮未新增脚本；两验证脚本未改动，复核通过） |
++
++## 4. 禁令遵守证明
++
++- 未改 `src/`、`tests/`、`schemas/`、fixture PNG、`tests/fixtures/s0/manifest.json`、S0 门槛、契约、规格文件、旧审查包与旧 T012 复制件：`git diff 1f02358 -- src tests schemas tests/fixtures/s0/manifest.json requirements.lock PROJECT_BOOK.md IMPLEMENTATION_PLAN.md PROJECT_BOOK.docx IMPLEMENTATION_PLAN.docx review/REVIEW_PACK_T014.md review/REVIEW_FINDINGS_T012.md review/REVIEW_INDEX_T012.md` 为空（0 行）。
++- `tool_version` 仍 0.1.0（`src/textproof/core/report.py:100`；`verify_release.py --preflight` 核对通过）。
++- 未加 ￥→¥ 映射：`src/*.py` 中无 `¥`；`￥` 命中仅为冻结文件原有内容（normalize.py 的不映射 docstring、fixture 定义、独立验证脚本的注释），均在 1f02358 已有，本轮零改动。
++- 未缩小隐私扫描范围、未加白名单、未用 curl 绕过（全量 pytest 495 项通过，含 T010 静态门禁）。
++- 字典零命中：`git ls-files | grep ppocrv6_dict` = 0；source.zip 清单 0；wheel 32 条目 0；wheelhouse 文件名 0；SHA256SUMS.txt 文本 0。
++- 未新增脚本，故无新脚本禁令串问题；两验证脚本未改动（其哈希与 1f02358 一致，见清单）。
++- README 复核：无已失效的限制描述。“Installing from the wheel”一节说明安装后使用（含字典重建与 verify-s0 exit 3）；“Known limitations”节为“(None currently recorded.)”，与 U-01 已修复状态一致。本轮未改 README。
++- 未编造测试数据、截图或版本号；全部证据为真实运行输出（原始日志均在 `task_handoffs/T014/pkg/` 内；本轮冒烟脚本存于 `task_handoffs/T014/refresh/smoke_run.sh`）。
++
++## 5. U-01 已修复的证据（新 wheel）
++
++| 旧失败（T014，旧 wheel 939dbb57…） | 新结果（T014R2，新 wheel cffd5183…） |
++|---|---|
++| `check` exit 5，`generated report failed schema validation` | `check` exit 1，`MISMATCH` + `E001 MISSING_CHARACTER`，报告通过包内校验 |
++| `serve` 启动崩溃 exit 1，`textproof/ui does not exist` | `serve` 启动成功，健康 200 + UI 200 |
++| `verify-s0` 在 checkout 外找不到 runner/manifest（未定义行为） | 两次 exit 3，文案明确定义 |
++
++清单 `resolved_items` 已记 U-01（修复 commit 717b813，合并进 1f02358，验证方式 verify_release.py 27/27 PASS）；`known_unresolved_items` 只剩 U-02、U-03（非阻断）。
++
++## 6. 未完成项 / 未解决项
++
++| ID | 级别 | 内容 |
++|---|---|---|
++| U-02 | 非阻断 | DOCX 正文漂移：`PROJECT_BOOK.md` 7 处 T013 文字澄清未进 DOCX（结构同步：标题 67/40、表格 14/4、同序、无缺节、无占位符）。由规格方决定是否重生成 DOCX。 |
++| U-03 | 非阻断 | `omegaconf` 2.4.0 在已安装发行版元数据中无许可声明（SBOM 如实标注，未推断）。 |
++| — | — | 无其他未完成项。本轮任务 9 项全部完成。 |
++
++## 7. 风险
++
++- **source.zip 内含旧 release 产物**：锚定 commit 1f02358 本身已包含 T014 的 `release/`（旧 source.zip + wheelhouse），`git archive` 忠实收录，故新 source.zip 达 263,808,324 B。这是重冻的预期结果（冻结树即如此），`verify_release.py` 的逐文件一致性检查通过；但终审方应知晓：source.zip 内嵌了一份旧 release 快照。下一轮若再重冻，体积会继续叠加——建议未来冻结 commit 不再把 `release/` 产物入库，或由协调员定夺。
++- **干净目录验证改用 worktree 而非 clone**：/tmp tmpfs 仅剩 159M，`git clone` 写对象时磁盘满；改用持久磁盘上的 `git worktree add --detach 1f02358`（全新检出，等价干净目录）后 27/27 通过。验证用的临时 worktree 已删除（`git worktree remove --force`）。
++- **pytest 运行产物**：全量 pytest 在 `tests/e2e/evidence/` 写出截图与 network_requests.json（测试自身行为）；已删除，未入库。`tmp/`（venv-offline、smoke 文件、pytest TMPDIR）亦已删除。
++- **旧冒烟日志的残留**：`task_handoffs/T014/pkg/smoke_serve.log` 仍是 T014 的 U-01 serve 崩溃日志（历史证据，未动）；本次通过的 serve 运行记在 `smoke_serve2.log` + `smoke_serve_probe.txt`，`offline_smoke.txt` 头部已注明。`smoke_check_repo.log` / `smoke_check_wpp.log` 等诊断文件亦为 T014 旧物，未动。
++
++## 8. 测试结果
++
++- 全量 pytest：**495 passed、0 failed、exit 0**（176.27s；2 warnings；日志 `task_handoffs/T014/pkg/test_stdout.log`，副本见本目录 test_stdout.log）。
++- `verify_review_pack.py`：PASS（389 行；688 文件全覆盖）。
++- `verify_release.py`：工作树与干净目录均为 **27/27 PASS**。
++- 离线冒烟（新 wheel）：安装 0、`--help` 0、`version` 0（0.1.0/1.0.0/1.0.0）、`check` exit 1 MISMATCH（E001）、`serve` 健康/UI 200、`verify-s0` 两次 exit 3。
++
++## 9. 回退
++
++- 回退 commit：`1f02358`。`git reset --hard 1f02358` 即回到 T014 集成线（含 U-01 修复的源码，但 release 产物回到修复前旧构建）；或 `git revert <本轮输出 commit>`。
+diff --git a/task_handoffs/T014/refresh/changed_files.txt b/task_handoffs/T014/refresh/changed_files.txt
+new file mode 100644
+index 0000000..e75209d
+--- /dev/null
++++ b/task_handoffs/T014/refresh/changed_files.txt
+@@ -0,0 +1,14 @@
++ M release/RELEASE_MANIFEST.json
++ M release/SHA256SUMS.txt
++ M release/source.zip
++ M release/textproof-1.0.0-py3-none-any.whl
++ M review/REVIEW_INDEX.md
++ M task_handoffs/T014/pkg/offline_install.log
++ M task_handoffs/T014/pkg/offline_smoke.txt
++ M task_handoffs/T014/pkg/smoke_serve2.log
++ M task_handoffs/T014/pkg/test_stdout.log
++ M task_handoffs/T014/pkg/verify_release.log
++ M task_handoffs/T014/pkg/verify_release_clean_dir.log
++?? review/REVIEW_PACK_T014R2.md
++?? task_handoffs/T014/pkg/smoke_serve_probe.txt
++?? task_handoffs/T014/refresh/
+diff --git a/task_handoffs/T014/refresh/exit_codes.txt b/task_handoffs/T014/refresh/exit_codes.txt
+new file mode 100644
+index 0000000..69e17ba
+--- /dev/null
++++ b/task_handoffs/T014/refresh/exit_codes.txt
+@@ -0,0 +1,14 @@
++setup_dictionary exit=0
++pytest exit=0
++verify_review_pack exit=0
++verify_release --preflight exit=0
++verify_release (worktree) exit=0
++verify_release (clean dir) exit=0
++offline_install exit=0
++textproof_help exit=0
++textproof_version exit=0
++setup_dictionary (installed) exit=0
++standalone_check exit=1
++serve_probe exit=0
++verify_s0_default exit=3
++verify_s0_manifest exit=3
+diff --git a/task_handoffs/T014/refresh/smoke_run.sh b/task_handoffs/T014/refresh/smoke_run.sh
+new file mode 100644
+index 0000000..7c3767f
+--- /dev/null
++++ b/task_handoffs/T014/refresh/smoke_run.sh
+@@ -0,0 +1,79 @@
++#!/bin/bash
++# T014R2 offline smoke: fresh venv, install the NEW release wheel built
++# from freeze commit 1f02358, rebuild the dictionary in-package, then run
++# check / serve / verify-s0 with no checkout on the path.
++# Wheel: release/textproof-1.0.0-py3-none-any.whl
++#   SHA-256 cffd51836449a83efeeb9d407582b26c358526ba374d685cdb925e2f7dd17c0c
++#   (32 entries: UI + 3 models + validator + setup module, no dictionary).
++# All evidence lands in task_handoffs/T014/pkg/ (superseding the
++# T013-U01 smoke, which used a wheel built from 717b813).
++set -u
++W=~/workspace/p033-textproof-t014-refresh
++VENV=$W/tmp/venv-offline
++EVID=$W/task_handoffs/T014/pkg
++SMOKE=$W/tmp/smoke
++export TMPDIR=$W/tmp
++mkdir -p "$SMOKE" "$W/tmp"
++unset PYTHONPATH
++export PIP_DISABLE_PIP_VERSION_CHECK=1
++
++rm -rf "$VENV"
++python3 -m venv "$VENV"
++VPY=$VENV/bin/python
++VTP=$VENV/bin/textproof
++
++"$VPY" -m pip install --no-index --find-links "$W/release/wheelhouse" \
++  "$W/release/textproof-1.0.0-py3-none-any.whl" \
++  > "$EVID/offline_install.log" 2>&1
++echo "offline_install_exit=$?"
++
++"$VTP" --help > "$EVID/smoke_help.log" 2>&1
++echo "textproof_help_exit=$?"
++
++"$VTP" version > "$EVID/smoke_version.json" 2> "$EVID/smoke_version.err"
++echo "textproof_version_exit=$?"
++
++"$VPY" -m textproof.setup_dictionary > "$EVID/setup_dictionary_install.log" 2>&1
++echo "setup_dictionary_exit=$?"
++
++cp "$W/tests/fixtures/s0/TP-S0-ZH-001.png" "$SMOKE/poster.png"
++printf '限时优惠' > "$SMOKE/expected.txt"
++"$VTP" check --image "$SMOKE/poster.png" --expected-file "$SMOKE/expected.txt" \
++  --json "$SMOKE/report.json" > "$SMOKE/check_stdout.txt" 2> "$EVID/smoke_check_standalone.log"
++CHECK_EXIT=$?
++echo "standalone_check_exit=$CHECK_EXIT"
++cp "$SMOKE/report.json" "$EVID/smoke_report_standalone.json" 2>/dev/null || true
++printf '%s' "$CHECK_EXIT" > "$EVID/standalone_check_exit.txt"
++cat "$SMOKE/check_stdout.txt"
++
++# serve: start, poll health + UI, stop. Log goes to smoke_serve2.log.
++"$VTP" serve --host 127.0.0.1 --port 8792 > "$EVID/smoke_serve2.log" 2>&1 &
++SERVEPID=$!
++sleep 2
++python3 - "$SMOKE" <<'PYEOF'
++import json, sys, time, urllib.request, urllib.error
++for _ in range(60):
++    try:
++        with urllib.request.urlopen("http://127.0.0.1:8792/api/v1/health", timeout=5) as r:
++            print("health_status=", r.status, json.loads(r.read()), sep="")
++            break
++    except (urllib.error.URLError, ConnectionError):
++        time.sleep(0.5)
++else:
++    print("health_status= TIMEOUT")
++    sys.exit(1)
++with urllib.request.urlopen("http://127.0.0.1:8792/", timeout=10) as r:
++    html = r.read().decode("utf-8")
++    print("ui_status=", r.status, "has_textproof=", "TextProof" in html,
++          "has_export_warning=", "可能包含敏感文字" in html, sep="")
++PYEOF
++echo "serve_probe_exit=$?"
++kill $SERVEPID 2>/dev/null
++wait $SERVEPID 2>/dev/null
++echo "serve_exit=$?"
++
++# verify-s0 in the installed layout: both defined exit-3 refusals.
++"$VTP" verify-s0 > "$SMOKE/verify_s0_default.txt" 2>&1
++echo "verify_s0_default_exit=$?"
++"$VTP" verify-s0 --manifest "$W/tests/fixtures/s0/manifest.json" > "$SMOKE/verify_s0_manifest.txt" 2>&1
++echo "verify_s0_manifest_exit=$?"
+diff --git a/task_handoffs/T014/refresh/test_commands.txt b/task_handoffs/T014/refresh/test_commands.txt
+new file mode 100644
+index 0000000..2d8704a
+--- /dev/null
++++ b/task_handoffs/T014/refresh/test_commands.txt
+@@ -0,0 +1,54 @@
++# T014R2 test commands (run from ~/workspace/p033-textproof-t014-refresh unless noted)
++# Main venv is always the main tree's: ~/workspace/p033-textproof/.venv/bin/python
++# TMPDIR=$PWD/tmp for every pytest/pip/OCR invocation (headless Chrome exit 21 lesson).
++# NOTE: /tmp is a 512M tmpfs (159M free at run time) — the clean-directory check
++# uses `git worktree add` on persistent disk (~/workspace/t014r2-clean), NOT
++# `git clone` into /tmp (clone died with "No space left on device").
++
++# 1. Dictionary rebuild (fresh worktree first step)
++~/workspace/p033-textproof/.venv/bin/python scripts/setup_dictionary.py
++
++# 2. Full pytest (log task_handoffs/T014/pkg/test_stdout.log)
++mkdir -p tmp task_handoffs/T014/pkg
++TMPDIR=$PWD/tmp ~/workspace/p033-textproof/.venv/bin/python -m pytest -q -p no:cacheprovider > task_handoffs/T014/pkg/test_stdout.log 2> task_handoffs/T014/pkg/test_stderr.log; echo "pytest exit=$?" | tee task_handoffs/T014/pkg/exit_codes.txt
++
++# 3. Review index regeneration + verification
++python3 /tmp/gen_review_index_r2.py
++~/workspace/p033-textproof/.venv/bin/python scripts/verify_review_pack.py review/REVIEW_INDEX.md
++
++# 4. source.zip rebuild (from freeze commit 1f02358)
++git archive 1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6 --format=zip --output release/source.zip
++sha256sum release/source.zip
++
++# 5. Wheel rebuild (from a clean `git archive 1f02358` export; tmp/wheelbuild removed after)
++rm -rf tmp/wheelbuild && mkdir -p tmp/wheelbuild && git archive 1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6 | tar -x -C tmp/wheelbuild
++cd tmp/wheelbuild && ~/workspace/p033-textproof/.venv/bin/python -m build --wheel --no-isolation --outdir /home/hatch/workspace/p033-textproof-t014-refresh/release; cd ..
++rm -rf tmp/wheelbuild
++sha256sum release/textproof-1.0.0-py3-none-any.whl
++
++# 6. Wheelhouse vs lock (independent re-check; no re-download, no upgrades)
++# (inline python: parse requirements.lock, compare each wheelhouse wheel version + SHA-256)
++
++# 7. SHA256SUMS.txt regeneration + independent recompute
++cd release && sha256sum source.zip textproof-1.0.0-py3-none-any.whl wheelhouse/*.whl > SHA256SUMS.txt && cd ..
++
++# 8. SBOM re-verification (inline python: SBOM rows vs venv installed metadata + lock versions)
++
++# 9. Offline smoke with the NEW release wheel (script /tmp/smoke_run_r2.sh,
++#    copy saved as task_handoffs/T014/refresh/smoke_run.sh)
++bash /tmp/smoke_run_r2.sh
++
++# 10. Release preflight + full verification
++~/workspace/p033-textproof/.venv/bin/python scripts/verify_release.py --preflight
++~/workspace/p033-textproof/.venv/bin/python scripts/verify_release.py > task_handoffs/T014/pkg/verify_release.log 2>&1
++
++# 11. Clean-directory verification (detached worktree on persistent disk + copied artifacts)
++git worktree add --detach ~/workspace/t014r2-clean 1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6
++cp -r release review ~/workspace/t014r2-clean/ && mkdir -p ~/workspace/t014r2-clean/task_handoffs/T014 && cp -r task_handoffs/T014/pkg ~/workspace/t014r2-clean/task_handoffs/T014/pkg
++~/workspace/p033-textproof/.venv/bin/python ~/workspace/t014r2-clean/scripts/verify_release.py --root ~/workspace/t014r2-clean > task_handoffs/T014/pkg/verify_release_clean_dir.log 2>&1
++git worktree remove --force ~/workspace/t014r2-clean
++
++# 12. Ban compliance proofs
++git diff 1f02358 -- src tests schemas tests/fixtures/s0/manifest.json requirements.lock PROJECT_BOOK.md IMPLEMENTATION_PLAN.md PROJECT_BOOK.docx IMPLEMENTATION_PLAN.docx review/REVIEW_PACK_T014.md review/REVIEW_FINDINGS_T012.md review/REVIEW_INDEX_T012.md | wc -l
++git ls-files | grep -c ppocrv6_dict
++grep -nE "urlopen|urlretrieve|os\.system|shell=True|requests|httpx|urllib|http\.client|socket" scripts/verify_release.py scripts/verify_review_pack.py
+diff --git a/task_handoffs/T014/refresh/test_stderr.log b/task_handoffs/T014/refresh/test_stderr.log
+new file mode 100644
+index 0000000..e69de29
+diff --git a/task_handoffs/T014/refresh/test_stdout.log b/task_handoffs/T014/refresh/test_stdout.log
+new file mode 100644
+index 0000000..995afd1
+--- /dev/null
++++ b/task_handoffs/T014/refresh/test_stdout.log
+@@ -0,0 +1,15 @@
++........................................................................ [ 14%]
++........................................................................ [ 29%]
++........................................................................ [ 43%]
++........................................................................ [ 58%]
++........................................................................ [ 72%]
++........................................................................ [ 87%]
++...............................................................          [100%]
++=============================== warnings summary ===============================
++tests/unit/test_image_loader.py::test_pixels_over_40m_rejected
++tests/unit/test_image_loader.py::test_all_rejections_share_the_unified_code
++  /home/hatch/workspace/p033-textproof/.venv/lib/python3.12/site-packages/PIL/Image.py:3452: DecompressionBombWarning: Image size (40008000 pixels) exceeds limit of 40000000 pixels, could be decompression bomb DOS attack.
++    warnings.warn(
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++495 passed, 2 warnings in 176.27s (0:02:56)

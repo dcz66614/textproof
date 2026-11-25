@@ -1,0 +1,14 @@
+setup_dictionary exit=0
+pytest exit=0
+verify_review_pack exit=0
+verify_release --preflight exit=0
+verify_release (worktree) exit=0
+verify_release (clean dir) exit=0
+offline_install exit=0
+textproof_help exit=0
+textproof_version exit=0
+setup_dictionary (installed) exit=0
+standalone_check exit=1
+serve_probe exit=0
+verify_s0_default exit=3
+verify_s0_manifest exit=3

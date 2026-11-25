@@ -1,0 +1,5 @@
+pytest: 0
+verify_s0 --force-live: 0
+parity_check: 0
+benchmark_perf: 0
+consistency_check: 0

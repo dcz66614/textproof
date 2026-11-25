@@ -1,0 +1,5 @@
+M	.gitignore
+M	ENVIRONMENT.md
+M	THIRD_PARTY_NOTICES.md
+D	assets/ocr/dictionaries/ppocrv6_dict.txt
+A	scripts/setup_dictionary.py

@@ -1,0 +1,59 @@
+{
+  "cases": [
+    {
+      "fixture_id": "TP-S0-ZH-002",
+      "filename": "TP-S0-ZH-002.png",
+      "expected_text": "新品上市",
+      "drawn_text": "新口上市",
+      "verdicts": {
+        "api": "MISMATCH",
+        "cli": "MISMATCH",
+        "ui": "MISMATCH"
+      },
+      "identical": true,
+      "differences": [],
+      "reports": {
+        "api": {
+          "file": "api-TP-S0-ZH-002.json",
+          "sha256": "d4901b6dfb87d3cedd2966705f75f447ac2238fa4a16927ed04aa3dd659813ed"
+        },
+        "cli": {
+          "file": "cli-TP-S0-ZH-002.json",
+          "sha256": "5325a3f32f6fc05fc839ad0d859614ab0a7b6fba2961c5509d1d6150af2137c5"
+        },
+        "ui": {
+          "file": "ui-TP-S0-ZH-002.json",
+          "sha256": "fde7633f755d339b19fa269eea8df433d2762f0f3384437f31a932f42bf50336"
+        }
+      }
+    },
+    {
+      "fixture_id": "TP-CLN-001",
+      "filename": "TP-CLN-001.png",
+      "expected_text": "全场优惠10元",
+      "drawn_text": "全场优惠10元",
+      "verdicts": {
+        "api": "MATCH",
+        "cli": "MATCH",
+        "ui": "MATCH"
+      },
+      "identical": true,
+      "differences": [],
+      "reports": {
+        "api": {
+          "file": "api-TP-CLN-001.json",
+          "sha256": "7ca9eba95db6b0e77ee12df05c23e3a4588fe2d1a3aec4aeadc3f73aeaa8d6a9"
+        },
+        "cli": {
+          "file": "cli-TP-CLN-001.json",
+          "sha256": "ac028604ec5ebd37c019dab43d68850fa8b3a0b08dae03c1a893e1b220e35dba"
+        },
+        "ui": {
+          "file": "ui-TP-CLN-001.json",
+          "sha256": "c92d398000545fc073c807ae42d43ea6f964be5774dacd4c757961efa9907b94"
+        }
+      }
+    }
+  ],
+  "all_identical": true
+}

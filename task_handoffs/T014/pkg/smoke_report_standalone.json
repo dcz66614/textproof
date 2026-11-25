@@ -1,0 +1,80 @@
+{
+  "schema": "textproof.report/v1",
+  "tool_version": "0.1.0",
+  "verdict": "MISMATCH",
+  "image": {
+    "sha256": "7d3a5c0b8e8da3b59c0090f5ccba20cfe81b533df07c1ef83fcb7fef79cec660",
+    "format": "PNG",
+    "width": 1200,
+    "height": 480,
+    "coordinate_system": "oriented_image_px_top_left"
+  },
+  "expected_text": "限时优惠",
+  "recognized_text": "限时优",
+  "ocr_lines": [
+    {
+      "line_index": 0,
+      "text": "限时优",
+      "confidence": 0.99929,
+      "bbox_xyxy": [
+        491.0,
+        190.0,
+        713.0,
+        291.0
+      ],
+      "quad": [
+        [
+          491.0,
+          190.0
+        ],
+        [
+          713.0,
+          190.0
+        ],
+        [
+          713.0,
+          291.0
+        ],
+        [
+          491.0,
+          291.0
+        ]
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "id": "E001",
+      "type": "MISSING_CHARACTER",
+      "expected_line_index": 0,
+      "ocr_line_index": 0,
+      "expected_text": "限时优惠",
+      "recognized_text": "限时优",
+      "expected_span": [
+        3,
+        4
+      ],
+      "recognized_span": [
+        3,
+        3
+      ],
+      "expected_fragment": "惠",
+      "recognized_fragment": "",
+      "bbox_xyxy": [
+        491.0,
+        190.0,
+        713.0,
+        291.0
+      ],
+      "bbox_scope": "ocr_line",
+      "confidence": 0.99929
+    }
+  ],
+  "warnings": [],
+  "summary": {
+    "expected_lines": 1,
+    "ocr_lines": 1,
+    "error_count": 1,
+    "warning_count": 0
+  }
+}

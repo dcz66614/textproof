@@ -1,0 +1,9 @@
+offline_install_exit=0
+textproof_help_exit=0
+textproof_version_exit=0
+setup_dictionary_exit=0
+standalone_check_exit=1
+serve_probe_exit=0
+serve_exit=143
+verify_s0_default_exit=3
+verify_s0_manifest_exit=3

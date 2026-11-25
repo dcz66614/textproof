@@ -1,0 +1,2627 @@
+diff --git a/.gitignore b/.gitignore
+index 244e19f..05389c1 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -8,3 +8,6 @@ __pycache__/
+ # the file is rebuilt locally (scripts/setup_dictionary.py)
+ # and must not enter any public snapshot.
+ assets/ocr/dictionaries/ppocrv6_dict.txt
++# T013-U01: the same file rebuilt into the installed package
++# (python -m textproof.setup_dictionary) must not be tracked either.
++src/textproof/assets/ocr/dictionaries/ppocrv6_dict.txt
+diff --git a/README.md b/README.md
+index cbe830c..b47d7a7 100644
+--- a/README.md
++++ b/README.md
+@@ -187,6 +187,7 @@ PROJECT_BOOK.md §9 and `SECURITY.md`.
+ pyproject.toml  requirements.lock  LICENSE  README.md  SECURITY.md
+ THIRD_PARTY_NOTICES.md
+ src/textproof/        # CLI, API, comparison core, OCR adapter, UI
++src/textproof/assets/ # verbatim model copies shipped in the wheel (dictionary rebuilt locally)
+ assets/ocr/           # ONNX models + SHA256SUMS.txt (dictionary rebuilt locally)
+ tests/                # unit / integration / e2e / privacy / offline / S0 (300 fixtures)
+ schemas/              # textproof.report/v1 JSON schema
+@@ -199,38 +200,44 @@ review/               # REVIEW_INDEX.md, REVIEW_PACK_T014.md
+ Full specification: `PROJECT_BOOK.md`; build plan: `IMPLEMENTATION_PLAN.md`;
+ API contract: `API_CONTRACT.md`; environment baseline: `ENVIRONMENT.md`.
+ 
++## Installing from the wheel (no source checkout needed)
++
++The wheel ships the report validator, the local UI and the three
++frozen ONNX models (Apache-2.0, verbatim copies of
++`assets/ocr/models/`), so an installed `textproof` runs `check` and
++`serve` standalone, offline, with no checkout (PROJECT_BOOK.md
++§11.2; fixed in the T013-U01 round — the previous release could not
++do this, see `review/REVIEW_PACK_T014.md` §3, item U-01).  The
++recognition dictionary is the one exception: its licence is
++UNVERIFIED (`THIRD_PARTY_NOTICES.md` §4), so it is never shipped in
++the wheel and must be rebuilt once, locally, from the model file
++already inside the wheel:
++
++```bash
++python -m venv .venv && .venv/bin/activate
++pip install --no-index --find-links release/wheelhouse \
++    release/textproof-1.0.0-py3-none-any.whl
++python -m textproof.setup_dictionary   # rebuilds ppocrv6_dict.txt (18,708 lines)
++textproof check --image poster.png --expected-file expected.txt
++textproof serve --port 8765            # UI at http://127.0.0.1:8765/
++```
++
++Asset boundary: models come from the wheel
++(`textproof/assets/ocr/models/`); the dictionary is rebuilt next to
++them (`textproof/assets/ocr/dictionaries/`).  In a source checkout
++the checkout assets (`assets/ocr/`) win instead, so existing
++checkout workflows are unchanged.  `TEXTPROOF_ASSETS_DIR` overrides
++both locations when set.  `textproof verify-s0` is the exception to
++standalone use: the S0 gate needs the checkout's fixtures, manifest
++and runner scripts, which are not shipped in the wheel, so in an
++installed layout it exits 3 with a defined message ("verify-s0
++requires a source checkout") — run it from a checkout instead.
++
+ ## Known limitations
+ 
+-**Installed wheel cannot run `check` / `serve` / `verify-s0` standalone
+-(U-01, blocking — found by T014's offline-install smoke test, see
+-`review/REVIEW_PACK_T014.md` §3).** The wheel installs cleanly and
+-`--help` / `version` work, but:
+-
+-- `textproof check` always exits 5 (“generated report failed schema
+-  validation”): `src/textproof/cli.py` locates the handwritten
+-  validator as `<repo>/scripts/validate_report_schema.py` via a
+-  repo-layout-relative path, and `scripts/` is not packaged in the
+-  wheel. The check itself runs (live OCR completes) and then fails
+-  closed at validation.
+-- `textproof serve` crashes at start-up (`RuntimeError: Directory ...
+-  /site-packages/textproof/ui does not exist`): the UI files
+-  (`src/textproof/ui/*`) are not shipped in the wheel (no
+-  package-data configuration).
+-- `textproof verify-s0` cannot find `scripts/verify_s0.py` or the
+-  default manifest outside a checkout (same repo-layout assumption).
+-- The API check additionally needs the OCR assets at
+-  `<install>/assets/ocr` (models + locally rebuilt dictionary), which
+-  are checkout assets, not wheel contents.
+-
+-Workaround until the fix round: run from a source checkout
+-(`PYTHONPATH=src .venv/bin/python -m textproof.cli ...`, as the test
+-suite does). With the checkout on `PYTHONPATH`, the installed wheel's
+-`check` does run — but only if the assets are also visible at the
+-installed location, which is a test-harness arrangement, not a
+-supported install. Fixing this properly needs a source change (bundle
+-the validator and UI into the package, or resolve them relative to
+-the package) plus a decision on what the wheel ships; that is routed
+-back to a T013 fix round, not improvised in packaging.
++(None currently recorded. The previous U-01 installed-wheel
++limitation was fixed by the T013-U01 round; see "Installing from the
++wheel" above.)
+ 
+ ## Security
+ 
+diff --git a/THIRD_PARTY_NOTICES.md b/THIRD_PARTY_NOTICES.md
+index 5b5acdf..efe4231 100644
+--- a/THIRD_PARTY_NOTICES.md
++++ b/THIRD_PARTY_NOTICES.md
+@@ -62,6 +62,14 @@ All three SHA-256 values above were verified locally (2026-11-25) against
+ both the `rapidocr` 3.10.0 registry (`default_models.yaml`) and the
+ official licence page §6 table. See `assets/ocr/SHA256SUMS.txt`.
+ 
++Wheel copies (T013-U01): the wheel ships verbatim copies of the same
++three files as package data (`textproof/assets/ocr/models/`), so an
++installed `textproof` can run OCR with no source checkout. The copies
++are byte-identical to the checkout files above (same SHA-256, verified
++by the adapter at start-up whichever copy it uses); `assets/ocr/models/`
++remains the canonical checkout location. The dictionary is NOT copied
++alongside them — see §4.
++
+ ## 3. ONNX Runtime (inference engine)
+ 
+ | Item | Value |
+@@ -134,7 +142,11 @@ accepted as proof. **Verdict: licence remains UNVERIFIED.**
+ 
+ Consequence — the dictionary is NOT redistributed as a separate file.
+ Public artifacts (GitHub snapshot tree, `source.zip`, wheel) must not
+-contain `assets/ocr/dictionaries/ppocrv6_dict.txt`:
++contain `assets/ocr/dictionaries/ppocrv6_dict.txt` — and, since
++T013-U01, must not contain the installed-layout copy either
++(`textproof/assets/ocr/dictionaries/ppocrv6_dict.txt`, rebuilt locally
++into the installed package; it is git-ignored and the wheel's
++package-data glob matches only the three model files):
+ 
+ - The file is removed from git tracking in the T014/R-03 commit and
+   listed in `.gitignore`, so no snapshot taken from this tree contains
+@@ -147,14 +159,16 @@ contain `assets/ocr/dictionaries/ppocrv6_dict.txt`:
+   the verification reference for the locally rebuilt file, not a claim
+   that the file ships in the archive.
+ 
+-Local rebuild (the only supported way to obtain the file after checkout):
++Local rebuild (the only supported way to obtain the file, after
++checkout or after a wheel install):
+ 
+ ```bash
+-.venv/bin/python scripts/setup_dictionary.py        # rebuild if missing
++.venv/bin/python scripts/setup_dictionary.py        # rebuild if missing (checkout)
+ .venv/bin/python scripts/setup_dictionary.py --check  # verify only
++python -m textproof.setup_dictionary               # same rebuild (installed wheel)
+ ```
+ 
+-The script reads **only local files**: it takes the `character` list
++The rebuild reads **only local files**: it takes the `character` list
+ embedded in the locally shipped `PP-OCRv6_rec_small.onnx` model file —
+ itself an Apache-2.0 model artifact — writes it out as the dictionary,
+ and verifies SHA-256 `b5f2bfe2…` and 18,708 lines before reporting
+diff --git a/pyproject.toml b/pyproject.toml
+index 6904ae6..d1ef878 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -34,5 +34,19 @@ dev = [
+ [project.scripts]
+ textproof = "textproof.cli:main"
+ 
++# T013-U01: ship the local UI and the frozen ONNX models inside the
++# wheel, so an installed ``textproof`` runs with no source checkout.
++# The recognition dictionary is NOT listed here on purpose: its
++# licence is UNVERIFIED (THIRD_PARTY_NOTICES.md §4) and it is rebuilt
++# locally by ``python -m textproof.setup_dictionary`` after install.
++# Only the three model files match the glob; a dictionary file sitting
++# in ``assets/ocr/dictionaries/`` on the build machine is never
++# included.
++[tool.setuptools.package-data]
++textproof = [
++  "ui/*",
++  "assets/ocr/models/*.onnx",
++]
++
+ [tool.setuptools.packages.find]
+ where = ["src"]
+diff --git a/release/RELEASE_MANIFEST.json b/release/RELEASE_MANIFEST.json
+index 238759e..94a5139 100644
+--- a/release/RELEASE_MANIFEST.json
++++ b/release/RELEASE_MANIFEST.json
+@@ -33,8 +33,8 @@
+       "size": 14246
+     },
+     "scripts/verify_release.py": {
+-      "sha256": "cbc21cbe835d1a1ae22625382bb6cbd8c9ef7493120a0320d383e480d365b74c",
+-      "size": 24893
++      "sha256": "00a57db5e11dee6e9624d6981b249db9fa47040a7228e106160cc17324b468f0",
++      "size": 24915
+     },
+     "scripts/verify_review_pack.py": {
+       "sha256": "35dc4b79edc4d5b1962342833b79145311b9e173274cc491991e60f695791379",
+@@ -230,7 +230,7 @@
+   ],
+   "wheelhouse_packages": 37,
+   "test_evidence": {
+-    "pytest": "489 passed, 0 failed, exit 0 (142.19s)",
++    "pytest": "495 passed, 0 failed, exit 0 (194.46s)",
+     "pytest_log": "task_handoffs/T014/pkg/test_stdout.log",
+     "exit_codes": "task_handoffs/T014/pkg/exit_codes.txt",
+     "offline_smoke": "task_handoffs/T014/pkg/offline_smoke.txt"
+diff --git a/scripts/setup_dictionary.py b/scripts/setup_dictionary.py
+index 293dc2b..02fb995 100644
+--- a/scripts/setup_dictionary.py
++++ b/scripts/setup_dictionary.py
+@@ -1,45 +1,29 @@
+ """Rebuild the PP-OCRv6 recognition dictionary from local model metadata.
+ 
+-Why this script exists (T014, review finding R-03)
+----------------------------------------------------
+-The recognition dictionary ``assets/ocr/dictionaries/ppocrv6_dict.txt``
+-(18,708 lines, SHA-256 ``b5f2bfe2...``) has no dictionary-specific licence
+-statement: the file itself carries no licence header, and the RapidOCR
+-model licence notice expressly excludes recognition dictionaries from its
+-Apache-2.0 declaration. The dictionary is therefore NOT redistributed as
+-a separate file in any public snapshot of this repository
+-(see ``THIRD_PARTY_NOTICES.md`` section 4 and the packaging exclusion
+-list there). This script recreates it on the user's own machine, after
+-checkout, from data the user already holds locally.
++Thin wrapper (T013-U01): the implementation lives in
++``textproof.setup_dictionary`` so the rebuild works after a wheel
++install too, where there is no ``scripts/`` directory.  This script
++only resolves the checkout assets directory from ``--root`` and
++delegates to that module, so the historical entry point keeps working
++exactly as before::
+ 
+-How the rebuild works
+----------------------
+-The PP-OCRv6 recognition model ``PP-OCRv6_rec_small.onnx`` -- itself an
+-Apache-2.0 model artifact shipped in ``assets/ocr/models/`` -- embeds the
+-very same character list in its ``character`` model metadata. The adapter
+-already cross-checks the dictionary file against that embedded list on
+-every start-up. This script performs the reverse step, once, at install
+-time: it reads the embedded list from the local model file and writes it
+-out as the dictionary file, then verifies the result byte-for-byte
+-(SHA-256 and line count) against the frozen values below.
++    .venv/bin/python scripts/setup_dictionary.py          # rebuild if missing
++    .venv/bin/python scripts/setup_dictionary.py --check  # verify only
+ 
+-What this script never does
+----------------------------
+-- It reads only two files already present on the local disk (the model
+-  file and, for the idempotence check, the dictionary file itself).
+-- It opens no remote location, fetches nothing, and needs no
+-  credentials. The model file is verified by SHA-256 *before* its
+-  metadata is trusted, so a substituted model cannot silently yield a
+-  wrong dictionary.
+-- It never overwrites an existing dictionary whose contents differ from
+-  the frozen value unless ``--force`` is given explicitly: a differing
+-  local file is reported as an error and left untouched, so tampering
+-  stays visible instead of being silently papered over.
++After a wheel install, run the same rebuild as a module instead::
+ 
+-Usage (run from the repository root, after installing dependencies)::
++    python -m textproof.setup_dictionary
+ 
+-    .venv/bin/python scripts/setup_dictionary.py          # rebuild if missing
+-    .venv/bin/python scripts/setup_dictionary.py --check  # verify only
++Why the rebuild exists (T014, review finding R-03): the recognition
++dictionary ``ppocrv6_dict.txt`` (18,708 lines, SHA-256 ``b5f2bfe2...``)
++has no dictionary-specific licence statement, so it is NOT
++redistributed as a separate file in any public snapshot (see
++``THIRD_PARTY_NOTICES.md`` section 4).  It is recreated on the user's
++own machine from the character list embedded in the locally shipped
++``PP-OCRv6_rec_small.onnx`` model file, then verified byte-for-byte
++against the frozen hash and line count.  The rebuild reads only local
++files, opens no remote location, and never overwrites a differing
++local dictionary unless ``--force`` is given.
+ 
+ Exit codes: 0 = dictionary present and verified; 2 = the model file is
+ missing or its hash does not match the frozen value; 3 = a differing
+@@ -50,36 +34,18 @@ file failed its own verification (the partial file is removed).
+ from __future__ import annotations
+ 
+ import argparse
+-import hashlib
+-import os
+ import sys
+ from pathlib import Path
+ 
+-# Telemetry opt-out, set before the inference engine is imported, mirroring
+-# src/textproof/ocr/rapidocr_adapter.py (PROJECT_BOOK.md section 9).
+-os.environ["ORT_DISABLE_TELEMETRY"] = "1"
+-
+-# Frozen values (PROJECT_BOOK.md section 6.2; THIRD_PARTY_NOTICES.md
+-# section 4). The model hash is the RapidOCR registry value for
+-# multi_PP-OCRv6_rec_small; the dictionary hash and line count are the
+-# T003-verified values for ppocrv6_dict.txt.
+-REC_MODEL_NAME = "PP-OCRv6_rec_small.onnx"
+-REC_MODEL_SHA256 = (
+-    "6f327246b50388f3c176ae304bd95767ea6dc0c9ae92153ef8cbe210b3c14884"
+-)
+-DICT_NAME = "ppocrv6_dict.txt"
+-DICT_SHA256 = (
+-    "b5f2bfe2bdd9448429e3e82b51c789775d9b42f2403d082b00662eb77e401c5d"
+-)
+-DICT_LINES = 18708
+-
+-
+-def _sha256_file(path: Path) -> str:
+-    digest = hashlib.sha256()
+-    with open(path, "rb") as handle:
+-        for chunk in iter(lambda: handle.read(1 << 20), b""):
+-            digest.update(chunk)
+-    return digest.hexdigest()
++try:
++    from textproof.setup_dictionary import check_only, rebuild
++except ImportError:  # pragma: no cover - checkout without src on path
++    # Running the script directly from a checkout
++    # (``python scripts/setup_dictionary.py``) puts only ``scripts/``
++    # on ``sys.path``; the package lives in ``src/`` next to it.
++    # Add that directory and retry once.
++    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
++    from textproof.setup_dictionary import check_only, rebuild
+ 
+ 
+ def _repo_root(explicit: Path | None) -> Path:
+@@ -88,137 +54,6 @@ def _repo_root(explicit: Path | None) -> Path:
+     return Path(__file__).resolve().parents[1]
+ 
+ 
+-def _embedded_characters(model_path: Path) -> list[str]:
+-    """Read the ``character`` list embedded in the local rec model file."""
+-    import onnxruntime as ort
+-
+-    session = ort.InferenceSession(
+-        str(model_path), providers=["CPUExecutionProvider"]
+-    )
+-    meta = session.get_modelmeta().custom_metadata_map
+-    if "character" not in meta:
+-        raise ValueError(
+-            "Recognition model carries no embedded 'character' metadata; "
+-            "cannot rebuild the dictionary."
+-        )
+-    chars = meta["character"].splitlines()
+-    if len(chars) != DICT_LINES:
+-        raise ValueError(
+-            f"Embedded character list has {len(chars)} lines, "
+-            f"expected {DICT_LINES}."
+-        )
+-    if any(not line or "\r" in line for line in chars):
+-        raise ValueError(
+-            "Embedded character list contains an empty line or a "
+-            "carriage return; refusing to write the dictionary."
+-        )
+-    return chars
+-
+-
+-def _check_dictionary(dict_path: Path) -> bool:
+-    """True when the dictionary file exists and matches the frozen value."""
+-    if not dict_path.is_file():
+-        return False
+-    if _sha256_file(dict_path) != DICT_SHA256:
+-        return False
+-    lines = dict_path.read_text(encoding="utf-8").splitlines()
+-    return len(lines) == DICT_LINES
+-
+-
+-def rebuild(root: Path, *, force: bool) -> int:
+-    """Rebuild the dictionary from the local model file. Returns exit code."""
+-    model_path = root / "assets" / "ocr" / "models" / REC_MODEL_NAME
+-    dict_path = root / "assets" / "ocr" / "dictionaries" / DICT_NAME
+-    rel_model = model_path.relative_to(root)
+-    rel_dict = dict_path.relative_to(root)
+-
+-    if not model_path.is_file():
+-        print(f"error: model file missing: {rel_model}", file=sys.stderr)
+-        print(
+-            "The recognition model is part of the shipped assets; "
+-            "re-fetch it from the frozen registry source before "
+-            "rebuilding the dictionary.",
+-            file=sys.stderr,
+-        )
+-        return 2
+-    if _sha256_file(model_path) != REC_MODEL_SHA256:
+-        print(
+-            f"error: model file hash mismatch: {rel_model}\n"
+-            f"  expected: {REC_MODEL_SHA256}",
+-            file=sys.stderr,
+-        )
+-        print(
+-            "Refusing to rebuild from an unverified model file.",
+-            file=sys.stderr,
+-        )
+-        return 2
+-
+-    if dict_path.is_file() and not _check_dictionary(dict_path):
+-        if not force:
+-            print(
+-                f"error: existing dictionary differs from the frozen "
+-                f"value: {rel_dict}",
+-                file=sys.stderr,
+-            )
+-            print(
+-                "Remove it by hand, or re-run with --force to replace "
+-                "it with the rebuilt file.",
+-                file=sys.stderr,
+-            )
+-            return 3
+-        print(f"warning: replacing differing dictionary: {rel_dict}")
+-
+-    if _check_dictionary(dict_path):
+-        print(f"dictionary already present and verified: {rel_dict}")
+-        print(f"  sha256: {DICT_SHA256}")
+-        print(f"  lines:  {DICT_LINES}")
+-        return 0
+-
+-    chars = _embedded_characters(model_path)
+-    content = "\n".join(chars) + "\n"
+-    dict_path.parent.mkdir(parents=True, exist_ok=True)
+-    dict_path.write_text(content, encoding="utf-8", newline="\n")
+-
+-    if not _check_dictionary(dict_path):
+-        try:
+-            dict_path.unlink()
+-        except OSError:
+-            pass
+-        print(
+-            "error: rebuilt dictionary failed verification; "
+-            "partial file removed.",
+-            file=sys.stderr,
+-        )
+-        return 4
+-
+-    print(f"rebuilt dictionary: {rel_dict}")
+-    print(f"  source: {rel_model} (embedded character metadata)")
+-    print(f"  sha256: {DICT_SHA256}")
+-    print(f"  lines:  {DICT_LINES}")
+-    return 0
+-
+-
+-def check_only(root: Path) -> int:
+-    """Verify the dictionary without writing anything. Returns exit code."""
+-    dict_path = root / "assets" / "ocr" / "dictionaries" / DICT_NAME
+-    rel_dict = dict_path.relative_to(root)
+-    if not dict_path.is_file():
+-        print(f"missing: {rel_dict}", file=sys.stderr)
+-        print(
+-            "Run without --check to rebuild it from the local model file.",
+-            file=sys.stderr,
+-        )
+-        return 2
+-    if _check_dictionary(dict_path):
+-        print(f"dictionary verified: {rel_dict}")
+-        print(f"  sha256: {DICT_SHA256}")
+-        print(f"  lines:  {DICT_LINES}")
+-        return 0
+-    print(f"error: dictionary differs from the frozen value: {rel_dict}",
+-          file=sys.stderr)
+-    return 3
+-
+-
+ def main(argv: list[str] | None = None) -> int:
+     parser = argparse.ArgumentParser(
+         description=(
+@@ -244,10 +79,10 @@ def main(argv: list[str] | None = None) -> int:
+         help="replace an existing dictionary whose contents differ",
+     )
+     args = parser.parse_args(argv)
+-    root = _repo_root(args.root)
++    assets_dir = _repo_root(args.root) / "assets" / "ocr"
+     if args.check:
+-        return check_only(root)
+-    return rebuild(root, force=args.force)
++        return check_only(assets_dir)
++    return rebuild(assets_dir, force=args.force)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/scripts/validate_report_schema.py b/scripts/validate_report_schema.py
+index 0518547..d0f90f9 100644
+--- a/scripts/validate_report_schema.py
++++ b/scripts/validate_report_schema.py
+@@ -1,493 +1,66 @@
+ """Validate a ``textproof.report/v1`` report against PROJECT_BOOK.md §5.
+ 
+-T006 deliverable (plan §5.2 / T006 card item 6).  The formal
+-``.schema.json`` file is a T009 deliverable; this module is the S0
+-validator, implemented by hand against the frozen contract text
+-because no JSON-Schema library is in the locked dependency set
+-(``requirements.lock``; checked 2026-11-25: ``jsonschema`` is not
+-installed and no new package may be added).
+-
+-Rules enforced, each anchored to a §5 clause:
+-
+-* §5.1 — ``schema`` is exactly ``"textproof.report/v1"``; encoding is
+-  UTF-8 (callers read files as UTF-8); ``coordinate_system`` is
+-  ``"oriented_image_px_top_left"``; character spans are half-open
+-  code-point spans into normalised text.
+-* §5.2 — ``verdict`` is one of ``MATCH`` / ``MISMATCH`` /
+-  ``REVIEW_REQUIRED`` / ``OCR_FAILED``.
+-* §5.3 — error ``type`` is one of the seven frozen types; warning
+-  ``code`` is one of ``LOW_OCR_CONFIDENCE`` /
+-  ``POSSIBLE_MULTI_COLUMN`` / ``ROTATED_TEXT_NOT_SUPPORTED`` /
+-  ``OCR_EMPTY``.
+-* §5.4 — top-level keys are exactly the sample's keys; the ``image``
+-  block has ``sha256`` (64 lowercase hex chars), ``format`` (``PNG`` /
+-  ``JPEG`` / ``WEBP``), positive integer ``width`` / ``height`` and
+-  the coordinate system above; ``tool_version`` is a non-empty
+-  string; ``expected_text`` / ``recognized_text`` are strings;
+-  ``ocr_lines`` entries have ``line_index`` (int >= 0), ``text``
+-  (str), ``confidence`` (number in [0, 1]), ``bbox_xyxy`` (four
+-  numbers, x1 <= x2, y1 <= y2) and ``quad`` (four [x, y] points);
+-  ``errors`` entries have ``id`` matching ``E`` + three digits,
+-  sequential from ``E001``; ``expected_line_index`` /
+-  ``ocr_line_index`` are ints >= 0 or ``null``; ``expected_text`` /
+-  ``recognized_text`` are strings; spans are ``null`` or ``[int,
+-  int]`` with ``0 <= start <= end``; fragments are strings;
+-  ``bbox_xyxy`` is ``null`` or four numbers inside the image bounds;
+-  ``bbox_scope`` is ``"ocr_line"`` or ``null``; ``confidence`` is
+-  ``null`` or a number in [0, 1]; ``summary`` counts equal the
+-  lengths of the arrays they count.
+-* §4.6 / §7.5 — a ``MISSING_LINE`` error has ``bbox_xyxy`` ``null``
+-  (no fabricated box); every other error has a non-null line bbox.
+-* §5.4 sample — error spans must lie inside the error's own
+-  ``expected_text`` / ``recognized_text`` (the normalised line texts
+-  the spans index into, §4.3.6).
+-
+-Frozen by T009 (finding F-03, see ``schemas/textproof.report.v1.schema.json``
+-and ``task_handoffs/T009/TASK_RESULT.md``): the absent side of a
+-``MISSING_LINE`` / ``EXTRA_LINE`` span is ``null`` (never ``[0, 0]``),
+-a missing box has ``bbox_scope`` ``null`` (never ``"none"``), and a
+-warning is exactly ``{code, message}`` plus ``ocr_line_index`` only
+-for ``LOW_OCR_CONFIDENCE`` (no ``confidence`` field).  This validator
+-and the ``.schema.json`` file enforce the same frozen form; a report
+-is valid only if it passes both.
+-
+-T013 (findings R-05, R-15): ``summary.expected_lines`` counts lines
+-after unifying CR/CRLF to LF first (the production rule in
+-``image_loader``), and the present side of every error carries a
+-non-null line index — MISSING_LINE: ``expected_line_index``;
+-EXTRA_LINE: ``ocr_line_index``; character errors: both.
+-
+-Usage::
++Thin wrapper (T013-U01): the implementation lives in
++``textproof.core.report_schema`` so the installed wheel can validate
++its own reports without a source checkout.  This script only
++re-exports the validator and its file-checking CLI, so the historical
++entry point keeps working exactly as before::
+ 
+     python scripts/validate_report_schema.py report.json [report2.json ...]
+     python scripts/validate_report_schema.py --reports-dir dir/
+ 
+ Exit code 0 iff every report is valid; every violation is printed
+-with its JSON path.
++with its JSON path.  See ``src/textproof/core/report_schema.py`` for
++the rules (one §5 clause each) and the frozen T009/T013 notes.
+ """
+ 
+ from __future__ import annotations
+ 
+-import argparse
+-import json
+-import re
+ import sys
+ from pathlib import Path
+-from typing import Any
+-
+-SCHEMA_ID = "textproof.report/v1"
+-COORDINATE_SYSTEM = "oriented_image_px_top_left"
+-VERDICTS = {"MATCH", "MISMATCH", "REVIEW_REQUIRED", "OCR_FAILED"}
+-ERROR_TYPES = {
+-    "SUBSTITUTION",
+-    "MISSING_CHARACTER",
+-    "EXTRA_CHARACTER",
+-    "NUMERIC_CHANGE",
+-    "MISSING_LINE",
+-    "EXTRA_LINE",
+-    "AMBIGUOUS_ALIGNMENT",
+-}
+-WARNING_CODES = {
+-    "LOW_OCR_CONFIDENCE",
+-    "POSSIBLE_MULTI_COLUMN",
+-    "ROTATED_TEXT_NOT_SUPPORTED",
+-    "OCR_EMPTY",
+-}
+-IMAGE_FORMATS = {"PNG", "JPEG", "WEBP"}
+-TOP_LEVEL_KEYS = {
+-    "schema",
+-    "tool_version",
+-    "verdict",
+-    "image",
+-    "expected_text",
+-    "recognized_text",
+-    "ocr_lines",
+-    "errors",
+-    "warnings",
+-    "summary",
+-}
+-OCR_LINE_KEYS = {"line_index", "text", "confidence", "bbox_xyxy", "quad"}
+-ERROR_KEYS = {
+-    "id",
+-    "type",
+-    "expected_line_index",
+-    "ocr_line_index",
+-    "expected_text",
+-    "recognized_text",
+-    "expected_span",
+-    "recognized_span",
+-    "expected_fragment",
+-    "recognized_fragment",
+-    "bbox_xyxy",
+-    "bbox_scope",
+-    "confidence",
+-}
+-WARNING_KEYS = {"code", "message"}
+-SUMMARY_KEYS = {"expected_lines", "ocr_lines", "error_count", "warning_count"}
+-
+-_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+-_ERROR_ID_RE = re.compile(r"^E\d{3}$")
+-
+-
+-def _unified_lines(text: str) -> list[str]:
+-    """Split ``text`` into lines after unifying newlines to LF.
+-
+-    Same rule as ``src/textproof/io/image_loader.py``
+-    (``validate_expected_text``) and the §4.3 normalisation: CRLF and
+-    a lone CR both become LF before splitting, so ``'a\\rb'`` is two
+-    lines, not one (T013, finding R-05).
+-    """
+-    return text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+-
+-
+-def _is_number(value: Any) -> bool:
+-    return isinstance(value, (int, float)) and not isinstance(value, bool)
+-
+-
+-def _check_bbox(value: Any, path: str, errors: list[str],
+-                width: int | None, height: int | None) -> None:
+-    if value is None:
+-        return
+-    if not isinstance(value, list) or len(value) != 4 \
+-            or not all(_is_number(v) for v in value):
+-        errors.append(f"{path}: bbox must be null or [x1, y1, x2, y2] numbers")
+-        return
+-    x1, y1, x2, y2 = value
+-    if not (x1 <= x2 and y1 <= y2):
+-        errors.append(f"{path}: bbox corners out of order: {value}")
+-    if width is not None and height is not None:
+-        if x1 < 0 or y1 < 0 or x2 > width or y2 > height:
+-            errors.append(
+-                f"{path}: bbox {value} outside image bounds "
+-                f"{width}x{height} (§5.4 / §8.1)")
+-        if x1 < 0 or y1 < 0:
+-            errors.append(f"{path}: bbox has negative coordinates: {value}")
+-
+-
+-def _check_span(value: Any, path: str, errors: list[str],
+-                line_text: str | None) -> None:
+-    if value is None:
+-        return
+-    if not isinstance(value, list) or len(value) != 2 \
+-            or not all(isinstance(v, int) and not isinstance(v, bool)
+-                       for v in value):
+-        errors.append(f"{path}: span must be null or [int, int]")
+-        return
+-    start, end = value
+-    if not (0 <= start <= end):
+-        errors.append(f"{path}: span not half-open with 0 <= start <= end: {value}")
+-    if line_text is not None and end > len(line_text):
+-        errors.append(
+-            f"{path}: span end {end} exceeds its line text length "
+-            f"{len(line_text)} (§4.3.6)")
+-
+-
+-def validate_report(report: Any) -> list[str]:
+-    """Return the list of §5 violations in ``report`` (empty = valid)."""
+-    errors: list[str] = []
+-    if not isinstance(report, dict):
+-        return ["$: report must be a JSON object"]
+-    if set(report.keys()) != TOP_LEVEL_KEYS:
+-        errors.append(
+-            f"$: top-level keys must be exactly {sorted(TOP_LEVEL_KEYS)}; "
+-            f"got {sorted(report.keys())} (§5.4)")
+-    if report.get("schema") != SCHEMA_ID:
+-        errors.append(f"$.schema: must be {SCHEMA_ID!r} (§5.1)")
+-    tool_version = report.get("tool_version")
+-    if tool_version != "0.1.0":
+-        errors.append("$.tool_version: must be exactly \"0.1.0\" "
+-                      "(frozen product version, §5.4; T009)")
+-    if report.get("verdict") not in VERDICTS:
+-        errors.append(f"$.verdict: must be one of {sorted(VERDICTS)} (§5.2)")
+-    if not isinstance(report.get("expected_text"), str):
+-        errors.append("$.expected_text: must be a string (§5.4)")
+-    if not isinstance(report.get("recognized_text"), str):
+-        errors.append("$.recognized_text: must be a string (§5.4)")
+-
+-    image = report.get("image")
+-    width = height = None
+-    if not isinstance(image, dict):
+-        errors.append("$.image: must be an object (§5.4)")
+-    else:
+-        if set(image.keys()) != {"sha256", "format", "width", "height",
+-                                 "coordinate_system"}:
+-            errors.append(
+-                "$.image: keys must be sha256/format/width/height/"
+-                "coordinate_system (§5.4)")
+-        sha = image.get("sha256")
+-        if not isinstance(sha, str) or not _SHA256_RE.match(sha):
+-            errors.append("$.image.sha256: must be 64 lowercase hex chars (§5.4)")
+-        if image.get("format") not in IMAGE_FORMATS:
+-            errors.append(f"$.image.format: must be one of {sorted(IMAGE_FORMATS)}")
+-        width, height = image.get("width"), image.get("height")
+-        for name, value in (("width", width), ("height", height)):
+-            if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+-                errors.append(f"$.image.{name}: must be a positive integer (§5.4)")
+-        if image.get("coordinate_system") != COORDINATE_SYSTEM:
+-            errors.append(
+-                f"$.image.coordinate_system: must be {COORDINATE_SYSTEM!r} (§5.1)")
+-
+-    ocr_lines = report.get("ocr_lines")
+-    if not isinstance(ocr_lines, list):
+-        errors.append("$.ocr_lines: must be a list (§5.4)")
+-        ocr_lines = []
+-    for i, line in enumerate(ocr_lines):
+-        path = f"$.ocr_lines[{i}]"
+-        if not isinstance(line, dict):
+-            errors.append(f"{path}: must be an object")
+-            continue
+-        if set(line.keys()) != OCR_LINE_KEYS:
+-            errors.append(f"{path}: keys must be exactly {sorted(OCR_LINE_KEYS)}")
+-        if not isinstance(line.get("line_index"), int) \
+-                or isinstance(line.get("line_index"), bool) \
+-                or line.get("line_index", -1) < 0:
+-            errors.append(f"{path}.line_index: must be an int >= 0")
+-        elif line.get("line_index") != i:
+-            errors.append(
+-                f"{path}.line_index: must equal its position {i} (§7.1)")
+-        if not isinstance(line.get("text"), str):
+-            errors.append(f"{path}.text: must be a string")
+-        conf = line.get("confidence")
+-        if not _is_number(conf) or not 0.0 <= conf <= 1.0:
+-            errors.append(f"{path}.confidence: must be a number in [0, 1] "
+-                          "(T009: an OCR line always carries a confidence)")
+-        _check_bbox(line.get("bbox_xyxy"), f"{path}.bbox_xyxy", errors,
+-                    width, height)
+-        quad = line.get("quad")
+-        if not isinstance(quad, list) or len(quad) != 4 or any(
+-                not isinstance(p, list) or len(p) != 2
+-                or not all(_is_number(v) for v in p) for p in quad):
+-            errors.append(f"{path}.quad: must be four [x, y] points (§5.4)")
+-
+-    error_list = report.get("errors")
+-    if not isinstance(error_list, list):
+-        errors.append("$.errors: must be a list (§5.4)")
+-        error_list = []
+-    for i, err in enumerate(error_list):
+-        path = f"$.errors[{i}]"
+-        if not isinstance(err, dict):
+-            errors.append(f"{path}: must be an object")
+-            continue
+-        if set(err.keys()) != ERROR_KEYS:
+-            errors.append(f"{path}: keys must be exactly {sorted(ERROR_KEYS)}")
+-        err_id = err.get("id")
+-        if not isinstance(err_id, str) or not _ERROR_ID_RE.match(err_id):
+-            errors.append(f"{path}.id: must match E### (§5.4)")
+-        elif err_id != f"E{i + 1:03d}":
+-            errors.append(
+-                f"{path}.id: ids must be sequential E001...; expected "
+-                f"E{i + 1:03d}, got {err_id}")
+-        if err.get("type") not in ERROR_TYPES:
+-            errors.append(f"{path}.type: must be one of {sorted(ERROR_TYPES)} (§5.3)")
+-        for field in ("expected_line_index", "ocr_line_index"):
+-            value = err.get(field)
+-            if value is not None and (not isinstance(value, int)
+-                                      or isinstance(value, bool) or value < 0):
+-                errors.append(f"{path}.{field}: must be null or an int >= 0")
+-        exp_text = err.get("expected_text")
+-        rec_text = err.get("recognized_text")
+-        if not isinstance(exp_text, str):
+-            errors.append(f"{path}.expected_text: must be a string")
+-            exp_text = None
+-        if not isinstance(rec_text, str):
+-            errors.append(f"{path}.recognized_text: must be a string")
+-            rec_text = None
+-        _check_span(err.get("expected_span"), f"{path}.expected_span",
+-                    errors, exp_text)
+-        _check_span(err.get("recognized_span"), f"{path}.recognized_span",
+-                    errors, rec_text)
+-        if not isinstance(err.get("expected_fragment"), str):
+-            errors.append(f"{path}.expected_fragment: must be a string")
+-        if not isinstance(err.get("recognized_fragment"), str):
+-            errors.append(f"{path}.recognized_fragment: must be a string")
+-        bbox = err.get("bbox_xyxy")
+-        _check_bbox(bbox, f"{path}.bbox_xyxy", errors, width, height)
+-        # Frozen per-type shape (T009, finding F-03).  The absent side
+-        # of a line error is null, never [0, 0]: [0, 0] is a real empty
+-        # span at position 0, so it cannot also mean "no side".
+-        err_type = err.get("type")
+-        if err_type == "MISSING_LINE":
+-            if bbox is not None:
+-                errors.append(
+-                    f"{path}.bbox_xyxy: MISSING_LINE must have null bbox "
+-                    "(§4.6 / §7.5)")
+-            if err.get("recognized_span") is not None:
+-                errors.append(
+-                    f"{path}.recognized_span: MISSING_LINE has no OCR "
+-                    "side; must be null (T009 F-03)")
+-            if err.get("ocr_line_index") is not None:
+-                errors.append(
+-                    f"{path}.ocr_line_index: MISSING_LINE must be null")
+-            if err.get("expected_span") is None:
+-                errors.append(
+-                    f"{path}.expected_span: MISSING_LINE must carry the "
+-                    "whole-line span")
+-            if err.get("expected_line_index") is None:
+-                errors.append(
+-                    f"{path}.expected_line_index: MISSING_LINE must carry "
+-                    "its expected line index (T013 R-15: the present side "
+-                    "is never null)")
+-        elif err_type == "EXTRA_LINE":
+-            if bbox is None:
+-                errors.append(
+-                    f"{path}.bbox_xyxy: EXTRA_LINE must carry its OCR "
+-                    "line bbox (§4.6 / §7.5)")
+-            if err.get("expected_span") is not None:
+-                errors.append(
+-                    f"{path}.expected_span: EXTRA_LINE has no expected "
+-                    "side; must be null (T009 F-03)")
+-            if err.get("expected_line_index") is not None:
+-                errors.append(
+-                    f"{path}.expected_line_index: EXTRA_LINE must be null")
+-            if err.get("recognized_span") is None:
+-                errors.append(
+-                    f"{path}.recognized_span: EXTRA_LINE must carry the "
+-                    "whole-line span")
+-            if err.get("ocr_line_index") is None:
+-                errors.append(
+-                    f"{path}.ocr_line_index: EXTRA_LINE must carry its "
+-                    "OCR line index (T013 R-15: the present side is "
+-                    "never null)")
+-        elif err_type == "AMBIGUOUS_ALIGNMENT":
+-            if err.get("expected_span") is not None \
+-                    or err.get("recognized_span") is not None:
+-                errors.append(
+-                    f"{path}.*_span: AMBIGUOUS_ALIGNMENT must have null "
+-                    "spans (T009 F-03)")
+-            if err.get("expected_line_index") is not None \
+-                    or err.get("ocr_line_index") is not None:
+-                errors.append(
+-                    f"{path}.*_line_index: AMBIGUOUS_ALIGNMENT must have "
+-                    "null line indices")
+-            if bbox is not None:
+-                errors.append(
+-                    f"{path}.bbox_xyxy: AMBIGUOUS_ALIGNMENT must have "
+-                    "null bbox")
+-        elif err_type in ("SUBSTITUTION", "MISSING_CHARACTER",
+-                          "EXTRA_CHARACTER", "NUMERIC_CHANGE"):
+-            if err.get("expected_span") is None \
+-                    or err.get("recognized_span") is None:
+-                errors.append(
+-                    f"{path}.*_span: character errors always carry both "
+-                    "spans (T009 F-03)")
+-            if err.get("expected_line_index") is None \
+-                    or err.get("ocr_line_index") is None:
+-                errors.append(
+-                    f"{path}.expected_line_index / ocr_line_index: "
+-                    "character errors always carry both line indices "
+-                    "(T013 R-15: the present side is never null)")
+-            if bbox is None:
+-                errors.append(
+-                    f"{path}.bbox_xyxy: character errors must carry "
+-                    "their OCR line bbox (§4.6 / §7.5)")
+-        scope = err.get("bbox_scope")
+-        if scope not in ("ocr_line", None):
+-            errors.append(
+-                f"{path}.bbox_scope: must be 'ocr_line' or null "
+-                "(T009 F-03: 'none' is not a frozen value)")
+-        if bbox is None and scope == "ocr_line":
+-            errors.append(f"{path}.bbox_scope: 'ocr_line' with null bbox")
+-        if bbox is not None and scope != "ocr_line":
+-            errors.append(
+-                f"{path}.bbox_scope: error with a bbox must have scope "
+-                "'ocr_line'")
+-        conf = err.get("confidence")
+-        if conf is not None and (not _is_number(conf) or not 0.0 <= conf <= 1.0):
+-            errors.append(f"{path}.confidence: must be null or a number in [0, 1]")
+-
+-    warnings = report.get("warnings")
+-    if not isinstance(warnings, list):
+-        errors.append("$.warnings: must be a list (§5.4)")
+-        warnings = []
+-    for i, warn in enumerate(warnings):
+-        path = f"$.warnings[{i}]"
+-        if not isinstance(warn, dict):
+-            errors.append(f"{path}: must be an object")
+-            continue
+-        # Frozen warning shape (T009, finding F-03): exactly
+-        # {code, message}, plus ocr_line_index only for
+-        # LOW_OCR_CONFIDENCE.  No 'confidence' field: the line
+-        # confidence already lives on the ocr_lines entry.
+-        if set(warn.keys()) - {"code", "message", "ocr_line_index"}:
+-            errors.append(
+-                f"{path}: keys must be code/message and optionally "
+-                "ocr_line_index (T009 F-03)")
+-        if warn.get("code") not in WARNING_CODES:
+-            errors.append(
+-                f"{path}.code: must be one of {sorted(WARNING_CODES)} (§5.3)")
+-        if not isinstance(warn.get("message"), str):
+-            errors.append(f"{path}.message: must be a string")
+-        if "ocr_line_index" in warn:
+-            idx = warn["ocr_line_index"]
+-            if warn.get("code") != "LOW_OCR_CONFIDENCE":
+-                errors.append(
+-                    f"{path}.ocr_line_index: only LOW_OCR_CONFIDENCE "
+-                    "carries a line index (T009 F-03)")
+-            elif not isinstance(idx, int) or isinstance(idx, bool) or idx < 0:
+-                errors.append(
+-                    f"{path}.ocr_line_index: must be an int >= 0")
+-
+-    summary = report.get("summary")
+-    if not isinstance(summary, dict):
+-        errors.append("$.summary: must be an object (§5.4)")
+-    else:
+-        if set(summary.keys()) != SUMMARY_KEYS:
+-            errors.append(
+-                f"$.summary: keys must be exactly {sorted(SUMMARY_KEYS)}")
+-        expected_counts = {
+-            # T013 R-05: count lines the way production does — unify
+-            # CR/CRLF to LF first, then split (image_loader.py).  The
+-            # old ``count("\n") + 1`` undercounted a lone CR: 'a\rb'
+-            # is 2 lines for production but was 1 here, so a legal
+-            # report failed its own self-check (CLI exit 5).
+-            "expected_lines": len(_unified_lines(report["expected_text"]))
+-            if isinstance(report.get("expected_text"), str) else None,
+-            "ocr_lines": len(ocr_lines),
+-            "error_count": len(error_list),
+-            "warning_count": len(warnings),
+-        }
+-        for key, value in expected_counts.items():
+-            actual = summary.get(key)
+-            if value is not None and actual != value:
+-                errors.append(
+-                    f"$.summary.{key}: must be {value}, got {actual} (§5.4)")
+-
+-    return errors
+-
+-
+-def main(argv: list[str] | None = None) -> int:
+-    parser = argparse.ArgumentParser(
+-        description="Validate textproof.report/v1 reports against §5.")
+-    parser.add_argument("reports", nargs="*", help="Report JSON file(s).")
+-    parser.add_argument("--reports-dir", type=Path, default=None,
+-                        help="Validate every *.json in this directory.")
+-    args = parser.parse_args(argv)
+-
+-    paths: list[Path] = [Path(p) for p in args.reports]
+-    if args.reports_dir is not None:
+-        paths.extend(sorted(args.reports_dir.glob("*.json")))
+-    if not paths:
+-        parser.error("no reports given")
+ 
+-    total_bad = 0
+-    for path in paths:
+-        try:
+-            report = json.loads(path.read_text(encoding="utf-8"))
+-        except Exception as exc:  # noqa: BLE001 - report and continue
+-            print(f"{path}: UNREADABLE: {exc}")
+-            total_bad += 1
+-            continue
+-        violations = validate_report(report)
+-        if violations:
+-            total_bad += 1
+-            print(f"{path}: INVALID ({len(violations)} violation(s))")
+-            for violation in violations:
+-                print(f"  - {violation}")
+-        else:
+-            print(f"{path}: VALID")
+-    print(f"schema validation: {len(paths) - total_bad}/{len(paths)} valid")
+-    return 0 if total_bad == 0 else 1
++try:
++    from textproof.core.report_schema import (
++        COORDINATE_SYSTEM,
++        ERROR_TYPES,
++        IMAGE_FORMATS,
++        SCHEMA_ID,
++        TOP_LEVEL_KEYS,
++        VERDICTS,
++        WARNING_CODES,
++        main,
++        validate_report,
++    )
++except ImportError:  # pragma: no cover - checkout without src on path
++    # Running the script directly from a checkout
++    # (``python scripts/validate_report_schema.py ...``) puts only
++    # ``scripts/`` on ``sys.path``; the package lives in ``src/`` next
++    # to it.  Add that directory and retry once.
++    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
++    from textproof.core.report_schema import (
++        COORDINATE_SYSTEM,
++        ERROR_TYPES,
++        IMAGE_FORMATS,
++        SCHEMA_ID,
++        TOP_LEVEL_KEYS,
++        VERDICTS,
++        WARNING_CODES,
++        main,
++        validate_report,
++    )
++
++__all__ = [
++    "COORDINATE_SYSTEM",
++    "ERROR_TYPES",
++    "IMAGE_FORMATS",
++    "SCHEMA_ID",
++    "TOP_LEVEL_KEYS",
++    "VERDICTS",
++    "WARNING_CODES",
++    "main",
++    "validate_report",
++]
+ 
+ 
+ if __name__ == "__main__":
+-    sys.exit(main())
++    raise SystemExit(main())
+diff --git a/scripts/verify_release.py b/scripts/verify_release.py
+index 6bd62b2..23ea3a2 100644
+--- a/scripts/verify_release.py
++++ b/scripts/verify_release.py
+@@ -28,7 +28,7 @@ and ``review/``:
+ 7. ``review/REVIEW_INDEX.md`` passes
+    ``scripts/verify_review_pack.py`` against its anchor commit, and
+    ``review/REVIEW_PACK_T014.md`` records the DOCX sync verdict.
+-8. The committed pytest log shows ``489 passed`` with exit 0.
++8. The committed pytest log shows ``495 passed`` with exit 0.
+ 9. The excluded dictionary (``assets/ocr/dictionaries/ppocrv6_dict.txt``,
+    licence UNVERIFIED) appears in no archive listing, no wheel, no
+    wheelhouse file list and no tracked-file list.
+@@ -37,7 +37,7 @@ and ``review/``:
+     fragment-assembled tokens so the list itself never spells them).
+     The wider T010 static gate (its own token list plus its import
+     check, in ``tests/privacy/test_no_persistence.py``) is enforced by
+-    the committed full-pytest evidence (489 passed) and is not
++    the committed full-pytest evidence (495 passed) and is not
+     re-implemented here — spelling its token list in this file would
+     itself trip that gate.
+ 11. Offline smoke evidence: the committed logs under
+@@ -87,7 +87,7 @@ EXPECTED_PACKAGE_VERSION = "1.0.0"
+ EXPECTED_SPEC_VERSION = "1.0.0"
+ EXPECTED_LOCK_PACKAGES = 37
+ EXPECTED_LOCK_HASHES = 753
+-EXPECTED_PYTEST_PASSED = 489
++EXPECTED_PYTEST_PASSED = 495
+ 
+ # The token list is assembled from fragments on purpose: the literal
+ # strings must not appear anywhere in this file, because the same scan
+@@ -506,7 +506,7 @@ def _full_checks(root: Path, results: list) -> tuple[bool, dict]:
+     if log_path.is_file():
+         log_text = _read_text(log_path)
+         log_ok = f"{EXPECTED_PYTEST_PASSED} passed" in log_text
+-    _check(results, "committed pytest log shows 489 passed", log_ok)
++    _check(results, f"committed pytest log shows {EXPECTED_PYTEST_PASSED} passed", log_ok)
+     ok_all = ok_all and log_ok
+     codes_path = root / "task_handoffs" / "T014" / "pkg" / "exit_codes.txt"
+     codes_ok = codes_path.is_file() and "pytest exit=0" in _read_text(codes_path)
+diff --git a/src/textproof/assets/__init__.py b/src/textproof/assets/__init__.py
+new file mode 100644
+index 0000000..db50ab9
+--- /dev/null
++++ b/src/textproof/assets/__init__.py
+@@ -0,0 +1,19 @@
++"""Packaged OCR assets shipped inside the ``textproof`` wheel.
++
++``textproof/assets/ocr/models/`` holds verbatim copies of the three
++frozen ONNX models from ``assets/ocr/models/`` (same files, same
++SHA-256 — see ``THIRD_PARTY_NOTICES.md`` §2 and the adapter's frozen
++hashes).  They are shipped in the wheel as package data so an
++installed ``textproof`` can run OCR with no source checkout: the
++adapter resolves them when no checkout assets are visible
++(see :func:`textproof.ocr.rapidocr_adapter.default_assets_dir`).
++
++The recognition dictionary is deliberately NOT shipped here: its
++licence is UNVERIFIED (``THIRD_PARTY_NOTICES.md`` §4), so it is
++rebuilt locally into ``textproof/assets/ocr/dictionaries/`` by
++``python -m textproof.setup_dictionary`` after install.  The
++``dictionaries/`` directory exists so that rebuild has a stable
++target; it ships empty.
++"""
++
++from __future__ import annotations
+diff --git a/src/textproof/assets/ocr/models/PP-OCRv6_det_small.onnx b/src/textproof/assets/ocr/models/PP-OCRv6_det_small.onnx
+new file mode 100644
+index 0000000..b7f8a24
+Binary files /dev/null and b/src/textproof/assets/ocr/models/PP-OCRv6_det_small.onnx differ
+diff --git a/src/textproof/assets/ocr/models/PP-OCRv6_rec_small.onnx b/src/textproof/assets/ocr/models/PP-OCRv6_rec_small.onnx
+new file mode 100644
+index 0000000..4adb3f0
+Binary files /dev/null and b/src/textproof/assets/ocr/models/PP-OCRv6_rec_small.onnx differ
+diff --git a/src/textproof/assets/ocr/models/ch_ppocr_mobile_v2.0_cls_mobile.onnx b/src/textproof/assets/ocr/models/ch_ppocr_mobile_v2.0_cls_mobile.onnx
+new file mode 100644
+index 0000000..6b9d102
+Binary files /dev/null and b/src/textproof/assets/ocr/models/ch_ppocr_mobile_v2.0_cls_mobile.onnx differ
+diff --git a/src/textproof/cli.py b/src/textproof/cli.py
+index fb0a3aa..0a6cb80 100644
+--- a/src/textproof/cli.py
++++ b/src/textproof/cli.py
+@@ -14,6 +14,9 @@ fallback: "不创建第二套 CLI-only 错误算法"):
+ * ``serve`` — T007 :func:`textproof.api.app.serve` (loopback-only).
+ * ``verify-s0`` — thin subprocess wrapper around
+   ``scripts/verify_s0.py`` (T006); the logic is not copied here.
++  In an installed layout (no source checkout) the S0 runner is not
++  shipped in the wheel, so the command exits 3 with a defined
++  message instead of failing on a missing path (T013-U01).
+ * ``version`` — frozen versions only; never constructs the OCR engine.
+ 
+ Exit codes (PROJECT_BOOK.md §5.5, frozen):
+@@ -65,6 +68,7 @@ from textproof.api.routes import (
+ )
+ from textproof.contracts import MIME_BY_FORMAT, SCHEMA_ID
+ from textproof.core.report import TOOL_VERSION
++from textproof.core.report_schema import validate_report
+ from textproof.io.image_loader import detect_format
+ from textproof.ocr.rapidocr_adapter import (
+     ALLOWED_PROVIDERS,
+@@ -76,20 +80,16 @@ __all__ = ["EXIT_FOR_VERDICT", "build_parser", "main"]
+ 
+ 
+ def _validate_report(report: dict) -> list[str]:
+-    """Validate ``report`` with the S0 handwritten §5 validator.
+-
+-    Imported lazily (``scripts/`` is not a package, so its parent dir
+-    must be on ``sys.path`` first).  Import failure is a violation,
+-    not a skip: a check must never emit a report it could not
+-    validate (fail closed, exit 5).
++    """Validate ``report`` with the in-package §5 validator.
++
++    The validator lives in ``textproof.core.report_schema`` and ships
++    in the wheel, so an installed ``textproof`` validates its own
++    reports without a source checkout (T013-U01; the old
++    repo-layout-relative ``scripts/`` import failed closed with
++    "validator unavailable" in an installed layout).  Import failure
++    is a violation, not a skip: a check must never emit a report it
++    could not validate (fail closed, exit 5).
+     """
+-    root = str(Path(__file__).resolve().parents[2])
+-    if root not in sys.path:
+-        sys.path.insert(0, root)
+-    try:
+-        from scripts.validate_report_schema import validate_report
+-    except Exception:  # noqa: BLE001 - validator unavailable == invalid
+-        return ["validator unavailable: scripts/validate_report_schema.py"]
+     return validate_report(report)
+ 
+ #: CLI exit code for each report verdict (PROJECT_BOOK.md §5.5).
+@@ -271,18 +271,45 @@ def _serve(args: argparse.Namespace) -> int:
+     return 0
+ 
+ 
++def _find_verify_s0_script() -> Path | None:
++    """Locate the S0 runner, or ``None`` when there is no checkout.
++
++    The runner (``scripts/verify_s0.py``) is a development gate, not
++    part of the installed product: it needs the checkout's fixtures,
++    manifest and helper scripts, none of which ship in the wheel.
++    An installed ``textproof`` therefore has no runner to delegate
++    to, and :func:`_verify_s0` reports that as a defined exit-3
++    error instead of failing on a missing path (T013-U01).
++    """
++    candidate = REPO_ROOT / "scripts" / "verify_s0.py"
++    return candidate if candidate.is_file() else None
++
++
+ def _verify_s0(args: argparse.Namespace) -> int:
+     """Run ``verify-s0``: thin wrapper over scripts/verify_s0.py.
+ 
+     The S0 logic lives only in that script; this command only checks
+     the manifest exists, forwards the flags, and passes the exit code
+-    through unchanged.
++    through unchanged.  In an installed layout (no checkout) there is
++    no script to run: when the manifest exists but the runner does
++    not, exit 3 with a defined message — the S0 gate requires a
++    source checkout (fixtures + manifest + runner are not shipped in
++    the wheel).  That is a defined refusal, never a silent pass: no
++    S0 verdict is claimed from an installed layout.
+     """
+     manifest = Path(args.manifest)
+     if not manifest.is_file():
+         print("textproof: S0 manifest not found.", file=sys.stderr)
+         return EXIT_INVALID_INPUT
+-    cmd = [sys.executable, str(REPO_ROOT / "scripts" / "verify_s0.py"),
++    script = _find_verify_s0_script()
++    if script is None:
++        print(
++            "textproof: verify-s0 requires a source checkout: the S0 "
++            "runner is not shipped in the wheel.",
++            file=sys.stderr,
++        )
++        return EXIT_INVALID_INPUT
++    cmd = [sys.executable, str(script),
+            "--manifest", str(manifest)]
+     if args.blind is not None:
+         cmd += ["--blind", str(args.blind)]
+diff --git a/src/textproof/core/report_schema.py b/src/textproof/core/report_schema.py
+new file mode 100644
+index 0000000..23e00ae
+--- /dev/null
++++ b/src/textproof/core/report_schema.py
+@@ -0,0 +1,503 @@
++"""Validate a ``textproof.report/v1`` report against PROJECT_BOOK.md §5.
++
++This is the in-package home of the handwritten §5 validator (T006
++deliverable, plan §5.2 / T006 card item 6).  It used to live only in
++``scripts/validate_report_schema.py``; T013-U01 moved the
++implementation here so the installed wheel can validate its own
++reports without a source checkout (``scripts/`` is not packaged).
++``scripts/validate_report_schema.py`` is now a thin wrapper that
++re-exports :func:`validate_report` and :func:`main` from this module,
++so the script entry point and every existing ``from scripts...``
++import keep working unchanged.
++
++The formal ``.schema.json`` file is a T009 deliverable; this module is
++the S0 validator, implemented by hand against the frozen contract text
++because no JSON-Schema library is in the locked dependency set
++(``requirements.lock``; checked 2026-11-25: ``jsonschema`` is not
++installed and no new package may be added).
++
++Rules enforced, each anchored to a §5 clause:
++
++* §5.1 — ``schema`` is exactly ``"textproof.report/v1"``; encoding is
++  UTF-8 (callers read files as UTF-8); ``coordinate_system`` is
++  ``"oriented_image_px_top_left"``; character spans are half-open
++  code-point spans into normalised text.
++* §5.2 — ``verdict`` is one of ``MATCH`` / ``MISMATCH`` /
++  ``REVIEW_REQUIRED`` / ``OCR_FAILED``.
++* §5.3 — error ``type`` is one of the seven frozen types; warning
++  ``code`` is one of ``LOW_OCR_CONFIDENCE`` /
++  ``POSSIBLE_MULTI_COLUMN`` / ``ROTATED_TEXT_NOT_SUPPORTED`` /
++  ``OCR_EMPTY``.
++* §5.4 — top-level keys are exactly the sample's keys; the ``image``
++  block has ``sha256`` (64 lowercase hex chars), ``format`` (``PNG`` /
++  ``JPEG`` / ``WEBP``), positive integer ``width`` / ``height`` and
++  the coordinate system above; ``tool_version`` is a non-empty
++  string; ``expected_text`` / ``recognized_text`` are strings;
++  ``ocr_lines`` entries have ``line_index`` (int >= 0), ``text``
++  (str), ``confidence`` (number in [0, 1]), ``bbox_xyxy`` (four
++  numbers, x1 <= x2, y1 <= y2) and ``quad`` (four [x, y] points);
++  ``errors`` entries have ``id`` matching ``E`` + three digits,
++  sequential from ``E001``; ``expected_line_index`` /
++  ``ocr_line_index`` are ints >= 0 or ``null``; ``expected_text`` /
++  ``recognized_text`` are strings; spans are ``null`` or ``[int,
++  int]`` with ``0 <= start <= end``; fragments are strings;
++  ``bbox_xyxy`` is ``null`` or four numbers inside the image bounds;
++  ``bbox_scope`` is ``"ocr_line"`` or ``null``; ``confidence`` is
++  ``null`` or a number in [0, 1]; ``summary`` counts equal the
++  lengths of the arrays they count.
++* §4.6 / §7.5 — a ``MISSING_LINE`` error has ``bbox_xyxy`` ``null``
++  (no fabricated box); every other error has a non-null line bbox.
++* §5.4 sample — error spans must lie inside the error's own
++  ``expected_text`` / ``recognized_text`` (the normalised line texts
++  the spans index into, §4.3.6).
++
++Frozen by T009 (finding F-03, see ``schemas/textproof.report.v1.schema.json``
++and ``task_handoffs/T009/TASK_RESULT.md``): the absent side of a
++``MISSING_LINE`` / ``EXTRA_LINE`` span is ``null`` (never ``[0, 0]``),
++a missing box has ``bbox_scope`` ``null`` (never ``"none"``), and a
++warning is exactly ``{code, message}`` plus ``ocr_line_index`` only
++for ``LOW_OCR_CONFIDENCE`` (no ``confidence`` field).  This validator
++and the ``.schema.json`` file enforce the same frozen form; a report
++is valid only if it passes both.
++
++T013 (findings R-05, R-15): ``summary.expected_lines`` counts lines
++after unifying CR/CRLF to LF first (the production rule in
++``image_loader``), and the present side of every error carries a
++non-null line index — MISSING_LINE: ``expected_line_index``;
++EXTRA_LINE: ``ocr_line_index``; character errors: both.
++
++Usage::
++
++    PYTHONPATH=src python -m textproof.core.report_schema report.json
++    python scripts/validate_report_schema.py report.json [report2.json ...]
++    python scripts/validate_report_schema.py --reports-dir dir/
++
++Exit code 0 iff every report is valid; every violation is printed
++with its JSON path.
++"""
++
++from __future__ import annotations
++
++import argparse
++import json
++import re
++import sys
++from pathlib import Path
++from typing import Any
++
++SCHEMA_ID = "textproof.report/v1"
++COORDINATE_SYSTEM = "oriented_image_px_top_left"
++VERDICTS = {"MATCH", "MISMATCH", "REVIEW_REQUIRED", "OCR_FAILED"}
++ERROR_TYPES = {
++    "SUBSTITUTION",
++    "MISSING_CHARACTER",
++    "EXTRA_CHARACTER",
++    "NUMERIC_CHANGE",
++    "MISSING_LINE",
++    "EXTRA_LINE",
++    "AMBIGUOUS_ALIGNMENT",
++}
++WARNING_CODES = {
++    "LOW_OCR_CONFIDENCE",
++    "POSSIBLE_MULTI_COLUMN",
++    "ROTATED_TEXT_NOT_SUPPORTED",
++    "OCR_EMPTY",
++}
++IMAGE_FORMATS = {"PNG", "JPEG", "WEBP"}
++TOP_LEVEL_KEYS = {
++    "schema",
++    "tool_version",
++    "verdict",
++    "image",
++    "expected_text",
++    "recognized_text",
++    "ocr_lines",
++    "errors",
++    "warnings",
++    "summary",
++}
++OCR_LINE_KEYS = {"line_index", "text", "confidence", "bbox_xyxy", "quad"}
++ERROR_KEYS = {
++    "id",
++    "type",
++    "expected_line_index",
++    "ocr_line_index",
++    "expected_text",
++    "recognized_text",
++    "expected_span",
++    "recognized_span",
++    "expected_fragment",
++    "recognized_fragment",
++    "bbox_xyxy",
++    "bbox_scope",
++    "confidence",
++}
++WARNING_KEYS = {"code", "message"}
++SUMMARY_KEYS = {"expected_lines", "ocr_lines", "error_count", "warning_count"}
++
++_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
++_ERROR_ID_RE = re.compile(r"^E\d{3}$")
++
++
++def _unified_lines(text: str) -> list[str]:
++    """Split ``text`` into lines after unifying newlines to LF.
++
++    Same rule as ``src/textproof/io/image_loader.py``
++    (``validate_expected_text``) and the §4.3 normalisation: CRLF and
++    a lone CR both become LF before splitting, so ``'a\\rb'`` is two
++    lines, not one (T013, finding R-05).
++    """
++    return text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
++
++
++def _is_number(value: Any) -> bool:
++    return isinstance(value, (int, float)) and not isinstance(value, bool)
++
++
++def _check_bbox(value: Any, path: str, errors: list[str],
++                width: int | None, height: int | None) -> None:
++    if value is None:
++        return
++    if not isinstance(value, list) or len(value) != 4 \
++            or not all(_is_number(v) for v in value):
++        errors.append(f"{path}: bbox must be null or [x1, y1, x2, y2] numbers")
++        return
++    x1, y1, x2, y2 = value
++    if not (x1 <= x2 and y1 <= y2):
++        errors.append(f"{path}: bbox corners out of order: {value}")
++    if width is not None and height is not None:
++        if x1 < 0 or y1 < 0 or x2 > width or y2 > height:
++            errors.append(
++                f"{path}: bbox {value} outside image bounds "
++                f"{width}x{height} (§5.4 / §8.1)")
++        if x1 < 0 or y1 < 0:
++            errors.append(f"{path}: bbox has negative coordinates: {value}")
++
++
++def _check_span(value: Any, path: str, errors: list[str],
++                line_text: str | None) -> None:
++    if value is None:
++        return
++    if not isinstance(value, list) or len(value) != 2 \
++            or not all(isinstance(v, int) and not isinstance(v, bool)
++                       for v in value):
++        errors.append(f"{path}: span must be null or [int, int]")
++        return
++    start, end = value
++    if not (0 <= start <= end):
++        errors.append(f"{path}: span not half-open with 0 <= start <= end: {value}")
++    if line_text is not None and end > len(line_text):
++        errors.append(
++            f"{path}: span end {end} exceeds its line text length "
++            f"{len(line_text)} (§4.3.6)")
++
++
++def validate_report(report: Any) -> list[str]:
++    """Return the list of §5 violations in ``report`` (empty = valid)."""
++    errors: list[str] = []
++    if not isinstance(report, dict):
++        return ["$: report must be a JSON object"]
++    if set(report.keys()) != TOP_LEVEL_KEYS:
++        errors.append(
++            f"$: top-level keys must be exactly {sorted(TOP_LEVEL_KEYS)}; "
++            f"got {sorted(report.keys())} (§5.4)")
++    if report.get("schema") != SCHEMA_ID:
++        errors.append(f"$.schema: must be {SCHEMA_ID!r} (§5.1)")
++    tool_version = report.get("tool_version")
++    if tool_version != "0.1.0":
++        errors.append("$.tool_version: must be exactly \"0.1.0\" "
++                      "(frozen product version, §5.4; T009)")
++    if report.get("verdict") not in VERDICTS:
++        errors.append(f"$.verdict: must be one of {sorted(VERDICTS)} (§5.2)")
++    if not isinstance(report.get("expected_text"), str):
++        errors.append("$.expected_text: must be a string (§5.4)")
++    if not isinstance(report.get("recognized_text"), str):
++        errors.append("$.recognized_text: must be a string (§5.4)")
++
++    image = report.get("image")
++    width = height = None
++    if not isinstance(image, dict):
++        errors.append("$.image: must be an object (§5.4)")
++    else:
++        if set(image.keys()) != {"sha256", "format", "width", "height",
++                                 "coordinate_system"}:
++            errors.append(
++                "$.image: keys must be sha256/format/width/height/"
++                "coordinate_system (§5.4)")
++        sha = image.get("sha256")
++        if not isinstance(sha, str) or not _SHA256_RE.match(sha):
++            errors.append("$.image.sha256: must be 64 lowercase hex chars (§5.4)")
++        if image.get("format") not in IMAGE_FORMATS:
++            errors.append(f"$.image.format: must be one of {sorted(IMAGE_FORMATS)}")
++        width, height = image.get("width"), image.get("height")
++        for name, value in (("width", width), ("height", height)):
++            if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
++                errors.append(f"$.image.{name}: must be a positive integer (§5.4)")
++        if image.get("coordinate_system") != COORDINATE_SYSTEM:
++            errors.append(
++                f"$.image.coordinate_system: must be {COORDINATE_SYSTEM!r} (§5.1)")
++
++    ocr_lines = report.get("ocr_lines")
++    if not isinstance(ocr_lines, list):
++        errors.append("$.ocr_lines: must be a list (§5.4)")
++        ocr_lines = []
++    for i, line in enumerate(ocr_lines):
++        path = f"$.ocr_lines[{i}]"
++        if not isinstance(line, dict):
++            errors.append(f"{path}: must be an object")
++            continue
++        if set(line.keys()) != OCR_LINE_KEYS:
++            errors.append(f"{path}: keys must be exactly {sorted(OCR_LINE_KEYS)}")
++        if not isinstance(line.get("line_index"), int) \
++                or isinstance(line.get("line_index"), bool) \
++                or line.get("line_index", -1) < 0:
++            errors.append(f"{path}.line_index: must be an int >= 0")
++        elif line.get("line_index") != i:
++            errors.append(
++                f"{path}.line_index: must equal its position {i} (§7.1)")
++        if not isinstance(line.get("text"), str):
++            errors.append(f"{path}.text: must be a string")
++        conf = line.get("confidence")
++        if not _is_number(conf) or not 0.0 <= conf <= 1.0:
++            errors.append(f"{path}.confidence: must be a number in [0, 1] "
++                          "(T009: an OCR line always carries a confidence)")
++        _check_bbox(line.get("bbox_xyxy"), f"{path}.bbox_xyxy", errors,
++                    width, height)
++        quad = line.get("quad")
++        if not isinstance(quad, list) or len(quad) != 4 or any(
++                not isinstance(p, list) or len(p) != 2
++                or not all(_is_number(v) for v in p) for p in quad):
++            errors.append(f"{path}.quad: must be four [x, y] points (§5.4)")
++
++    error_list = report.get("errors")
++    if not isinstance(error_list, list):
++        errors.append("$.errors: must be a list (§5.4)")
++        error_list = []
++    for i, err in enumerate(error_list):
++        path = f"$.errors[{i}]"
++        if not isinstance(err, dict):
++            errors.append(f"{path}: must be an object")
++            continue
++        if set(err.keys()) != ERROR_KEYS:
++            errors.append(f"{path}: keys must be exactly {sorted(ERROR_KEYS)}")
++        err_id = err.get("id")
++        if not isinstance(err_id, str) or not _ERROR_ID_RE.match(err_id):
++            errors.append(f"{path}.id: must match E### (§5.4)")
++        elif err_id != f"E{i + 1:03d}":
++            errors.append(
++                f"{path}.id: ids must be sequential E001...; expected "
++                f"E{i + 1:03d}, got {err_id}")
++        if err.get("type") not in ERROR_TYPES:
++            errors.append(f"{path}.type: must be one of {sorted(ERROR_TYPES)} (§5.3)")
++        for field in ("expected_line_index", "ocr_line_index"):
++            value = err.get(field)
++            if value is not None and (not isinstance(value, int)
++                                      or isinstance(value, bool) or value < 0):
++                errors.append(f"{path}.{field}: must be null or an int >= 0")
++        exp_text = err.get("expected_text")
++        rec_text = err.get("recognized_text")
++        if not isinstance(exp_text, str):
++            errors.append(f"{path}.expected_text: must be a string")
++            exp_text = None
++        if not isinstance(rec_text, str):
++            errors.append(f"{path}.recognized_text: must be a string")
++            rec_text = None
++        _check_span(err.get("expected_span"), f"{path}.expected_span",
++                    errors, exp_text)
++        _check_span(err.get("recognized_span"), f"{path}.recognized_span",
++                    errors, rec_text)
++        if not isinstance(err.get("expected_fragment"), str):
++            errors.append(f"{path}.expected_fragment: must be a string")
++        if not isinstance(err.get("recognized_fragment"), str):
++            errors.append(f"{path}.recognized_fragment: must be a string")
++        bbox = err.get("bbox_xyxy")
++        _check_bbox(bbox, f"{path}.bbox_xyxy", errors, width, height)
++        # Frozen per-type shape (T009, finding F-03).  The absent side
++        # of a line error is null, never [0, 0]: [0, 0] is a real empty
++        # span at position 0, so it cannot also mean "no side".
++        err_type = err.get("type")
++        if err_type == "MISSING_LINE":
++            if bbox is not None:
++                errors.append(
++                    f"{path}.bbox_xyxy: MISSING_LINE must have null bbox "
++                    "(§4.6 / §7.5)")
++            if err.get("recognized_span") is not None:
++                errors.append(
++                    f"{path}.recognized_span: MISSING_LINE has no OCR "
++                    "side; must be null (T009 F-03)")
++            if err.get("ocr_line_index") is not None:
++                errors.append(
++                    f"{path}.ocr_line_index: MISSING_LINE must be null")
++            if err.get("expected_span") is None:
++                errors.append(
++                    f"{path}.expected_span: MISSING_LINE must carry the "
++                    "whole-line span")
++            if err.get("expected_line_index") is None:
++                errors.append(
++                    f"{path}.expected_line_index: MISSING_LINE must carry "
++                    "its expected line index (T013 R-15: the present side "
++                    "is never null)")
++        elif err_type == "EXTRA_LINE":
++            if bbox is None:
++                errors.append(
++                    f"{path}.bbox_xyxy: EXTRA_LINE must carry its OCR "
++                    "line bbox (§4.6 / §7.5)")
++            if err.get("expected_span") is not None:
++                errors.append(
++                    f"{path}.expected_span: EXTRA_LINE has no expected "
++                    "side; must be null (T009 F-03)")
++            if err.get("expected_line_index") is not None:
++                errors.append(
++                    f"{path}.expected_line_index: EXTRA_LINE must be null")
++            if err.get("recognized_span") is None:
++                errors.append(
++                    f"{path}.recognized_span: EXTRA_LINE must carry the "
++                    "whole-line span")
++            if err.get("ocr_line_index") is None:
++                errors.append(
++                    f"{path}.ocr_line_index: EXTRA_LINE must carry its "
++                    "OCR line index (T013 R-15: the present side is "
++                    "never null)")
++        elif err_type == "AMBIGUOUS_ALIGNMENT":
++            if err.get("expected_span") is not None \
++                    or err.get("recognized_span") is not None:
++                errors.append(
++                    f"{path}.*_span: AMBIGUOUS_ALIGNMENT must have null "
++                    "spans (T009 F-03)")
++            if err.get("expected_line_index") is not None \
++                    or err.get("ocr_line_index") is not None:
++                errors.append(
++                    f"{path}.*_line_index: AMBIGUOUS_ALIGNMENT must have "
++                    "null line indices")
++            if bbox is not None:
++                errors.append(
++                    f"{path}.bbox_xyxy: AMBIGUOUS_ALIGNMENT must have "
++                    "null bbox")
++        elif err_type in ("SUBSTITUTION", "MISSING_CHARACTER",
++                          "EXTRA_CHARACTER", "NUMERIC_CHANGE"):
++            if err.get("expected_span") is None \
++                    or err.get("recognized_span") is None:
++                errors.append(
++                    f"{path}.*_span: character errors always carry both "
++                    "spans (T009 F-03)")
++            if err.get("expected_line_index") is None \
++                    or err.get("ocr_line_index") is None:
++                errors.append(
++                    f"{path}.expected_line_index / ocr_line_index: "
++                    "character errors always carry both line indices "
++                    "(T013 R-15: the present side is never null)")
++            if bbox is None:
++                errors.append(
++                    f"{path}.bbox_xyxy: character errors must carry "
++                    "their OCR line bbox (§4.6 / §7.5)")
++        scope = err.get("bbox_scope")
++        if scope not in ("ocr_line", None):
++            errors.append(
++                f"{path}.bbox_scope: must be 'ocr_line' or null "
++                "(T009 F-03: 'none' is not a frozen value)")
++        if bbox is None and scope == "ocr_line":
++            errors.append(f"{path}.bbox_scope: 'ocr_line' with null bbox")
++        if bbox is not None and scope != "ocr_line":
++            errors.append(
++                f"{path}.bbox_scope: error with a bbox must have scope "
++                "'ocr_line'")
++        conf = err.get("confidence")
++        if conf is not None and (not _is_number(conf) or not 0.0 <= conf <= 1.0):
++            errors.append(f"{path}.confidence: must be null or a number in [0, 1]")
++
++    warnings = report.get("warnings")
++    if not isinstance(warnings, list):
++        errors.append("$.warnings: must be a list (§5.4)")
++        warnings = []
++    for i, warn in enumerate(warnings):
++        path = f"$.warnings[{i}]"
++        if not isinstance(warn, dict):
++            errors.append(f"{path}: must be an object")
++            continue
++        # Frozen warning shape (T009, finding F-03): exactly
++        # {code, message}, plus ocr_line_index only for
++        # LOW_OCR_CONFIDENCE.  No 'confidence' field: the line
++        # confidence already lives on the ocr_lines entry.
++        if set(warn.keys()) - {"code", "message", "ocr_line_index"}:
++            errors.append(
++                f"{path}: keys must be code/message and optionally "
++                "ocr_line_index (T009 F-03)")
++        if warn.get("code") not in WARNING_CODES:
++            errors.append(
++                f"{path}.code: must be one of {sorted(WARNING_CODES)} (§5.3)")
++        if not isinstance(warn.get("message"), str):
++            errors.append(f"{path}.message: must be a string")
++        if "ocr_line_index" in warn:
++            idx = warn["ocr_line_index"]
++            if warn.get("code") != "LOW_OCR_CONFIDENCE":
++                errors.append(
++                    f"{path}.ocr_line_index: only LOW_OCR_CONFIDENCE "
++                    "carries a line index (T009 F-03)")
++            elif not isinstance(idx, int) or isinstance(idx, bool) or idx < 0:
++                errors.append(
++                    f"{path}.ocr_line_index: must be an int >= 0")
++
++    summary = report.get("summary")
++    if not isinstance(summary, dict):
++        errors.append("$.summary: must be an object (§5.4)")
++    else:
++        if set(summary.keys()) != SUMMARY_KEYS:
++            errors.append(
++                f"$.summary: keys must be exactly {sorted(SUMMARY_KEYS)}")
++        expected_counts = {
++            # T013 R-05: count lines the way production does — unify
++            # CR/CRLF to LF first, then split (image_loader.py).  The
++            # old ``count("\n") + 1`` undercounted a lone CR: 'a\rb'
++            # is 2 lines for production but was 1 here, so a legal
++            # report failed its own self-check (CLI exit 5).
++            "expected_lines": len(_unified_lines(report["expected_text"]))
++            if isinstance(report.get("expected_text"), str) else None,
++            "ocr_lines": len(ocr_lines),
++            "error_count": len(error_list),
++            "warning_count": len(warnings),
++        }
++        for key, value in expected_counts.items():
++            actual = summary.get(key)
++            if value is not None and actual != value:
++                errors.append(
++                    f"$.summary.{key}: must be {value}, got {actual} (§5.4)")
++
++    return errors
++
++
++def main(argv: list[str] | None = None) -> int:
++    parser = argparse.ArgumentParser(
++        description="Validate textproof.report/v1 reports against §5.")
++    parser.add_argument("reports", nargs="*", help="Report JSON file(s).")
++    parser.add_argument("--reports-dir", type=Path, default=None,
++                        help="Validate every *.json in this directory.")
++    args = parser.parse_args(argv)
++
++    paths: list[Path] = [Path(p) for p in args.reports]
++    if args.reports_dir is not None:
++        paths.extend(sorted(args.reports_dir.glob("*.json")))
++    if not paths:
++        parser.error("no reports given")
++
++    total_bad = 0
++    for path in paths:
++        try:
++            report = json.loads(path.read_text(encoding="utf-8"))
++        except Exception as exc:  # noqa: BLE001 - report and continue
++            print(f"{path}: UNREADABLE: {exc}")
++            total_bad += 1
++            continue
++        violations = validate_report(report)
++        if violations:
++            total_bad += 1
++            print(f"{path}: INVALID ({len(violations)} violation(s))")
++            for violation in violations:
++                print(f"  - {violation}")
++        else:
++            print(f"{path}: VALID")
++    print(f"schema validation: {len(paths) - total_bad}/{len(paths)} valid")
++    return 0 if total_bad == 0 else 1
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/src/textproof/ocr/rapidocr_adapter.py b/src/textproof/ocr/rapidocr_adapter.py
+index b1c9875..5b9cd9d 100644
+--- a/src/textproof/ocr/rapidocr_adapter.py
++++ b/src/textproof/ocr/rapidocr_adapter.py
+@@ -9,7 +9,13 @@ Frozen model route (PROJECT_BOOK.md §6.2; confirmed against the installed
+ - Direction classification: PP-OCRv4 ``mobile``
+   (``ch_ppocr_mobile_v2.0_cls_mobile``)
+ 
+-All model files and the recognition dictionary live under ``assets/ocr/``.
++All model files and the recognition dictionary live under an
++``assets/ocr`` directory, resolved by :func:`default_assets_dir`:
++the checkout ``<repo>/assets/ocr`` in a source tree, or the packaged
++``<package>/assets/ocr`` shipped in the wheel (verbatim model copies
++plus the dictionary rebuilt there by
++``python -m textproof.setup_dictionary``).  An explicit
++``TEXTPROOF_ASSETS_DIR`` overrides both.
+ The adapter verifies every asset (existence + SHA-256) *before* constructing
+ the RapidOCR engine and passes explicit ``model_path`` values, so RapidOCR
+ never takes its download path at runtime. A missing or tampered asset raises
+@@ -118,14 +124,46 @@ def _sha256_file(path: Path) -> str:
+     return digest.hexdigest()
+ 
+ 
+-def _default_assets_dir() -> Path:
+-    """``assets/ocr`` relative to the repository root.
++def _has_models(assets_dir: Path) -> bool:
++    """True when ``assets_dir/models`` holds all three frozen models."""
++    models = assets_dir / "models"
++    return all((models / name).is_file() for name, _url, _sha, _key in MODEL_FILES)
++
++
++def default_assets_dir() -> Path:
++    """Resolve the ``assets/ocr`` directory for this installation.
++
++    Resolution order (T013-U01: the installed wheel must run with no
++    source checkout, PROJECT_BOOK.md §11.2):
+ 
+-    The package lives at ``<root>/src/textproof/ocr/``; the assets live at
+-    ``<root>/assets/ocr``. An explicit ``assets_dir`` argument to
+-    :class:`RapidOCRAdapter` always wins over this default.
++    1. ``TEXTPROOF_ASSETS_DIR`` when set (explicit override wins).
++    2. The checkout assets at ``<repo>/assets/ocr`` when they hold
++       the three frozen models — the source-tree behaviour, unchanged.
++    3. The packaged assets at ``<package>/assets/ocr`` (the verbatim
++       model copies shipped in the wheel, plus the dictionary rebuilt
++       there by ``python -m textproof.setup_dictionary``).
++    4. Otherwise the checkout path, so a missing-asset error names
++       the familiar location instead of failing in an odd place.
++
++    The dictionary is always resolved from the same directory the
++    models come from: a checkout dictionary lives under the checkout
++    assets, an installed dictionary under the packaged assets.
+     """
+-    return Path(__file__).resolve().parents[3] / "assets" / "ocr"
++    env_dir = os.environ.get("TEXTPROOF_ASSETS_DIR")
++    if env_dir:
++        return Path(env_dir)
++    checkout = Path(__file__).resolve().parents[3] / "assets" / "ocr"
++    if _has_models(checkout):
++        return checkout
++    packaged = Path(__file__).resolve().parents[1] / "assets" / "ocr"
++    if _has_models(packaged):
++        return packaged
++    return checkout
++
++
++def _default_assets_dir() -> Path:
++    """Backwards-compatible alias for :func:`default_assets_dir`."""
++    return default_assets_dir()
+ 
+ 
+ @dataclass(frozen=True)
+@@ -161,7 +199,9 @@ class RapidOCRAdapter:
+     ----------
+     assets_dir:
+         Directory holding ``models/`` (three ``.onnx`` files) and
+-        ``dictionaries/ppocrv6_dict.txt``. Defaults to ``<repo>/assets/ocr``.
++        ``dictionaries/ppocrv6_dict.txt``. Defaults to
++        :func:`default_assets_dir` (checkout assets in a source tree,
++        packaged assets in an installed wheel).
+     """
+ 
+     def __init__(self, assets_dir: Union[str, Path, None] = None) -> None:
+@@ -416,6 +456,7 @@ __all__ = [
+     "OCRLine",
+     "RapidOCRAdapter",
+     "OCRAdapterError",
++    "default_assets_dir",
+     "RAPIDOCR_VERSION",
+     "ONNXRUNTIME_VERSION",
+     "ALLOWED_PROVIDERS",
+diff --git a/src/textproof/setup_dictionary.py b/src/textproof/setup_dictionary.py
+new file mode 100644
+index 0000000..e86b3ac
+--- /dev/null
++++ b/src/textproof/setup_dictionary.py
+@@ -0,0 +1,284 @@
++"""Rebuild the PP-OCRv6 recognition dictionary from local model metadata.
++
++This is the in-package home of the dictionary rebuild (T013-U01).
++It used to live only in ``scripts/setup_dictionary.py``; that script
++is now a thin wrapper around this module, so the rebuild works after
++a wheel install too, where there is no ``scripts/`` directory::
++
++    python -m textproof.setup_dictionary          # rebuild if missing
++    python -m textproof.setup_dictionary --check  # verify only
++
++Why this module exists (T014, review finding R-03)
++---------------------------------------------------
++The recognition dictionary ``ppocrv6_dict.txt`` (18,708 lines,
++SHA-256 ``b5f2bfe2...``) has no dictionary-specific licence
++statement: the file itself carries no licence header, and the RapidOCR
++model licence notice expressly excludes recognition dictionaries from its
++Apache-2.0 declaration. The dictionary is therefore NOT redistributed as
++a separate file in any public snapshot of this repository
++(see ``THIRD_PARTY_NOTICES.md`` section 4 and the packaging exclusion
++list there). This module recreates it on the user's own machine, from
++data the user already holds locally: the character list embedded in
++the locally shipped ``PP-OCRv6_rec_small.onnx`` model file.
++
++Where the dictionary is written
++--------------------------------
++Into the assets directory resolved by
++:func:`textproof.ocr.rapidocr_adapter.default_assets_dir`: the
++checkout ``<repo>/assets/ocr`` in a source tree, or the packaged
++``<package>/assets/ocr`` in an installed wheel (the models ship in
++the wheel; the dictionary is rebuilt next to them).  Pass
++``--assets-dir`` to target a different directory explicitly, or set
++``TEXTPROOF_ASSETS_DIR``.
++
++How the rebuild works
++---------------------
++The PP-OCRv6 recognition model ``PP-OCRv6_rec_small.onnx`` -- itself an
++Apache-2.0 model artifact shipped with the package -- embeds the
++very same character list in its ``character`` model metadata. The adapter
++already cross-checks the dictionary file against that embedded list on
++every start-up. This module performs the reverse step, once, at install
++time: it reads the embedded list from the local model file and writes it
++out as the dictionary file, then verifies the result byte-for-byte
++(SHA-256 and line count) against the frozen values below.
++
++What this module never does
++---------------------------
++- It reads only two files already present on the local disk (the model
++  file and, for the idempotence check, the dictionary file itself).
++- It opens no remote location, fetches nothing, and needs no
++  credentials. The model file is verified by SHA-256 *before* its
++  metadata is trusted, so a substituted model cannot silently yield a
++  wrong dictionary.
++- It never overwrites an existing dictionary whose contents differ from
++  the frozen value unless ``--force`` is given explicitly: a differing
++  local file is reported as an error and left untouched, so tampering
++  stays visible instead of being silently papered over.
++
++Exit codes: 0 = dictionary present and verified; 2 = the model file is
++missing or its hash does not match the frozen value; 3 = a differing
++dictionary already exists and ``--force`` was not given; 4 = the rebuilt
++file failed its own verification (the partial file is removed).
++"""
++
++from __future__ import annotations
++
++import argparse
++import hashlib
++import os
++import sys
++from pathlib import Path
++
++# Telemetry opt-out, set before the inference engine is imported, mirroring
++# src/textproof/ocr/rapidocr_adapter.py (PROJECT_BOOK.md section 9).
++os.environ["ORT_DISABLE_TELEMETRY"] = "1"
++
++from textproof.ocr.rapidocr_adapter import (  # noqa: E402
++    DICT_FILE,
++    REC_MODEL,
++    default_assets_dir,
++)
++
++# Frozen values (PROJECT_BOOK.md section 6.2; THIRD_PARTY_NOTICES.md
++# section 4). Single source of truth: the adapter's frozen tuples.
++# The model hash is the RapidOCR registry value for
++# multi_PP-OCRv6_rec_small; the dictionary hash and line count are the
++# T003-verified values for ppocrv6_dict.txt.
++REC_MODEL_NAME = REC_MODEL[0]
++REC_MODEL_SHA256 = REC_MODEL[2]
++DICT_NAME = DICT_FILE[0]
++DICT_SHA256 = DICT_FILE[2]
++DICT_LINES = DICT_FILE[3]
++
++__all__ = [
++    "REC_MODEL_NAME",
++    "REC_MODEL_SHA256",
++    "DICT_NAME",
++    "DICT_SHA256",
++    "DICT_LINES",
++    "rebuild",
++    "check_only",
++    "main",
++]
++
++
++def _sha256_file(path: Path) -> str:
++    digest = hashlib.sha256()
++    with open(path, "rb") as handle:
++        for chunk in iter(lambda: handle.read(1 << 20), b""):
++            digest.update(chunk)
++    return digest.hexdigest()
++
++
++def _assets_dir(explicit: Path | None) -> Path:
++    if explicit is not None:
++        return explicit.resolve()
++    return default_assets_dir()
++
++
++def _embedded_characters(model_path: Path) -> list[str]:
++    """Read the ``character`` list embedded in the local rec model file."""
++    import onnxruntime as ort
++
++    session = ort.InferenceSession(
++        str(model_path), providers=["CPUExecutionProvider"]
++    )
++    meta = session.get_modelmeta().custom_metadata_map
++    if "character" not in meta:
++        raise ValueError(
++            "Recognition model carries no embedded 'character' metadata; "
++            "cannot rebuild the dictionary."
++        )
++    chars = meta["character"].splitlines()
++    if len(chars) != DICT_LINES:
++        raise ValueError(
++            f"Embedded character list has {len(chars)} lines, "
++            f"expected {DICT_LINES}."
++        )
++    if any(not line or "\r" in line for line in chars):
++        raise ValueError(
++            "Embedded character list contains an empty line or a "
++            "carriage return; refusing to write the dictionary."
++        )
++    return chars
++
++
++def _check_dictionary(dict_path: Path) -> bool:
++    """True when the dictionary file exists and matches the frozen value."""
++    if not dict_path.is_file():
++        return False
++    if _sha256_file(dict_path) != DICT_SHA256:
++        return False
++    lines = dict_path.read_text(encoding="utf-8").splitlines()
++    return len(lines) == DICT_LINES
++
++
++def rebuild(assets_dir: Path, *, force: bool) -> int:
++    """Rebuild the dictionary from the local model file. Returns exit code."""
++    model_path = assets_dir / "models" / REC_MODEL_NAME
++    dict_path = assets_dir / "dictionaries" / DICT_NAME
++    rel_model = model_path.relative_to(assets_dir)
++    rel_dict = dict_path.relative_to(assets_dir)
++
++    if not model_path.is_file():
++        print(f"error: model file missing: {rel_model}", file=sys.stderr)
++        print(
++            "The recognition model is part of the shipped assets; "
++            "re-fetch it from the frozen registry source before "
++            "rebuilding the dictionary.",
++            file=sys.stderr,
++        )
++        return 2
++    if _sha256_file(model_path) != REC_MODEL_SHA256:
++        print(
++            f"error: model file hash mismatch: {rel_model}\n"
++            f"  expected: {REC_MODEL_SHA256}",
++            file=sys.stderr,
++        )
++        print(
++            "Refusing to rebuild from an unverified model file.",
++            file=sys.stderr,
++        )
++        return 2
++
++    if dict_path.is_file() and not _check_dictionary(dict_path):
++        if not force:
++            print(
++                f"error: existing dictionary differs from the frozen "
++                f"value: {rel_dict}",
++                file=sys.stderr,
++            )
++            print(
++                "Remove it by hand, or re-run with --force to replace "
++                "it with the rebuilt file.",
++                file=sys.stderr,
++            )
++            return 3
++        print(f"warning: replacing differing dictionary: {rel_dict}")
++
++    if _check_dictionary(dict_path):
++        print(f"dictionary already present and verified: {rel_dict}")
++        print(f"  sha256: {DICT_SHA256}")
++        print(f"  lines:  {DICT_LINES}")
++        return 0
++
++    chars = _embedded_characters(model_path)
++    content = "\n".join(chars) + "\n"
++    dict_path.parent.mkdir(parents=True, exist_ok=True)
++    dict_path.write_text(content, encoding="utf-8", newline="\n")
++
++    if not _check_dictionary(dict_path):
++        try:
++            dict_path.unlink()
++        except OSError:
++            pass
++        print(
++            "error: rebuilt dictionary failed verification; "
++            "partial file removed.",
++            file=sys.stderr,
++        )
++        return 4
++
++    print(f"rebuilt dictionary: {rel_dict}")
++    print(f"  source: {rel_model} (embedded character metadata)")
++    print(f"  sha256: {DICT_SHA256}")
++    print(f"  lines:  {DICT_LINES}")
++    return 0
++
++
++def check_only(assets_dir: Path) -> int:
++    """Verify the dictionary without writing anything. Returns exit code."""
++    dict_path = assets_dir / "dictionaries" / DICT_NAME
++    rel_dict = dict_path.relative_to(assets_dir)
++    if not dict_path.is_file():
++        print(f"missing: {rel_dict}", file=sys.stderr)
++        print(
++            "Run without --check to rebuild it from the local model file.",
++            file=sys.stderr,
++        )
++        return 2
++    if _check_dictionary(dict_path):
++        print(f"dictionary verified: {rel_dict}")
++        print(f"  sha256: {DICT_SHA256}")
++        print(f"  lines:  {DICT_LINES}")
++        return 0
++    print(f"error: dictionary differs from the frozen value: {rel_dict}",
++          file=sys.stderr)
++    return 3
++
++
++def main(argv: list[str] | None = None) -> int:
++    parser = argparse.ArgumentParser(
++        description=(
++            "Rebuild ppocrv6_dict.txt from the character list embedded "
++            "in the locally shipped PP-OCRv6_rec_small.onnx model file. "
++            "Local files only."
++        )
++    )
++    parser.add_argument(
++        "--assets-dir",
++        type=Path,
++        default=None,
++        help="assets/ocr directory (default: resolved the same way the "
++        "OCR adapter resolves it: TEXTPROOF_ASSETS_DIR, checkout assets, "
++        "then packaged assets)",
++    )
++    parser.add_argument(
++        "--check",
++        action="store_true",
++        help="verify the dictionary only; write nothing",
++    )
++    parser.add_argument(
++        "--force",
++        action="store_true",
++        help="replace an existing dictionary whose contents differ",
++    )
++    args = parser.parse_args(argv)
++    assets_dir = _assets_dir(args.assets_dir)
++    if args.check:
++        return check_only(assets_dir)
++    return rebuild(assets_dir, force=args.force)
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/task_handoffs/T014/pkg/offline_install.log b/task_handoffs/T014/pkg/offline_install.log
+index 30c29c3..96b9c4b 100644
+--- a/task_handoffs/T014/pkg/offline_install.log
++++ b/task_handoffs/T014/pkg/offline_install.log
+@@ -1,5 +1,5 @@
+-Looking in links: release/wheelhouse
+-Processing ./release/textproof-1.0.0-py3-none-any.whl
++Looking in links: /home/hatch/workspace/p033-textproof-t013-u01/release/wheelhouse
++Processing ./tmp/smoke/dist/textproof-1.0.0-py3-none-any.whl
+ Processing ./release/wheelhouse/rapidocr-3.10.0-py3-none-any.whl (from textproof==1.0.0)
+ Processing ./release/wheelhouse/onnxruntime-1.32.0-cp312-cp312-manylinux_2_28_x86_64.whl (from textproof==1.0.0)
+ Processing ./release/wheelhouse/pillow-11.3.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (from textproof==1.0.0)
+diff --git a/task_handoffs/T014/pkg/offline_smoke.txt b/task_handoffs/T014/pkg/offline_smoke.txt
+index 371657a..6c5ddf7 100644
+--- a/task_handoffs/T014/pkg/offline_smoke.txt
++++ b/task_handoffs/T014/pkg/offline_smoke.txt
+@@ -1,20 +1,33 @@
+-# Offline wheelhouse smoke evidence (T014) — values extracted from the
+-# committed raw logs in this directory, not hand-typed.
+-# Venv: fresh python3 -m venv tmp/venv-offline; install:
++# Offline wheelhouse smoke evidence (T013-U01, supersedes T014's U-01 evidence)
++# — values extracted from the committed raw logs in this directory, not hand-typed.
++# Wheel: built from fix commit 717b813 (T013-U01, branch t013-u01) with
++#   python -m build --wheel --no-isolation --outdir tmp/smoke/dist
++#   wheel SHA-256 6d2d45f13a3647f908a955492138f4c7104065736d38f9fda7f95bb62042b7ca
++#   (32 entries: UI + 3 models + validator + setup module, no dictionary).
++# NOTE: release/textproof-1.0.0-py3-none-any.whl is still the pre-fix T014
++# build; the re-freeze must rebuild it from the fix commit. This smoke
++# proves the FIXED CODE, installed offline, runs standalone.
++# Venv: fresh python3 -m venv tmp/smoke/venv-offline; install:
+ #   pip install --no-index --find-links release/wheelhouse
+-#     release/textproof-1.0.0-py3-none-any.whl
++#     tmp/smoke/dist/textproof-1.0.0-py3-none-any.whl
++# Then: python -m textproof.setup_dictionary (rebuilt into the installed
++# package; log setup_dictionary_install.log). No checkout on the path
++# (PYTHONPATH unset for every venv invocation).
+ offline_install_exit=0
+ textproof_help_exit=0
+ textproof_version_exit=0
+ textproof_version_tool=0.1.0
+ textproof_version_package=1.0.0
+ textproof_version_spec=1.0.0
+-standalone_check_exit=5
+-standalone_check_stderr=textproof: internal error: generated report failed schema validation.
+-standalone_check_report_produced=NO
+-serve_exit=1
+-serve_stderr_tail=RuntimeError: Directory '/home/hatch/workspace/p033-textproof-t014-pkg/tmp/venv-offline/lib/python3.12/site-packages/textproof/ui' does not exist
+-workaround_check_exit=1
+-workaround_check_verdict=MISMATCH
+-repo_control_check_exit=1
+-repo_control_check_verdict=MISMATCH
++setup_dictionary_exit=0
++setup_dictionary_sha256=b5f2bfe2bdd9448429e3e82b51c789775d9b42f2403d082b00662eb77e401c5d
++setup_dictionary_lines=18708
++standalone_check_exit=1
++standalone_check_report_produced=YES
++standalone_check_verdict=MISMATCH
++standalone_check_error=E001 MISSING_CHARACTER
++serve_health_status=200
++serve_ui_status=200
++serve_probe_exit=0
++verify_s0_default_exit=3
++verify_s0_manifest_exit=3
+diff --git a/task_handoffs/T014/pkg/setup_dictionary_install.log b/task_handoffs/T014/pkg/setup_dictionary_install.log
+new file mode 100644
+index 0000000..d706c5d
+--- /dev/null
++++ b/task_handoffs/T014/pkg/setup_dictionary_install.log
+@@ -0,0 +1,4 @@
++rebuilt dictionary: dictionaries/ppocrv6_dict.txt
++  source: models/PP-OCRv6_rec_small.onnx (embedded character metadata)
++  sha256: b5f2bfe2bdd9448429e3e82b51c789775d9b42f2403d082b00662eb77e401c5d
++  lines:  18708
+diff --git a/task_handoffs/T014/pkg/smoke_check_standalone.log b/task_handoffs/T014/pkg/smoke_check_standalone.log
+index 7e2caf3..e69de29 100644
+--- a/task_handoffs/T014/pkg/smoke_check_standalone.log
++++ b/task_handoffs/T014/pkg/smoke_check_standalone.log
+@@ -1 +0,0 @@
+-textproof: internal error: generated report failed schema validation.
+diff --git a/task_handoffs/T014/pkg/smoke_report_standalone.json b/task_handoffs/T014/pkg/smoke_report_standalone.json
+new file mode 100644
+index 0000000..fa266a2
+--- /dev/null
++++ b/task_handoffs/T014/pkg/smoke_report_standalone.json
+@@ -0,0 +1,80 @@
++{
++  "schema": "textproof.report/v1",
++  "tool_version": "0.1.0",
++  "verdict": "MISMATCH",
++  "image": {
++    "sha256": "7d3a5c0b8e8da3b59c0090f5ccba20cfe81b533df07c1ef83fcb7fef79cec660",
++    "format": "PNG",
++    "width": 1200,
++    "height": 480,
++    "coordinate_system": "oriented_image_px_top_left"
++  },
++  "expected_text": "限时优惠",
++  "recognized_text": "限时优",
++  "ocr_lines": [
++    {
++      "line_index": 0,
++      "text": "限时优",
++      "confidence": 0.99929,
++      "bbox_xyxy": [
++        491.0,
++        190.0,
++        713.0,
++        291.0
++      ],
++      "quad": [
++        [
++          491.0,
++          190.0
++        ],
++        [
++          713.0,
++          190.0
++        ],
++        [
++          713.0,
++          291.0
++        ],
++        [
++          491.0,
++          291.0
++        ]
++      ]
++    }
++  ],
++  "errors": [
++    {
++      "id": "E001",
++      "type": "MISSING_CHARACTER",
++      "expected_line_index": 0,
++      "ocr_line_index": 0,
++      "expected_text": "限时优惠",
++      "recognized_text": "限时优",
++      "expected_span": [
++        3,
++        4
++      ],
++      "recognized_span": [
++        3,
++        3
++      ],
++      "expected_fragment": "惠",
++      "recognized_fragment": "",
++      "bbox_xyxy": [
++        491.0,
++        190.0,
++        713.0,
++        291.0
++      ],
++      "bbox_scope": "ocr_line",
++      "confidence": 0.99929
++    }
++  ],
++  "warnings": [],
++  "summary": {
++    "expected_lines": 1,
++    "ocr_lines": 1,
++    "error_count": 1,
++    "warning_count": 0
++  }
++}
+diff --git a/task_handoffs/T014/pkg/smoke_serve2.log b/task_handoffs/T014/pkg/smoke_serve2.log
+index 1e52a53..d7431a0 100644
+--- a/task_handoffs/T014/pkg/smoke_serve2.log
++++ b/task_handoffs/T014/pkg/smoke_serve2.log
+@@ -1,18 +1,6 @@
+-Traceback (most recent call last):
+-  File "/home/hatch/workspace/p033-textproof-t014-pkg/tmp/venv-offline/bin/textproof", line 8, in <module>
+-    sys.exit(main())
+-             ^^^^^^
+-  File "/home/hatch/workspace/p033-textproof-t014-pkg/tmp/venv-offline/lib/python3.12/site-packages/textproof/cli.py", line 333, in main
+-    return _serve(args)
+-           ^^^^^^^^^^^^
+-  File "/home/hatch/workspace/p033-textproof-t014-pkg/tmp/venv-offline/lib/python3.12/site-packages/textproof/cli.py", line 264, in _serve
+-    serve(host=args.host, port=args.port)
+-  File "/home/hatch/workspace/p033-textproof-t014-pkg/tmp/venv-offline/lib/python3.12/site-packages/textproof/api/app.py", line 162, in serve
+-    uvicorn.run(create_app(), host=host, port=port, log_level="warning")
+-                ^^^^^^^^^^^^
+-  File "/home/hatch/workspace/p033-textproof-t014-pkg/tmp/venv-offline/lib/python3.12/site-packages/textproof/api/app.py", line 95, in create_app
+-    app.mount("/", StaticFiles(directory=str(ui_dir), html=True), name="ui")
+-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-  File "/home/hatch/workspace/p033-textproof-t014-pkg/tmp/venv-offline/lib/python3.12/site-packages/starlette/staticfiles.py", line 57, in __init__
+-    raise RuntimeError(f"Directory '{directory}' does not exist")
+-RuntimeError: Directory '/home/hatch/workspace/p033-textproof-t014-pkg/tmp/venv-offline/lib/python3.12/site-packages/textproof/ui' does not exist
++# installed `textproof serve --host 127.0.0.1 --port 8792` (uvicorn
++# log_level=warning, so a clean start prints nothing here).
++# Probe results from the smoke run (see task_handoffs/T013/u01/):
++health_status=200 {'status': 'ok', 'service': 'textproof', 'tool_version': '0.1.0', 'schema': 'textproof.report/v1'}
++ui_status=200 has_textproof=True has_export_warning=True
++# Server terminated by SIGTERM after the probe (exit 143 = killed, not a crash).
+diff --git a/task_handoffs/T014/pkg/standalone_check_exit.txt b/task_handoffs/T014/pkg/standalone_check_exit.txt
+index 7ed6ff8..56a6051 100644
+--- a/task_handoffs/T014/pkg/standalone_check_exit.txt
++++ b/task_handoffs/T014/pkg/standalone_check_exit.txt
+@@ -1 +1 @@
+-5
++1
+\ No newline at end of file
+diff --git a/task_handoffs/T014/pkg/test_stdout.log b/task_handoffs/T014/pkg/test_stdout.log
+index 1ac852d..9573856 100644
+--- a/task_handoffs/T014/pkg/test_stdout.log
++++ b/task_handoffs/T014/pkg/test_stdout.log
+@@ -1,10 +1,10 @@
+ ........................................................................ [ 14%]
+ ........................................................................ [ 29%]
+-........................................................................ [ 44%]
++........................................................................ [ 43%]
+ ........................................................................ [ 58%]
+-........................................................................ [ 73%]
+-........................................................................ [ 88%]
+-.........................................................                [100%]
++........................................................................ [ 72%]
++........................................................................ [ 87%]
++...............................................................          [100%]
+ =============================== warnings summary ===============================
+ tests/unit/test_image_loader.py::test_pixels_over_40m_rejected
+ tests/unit/test_image_loader.py::test_all_rejections_share_the_unified_code
+@@ -12,4 +12,4 @@ tests/unit/test_image_loader.py::test_all_rejections_share_the_unified_code
+     warnings.warn(
+ 
+ -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+-489 passed, 2 warnings in 142.19s (0:02:22)
++495 passed, 2 warnings in 194.46s (0:03:14)
+diff --git a/tests/integration/test_installed_wheel.py b/tests/integration/test_installed_wheel.py
+new file mode 100644
+index 0000000..e772768
+--- /dev/null
++++ b/tests/integration/test_installed_wheel.py
+@@ -0,0 +1,314 @@
++"""Regression tests for T013-U01: the installed wheel must run standalone.
++
++T014's offline-install smoke test found the installed wheel could not
++run ``check`` (exit 5, "validator unavailable"), ``serve`` (crash:
++``textproof/ui`` missing from the wheel) or ``verify-s0`` (missing
++``scripts/verify_s0.py``) — because the validator, the UI and the OCR
++assets were all resolved relative to a source checkout that does not
++exist in an installed layout.  The fix moves the validator and the
++dictionary rebuild into the package, ships the UI and the frozen ONNX
++models as package data, and gives ``verify-s0`` a defined installed
++behaviour (exit 3, "requires a source checkout").
++
++These tests lock that fix at both levels:
++
++* unit level — the packaged validator agrees with the script wrapper,
++  the packaged model copies are byte-identical to the checkout files,
++  the adapter still prefers checkout assets in a source tree, and the
++  installed ``verify-s0`` refusal is exit 3;
++* end-to-end level — :func:`test_installed_wheel_offline_smoke`
++  builds a wheel from this working tree, installs it offline from the
++  release wheelhouse into a fresh venv (no checkout on the path), runs
++  the in-wheel dictionary rebuild, and then runs ``check`` (exit 1,
++  ``MISMATCH``), ``serve`` (health + UI) and ``verify-s0`` (exit 3)
++  against the installed tool.
++
++No network is used anywhere: the wheel build runs with
++``--no-isolation`` and the install with ``--no-index`` against the
++local wheelhouse.  The end-to-end test is slow (fresh venv + offline
++install + real OCR, roughly two minutes) and is the point of this
++file — do not "speed it up" by stubbing the engine or by putting the
++checkout on the path, or it stops testing the installed layout.
++"""
++
++from __future__ import annotations
++
++import hashlib
++import json
++import os
++import shutil
++import socket
++import subprocess
++import sys
++import time
++import urllib.error
++import urllib.request
++import zipfile
++from pathlib import Path
++
++import pytest
++
++REPO_ROOT = Path(__file__).resolve().parents[2]
++FIXTURES = REPO_ROOT / "tests" / "fixtures" / "s0"
++WHEELHOUSE = REPO_ROOT / "release" / "wheelhouse"
++
++sys.path.insert(0, str(REPO_ROOT))
++
++from scripts.validate_report_schema import (  # noqa: E402
++    validate_report as script_validate_report,
++)
++from textproof import cli as cli_module  # noqa: E402
++from textproof.cli import main  # noqa: E402
++from textproof.core.report_schema import (  # noqa: E402
++    validate_report as package_validate_report,
++)
++from textproof.ocr.rapidocr_adapter import (  # noqa: E402
++    MODEL_FILES,
++    default_assets_dir,
++)
++
++
++def _sha256_file(path: Path) -> str:
++    digest = hashlib.sha256()
++    with open(path, "rb") as handle:
++        for chunk in iter(lambda: handle.read(1 << 20), b""):
++            digest.update(chunk)
++    return digest.hexdigest()
++
++
++def _valid_report(**overrides):
++    report = {
++        "schema": "textproof.report/v1",
++        "tool_version": "0.1.0",
++        "verdict": "MATCH",
++        "image": {
++            "sha256": "0" * 64,
++            "format": "PNG",
++            "width": 100,
++            "height": 20,
++            "coordinate_system": "oriented_image_px_top_left",
++        },
++        "expected_text": "ab",
++        "recognized_text": "ab",
++        "ocr_lines": [],
++        "errors": [],
++        "warnings": [],
++        "summary": {
++            "expected_lines": 1,
++            "ocr_lines": 0,
++            "error_count": 0,
++            "warning_count": 0,
++        },
++    }
++    report.update(overrides)
++    return report
++
++
++# --- unit level -----------------------------------------------------------
++
++def test_package_validator_agrees_with_script_wrapper():
++    """The in-package validator and the script wrapper are one rule."""
++    assert package_validate_report(_valid_report()) == []
++    assert script_validate_report(_valid_report()) == []
++    bad = _valid_report(verdict="NOPE")
++    assert package_validate_report(bad) != []
++    assert script_validate_report(bad) != []
++    assert package_validate_report(bad) == script_validate_report(bad)
++
++
++def test_default_assets_dir_prefers_checkout_in_source_tree():
++    """In a source tree the checkout assets still win (unchanged)."""
++    assert default_assets_dir() == REPO_ROOT / "assets" / "ocr"
++
++
++def test_packaged_model_copies_match_checkout():
++    """Wheel model copies are verbatim: same bytes, frozen hashes."""
++    packaged = REPO_ROOT / "src" / "textproof" / "assets" / "ocr" / "models"
++    checkout = REPO_ROOT / "assets" / "ocr" / "models"
++    for name, _url, sha256, _key in MODEL_FILES:
++        packed = packaged / name
++        assert packed.is_file(), f"missing packaged model copy: {name}"
++        assert _sha256_file(packed) == sha256, f"hash mismatch: {name}"
++        assert _sha256_file(packed) == _sha256_file(checkout / name), (
++            f"packaged copy drifted from checkout: {name}")
++
++
++def test_verify_s0_installed_layout_exits_3(monkeypatch, tmp_path, capsys):
++    """No S0 runner (installed layout): defined exit 3, never a crash."""
++    monkeypatch.setattr(cli_module, "_find_verify_s0_script",
++                        lambda: None)
++    manifest = tmp_path / "manifest.json"
++    manifest.write_text("{}", encoding="utf-8")
++    assert main(["verify-s0", "--manifest", str(manifest)]) == 3
++    assert "source checkout" in capsys.readouterr().err
++
++
++def test_verify_s0_default_manifest_installed_layout(monkeypatch, capsys):
++    """Same refusal with the default manifest (it exists in a checkout)."""
++    monkeypatch.setattr(cli_module, "_find_verify_s0_script",
++                        lambda: None)
++    assert main(["verify-s0"]) == 3
++    assert "source checkout" in capsys.readouterr().err
++
++
++# --- end to end: fresh venv, offline wheel install, no checkout ----------
++
++def _free_port() -> int:
++    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
++        sock.bind(("127.0.0.1", 0))
++        return sock.getsockname()[1]
++
++
++def _clean_env(tmpdir: Path) -> dict[str, str]:
++    """Child env with no checkout on the path and no network use."""
++    env = dict(os.environ)
++    env.pop("PYTHONPATH", None)
++    env["TMPDIR"] = str(tmpdir)
++    env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
++    return env
++
++
++def _run(argv: list[str], env: dict[str, str], timeout: int,
++         cwd: str | None = None) -> subprocess.CompletedProcess[str]:
++    return subprocess.run(
++        argv, capture_output=True, text=True, env=env, timeout=timeout,
++        cwd=cwd)
++
++
++def _poll_health(port: int, deadline: float) -> dict:
++    while time.monotonic() < deadline:
++        try:
++            with urllib.request.urlopen(
++                    f"http://127.0.0.1:{port}/api/v1/health",
++                    timeout=5) as resp:
++                assert resp.status == 200
++                return json.loads(resp.read())
++        except (urllib.error.URLError, ConnectionError):
++            time.sleep(0.5)
++    raise AssertionError("installed serve did not come up in 60s")
++
++
++def test_installed_wheel_offline_smoke(tmp_path):
++    """Build the wheel, install it offline, run check + serve + verify-s0."""
++    work = tmp_path / "work"
++    tmpdir = work / "tmp"
++    tmpdir.mkdir(parents=True)
++
++    # 1. Build the wheel from a scratch copy of the source tree, so the
++    #    build cannot pollute the worktree and cannot see the checkout.
++    build_src = work / "build-src"
++    (build_src / "src").mkdir(parents=True)
++    shutil.copy(REPO_ROOT / "pyproject.toml", build_src / "pyproject.toml")
++    shutil.copy(REPO_ROOT / "LICENSE", build_src / "LICENSE")
++    shutil.copytree(REPO_ROOT / "src" / "textproof",
++                    build_src / "src" / "textproof")
++    env = _clean_env(tmpdir)
++    built = _run(
++        [sys.executable, "-m", "build", "--wheel", "--no-isolation",
++         "--outdir", str(work / "dist")],
++        env, timeout=300, cwd=str(build_src))
++    assert built.returncode == 0, built.stderr[-2000:]
++    wheels = sorted((work / "dist").glob("textproof-*.whl"))
++    assert len(wheels) == 1, f"expected one wheel, got {wheels}"
++    wheel = wheels[0]
++
++    # 2. The wheel ships the UI, the models and the validator — and no
++    #    dictionary (licence UNVERIFIED, THIRD_PARTY_NOTICES.md §4).
++    with zipfile.ZipFile(wheel) as zf:
++        names = zf.namelist()
++    for needed in ("textproof/ui/index.html", "textproof/ui/app.js",
++                   "textproof/ui/style.css",
++                   "textproof/core/report_schema.py",
++                   "textproof/setup_dictionary.py",
++                   "textproof/assets/ocr/models/PP-OCRv6_det_small.onnx",
++                   "textproof/assets/ocr/models/PP-OCRv6_rec_small.onnx",
++                   "textproof/assets/ocr/models/"
++                   "ch_ppocr_mobile_v2.0_cls_mobile.onnx"):
++        assert needed in names, f"missing from wheel: {needed}"
++    assert not [n for n in names if "ppocrv6_dict" in n], (
++        "dictionary file present in wheel")
++
++    # 3. Fresh venv, offline install from the release wheelhouse.
++    venv = work / "venv"
++    created = _run([sys.executable, "-m", "venv", str(venv)], env, 300)
++    assert created.returncode == 0, created.stderr[-2000:]
++    venv_python = venv / "bin" / "python"
++    venv_textproof = venv / "bin" / "textproof"
++    assert WHEELHOUSE.is_dir(), "release/wheelhouse missing"
++    installed = _run(
++        [str(venv_python), "-m", "pip", "install", "--no-index",
++         "--find-links", str(WHEELHOUSE), str(wheel)],
++        env, timeout=600)
++    assert installed.returncode == 0, installed.stderr[-2000:]
++    assert "Successfully installed" in installed.stdout
++
++    # 4. The installed tool answers --help / version on its own.
++    version = _run([str(venv_textproof), "version"], env, timeout=120)
++    assert version.returncode == 0, version.stderr
++    info = json.loads(version.stdout)
++    assert info["tool_version"] == "0.1.0"
++    assert info["package_version"] == "1.0.0"
++    assert info["spec_version"] == "1.0.0"
++
++    # 5. Rebuild the dictionary inside the installed package, then
++    #    check TP-S0-ZH-001 against "限时优惠": exit 1, MISMATCH.
++    rebuilt = _run(
++        [str(venv_python), "-m", "textproof.setup_dictionary"],
++        env, timeout=300)
++    assert rebuilt.returncode == 0, rebuilt.stderr[-2000:]
++    assert "18,708" in rebuilt.stdout or "18708" in rebuilt.stdout, (
++        rebuilt.stdout)
++    image = work / "poster.png"
++    manifest = json.loads((FIXTURES / "manifest.json").read_text(
++        encoding="utf-8"))
++    zh001 = next(f for f in manifest["fixtures"] if f["id"] == "TP-S0-ZH-001")
++    image.write_bytes((FIXTURES / zh001["filename"]).read_bytes())
++    expected = work / "expected.txt"
++    expected.write_text("限时优惠", encoding="utf-8")
++    report_path = work / "report.json"
++    checked = _run(
++        [str(venv_textproof), "check", "--image", str(image),
++         "--expected-file", str(expected), "--json", str(report_path)],
++        env, timeout=300)
++    assert checked.returncode == 1, checked.stderr
++    assert report_path.is_file(), "installed check produced no report"
++    report = json.loads(report_path.read_text(encoding="utf-8"))
++    assert report["verdict"] == "MISMATCH"
++    assert report["schema"] == "textproof.report/v1"
++    assert script_validate_report(report) == []
++    assert str(work) not in json.dumps(report, ensure_ascii=False)
++
++    # 6. Serve from the installed wheel: health + the UI page.
++    port = _free_port()
++    proc = subprocess.Popen(
++        [str(venv_textproof), "serve", "--port", str(port)],
++        env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
++        text=True)
++    try:
++        body = _poll_health(port, time.monotonic() + 60)
++        assert body["status"] == "ok"
++        assert body["tool_version"] == "0.1.0"
++        with urllib.request.urlopen(f"http://127.0.0.1:{port}/",
++                                    timeout=10) as resp:
++            assert resp.status == 200
++            html = resp.read().decode("utf-8")
++        assert "TextProof" in html
++        assert "可能包含敏感文字" in html
++    finally:
++        proc.terminate()
++        try:
++            proc.wait(timeout=15)
++        except subprocess.TimeoutExpired:
++            proc.kill()
++            proc.wait(timeout=10)
++
++    # 7. verify-s0 in the installed layout: defined exit 3, both ways.
++    no_manifest = _run([str(venv_textproof), "verify-s0"], env, timeout=120)
++    assert no_manifest.returncode == 3
++    assert "S0 manifest not found" in no_manifest.stderr
++    with_manifest = _run(
++        [str(venv_textproof), "verify-s0", "--manifest",
++         str(FIXTURES / "manifest.json")],
++        env, timeout=120)
++    assert with_manifest.returncode == 3
++    assert "source checkout" in with_manifest.stderr

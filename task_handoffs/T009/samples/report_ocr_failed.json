@@ -1,0 +1,28 @@
+{
+  "schema": "textproof.report/v1",
+  "tool_version": "0.1.0",
+  "verdict": "OCR_FAILED",
+  "image": {
+    "sha256": "f80cab288f6a301f67e5bbac90e38e103ac289a457e4cf2763b48952dd00e31f",
+    "format": "PNG",
+    "width": 800,
+    "height": 200,
+    "coordinate_system": "oriented_image_px_top_left"
+  },
+  "expected_text": "限时优惠",
+  "recognized_text": "",
+  "ocr_lines": [],
+  "errors": [],
+  "warnings": [
+    {
+      "code": "OCR_EMPTY",
+      "message": "OCR produced no usable text."
+    }
+  ],
+  "summary": {
+    "expected_lines": 1,
+    "ocr_lines": 0,
+    "error_count": 0,
+    "warning_count": 1
+  }
+}

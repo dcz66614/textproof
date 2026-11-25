@@ -1,0 +1,19 @@
+setup_dictionary (worktree) exit=0
+validator wrapper spot check exit=0
+setup_dictionary module --check exit=0
+wheel build (scratch check) exit=0
+new tests (5 unit, offline_smoke deselected) exit=0
+installed-wheel offline smoke test exit=0
+full pytest (baseline) exit=0 — 495 passed, 188.93s
+full pytest (final, HEAD 717b813) exit=0 — 495 passed, 194.46s
+wheel build from fix commit 717b813 exit=0
+manual offline smoke script exit=0 — install 0, help 0, version 0, setup_dictionary 0, check 1, serve probe 0, verify-s0 3/3
+verify_release --preflight exit=0 — PASS 12/12
+verify_release (worktree) exit=0 — PASS 27/27
+verify_release (clean dir, c209a2e) exit=0 — PASS 27/27
+verify_review_pack exit=0 — PASS
+banned-token grep over src/ + scripts/ files: no hits (grep exit 1)
+dictionary in git-tracked files: 0
+dictionary in source.zip: none
+dictionary in new wheel: none
+banned-file diffs (manifest, schemas, lock, report.py, spec docs): empty

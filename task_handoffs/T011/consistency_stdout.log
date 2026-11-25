@@ -1,0 +1,11 @@
+=== TP-S0-ZH-002: expected='新品上市' drawn='新口上市' ===
+  API verdict=MISMATCH
+  CLI verdict=MISMATCH
+  UI  verdict=MISMATCH
+  -> IDENTICAL
+=== TP-CLN-001: expected='全场优惠10元' drawn='全场优惠10元' ===
+  API verdict=MATCH
+  CLI verdict=MATCH
+  UI  verdict=MATCH
+  -> IDENTICAL
+all identical: True

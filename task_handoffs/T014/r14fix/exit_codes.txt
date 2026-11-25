@@ -1,0 +1,6 @@
+pytest exit=0
+verify_review_pack exit=0
+verify_release --preflight exit=0
+verify_release (worktree) exit=0
+verify_release (clean dir) exit=0
+smoke script exit=0

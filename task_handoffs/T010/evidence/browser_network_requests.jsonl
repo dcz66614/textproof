@@ -1,0 +1,8 @@
+{"url": "http://127.0.0.1:33555/", "method": "GET", "type": "Document"}
+{"url": "http://127.0.0.1:33555/style.css", "method": "GET", "type": "Stylesheet"}
+{"url": "http://127.0.0.1:33555/app.js", "method": "GET", "type": "Script"}
+{"url": "http://127.0.0.1:33555/api/v1/version", "method": "GET", "type": "Fetch"}
+{"url": "http://127.0.0.1:33555/favicon.ico", "method": "GET", "type": "Other"}
+{"url": "blob:http://127.0.0.1:33555/9a3c1bf6-497f-469f-9e60-e69756cad7af", "method": "GET", "type": "Image"}
+{"url": "http://127.0.0.1:33555/api/v1/check", "method": "POST", "type": "Fetch"}
+{"url": "blob:http://127.0.0.1:33555/9a3c1bf6-497f-469f-9e60-e69756cad7af", "method": "GET", "type": "Fetch"}

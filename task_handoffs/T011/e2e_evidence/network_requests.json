@@ -1,0 +1,37 @@
+[
+  {
+    "url": "http://127.0.0.1:40191/",
+    "method": "GET",
+    "type": "Document"
+  },
+  {
+    "url": "http://127.0.0.1:40191/style.css",
+    "method": "GET",
+    "type": "Stylesheet"
+  },
+  {
+    "url": "http://127.0.0.1:40191/app.js",
+    "method": "GET",
+    "type": "Script"
+  },
+  {
+    "url": "http://127.0.0.1:40191/api/v1/version",
+    "method": "GET",
+    "type": "Fetch"
+  },
+  {
+    "url": "http://127.0.0.1:40191/favicon.ico",
+    "method": "GET",
+    "type": "Other"
+  },
+  {
+    "url": "blob:http://127.0.0.1:40191/77c99bd9-c27c-4c8b-842b-f9deccba9c17",
+    "method": "GET",
+    "type": "Image"
+  },
+  {
+    "url": "http://127.0.0.1:40191/api/v1/check",
+    "method": "POST",
+    "type": "Fetch"
+  }
+]

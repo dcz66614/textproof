@@ -1,0 +1,17 @@
+[1] oracle independence: PASS []
+[0] manifest integrity (300 PNG SHA-256): PASS []
+[3] TP-S0-ZH-001: PASS {'production': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}, 'oracle': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}}
+[3] TP-S0-ZH-002: PASS {'production': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}, 'oracle': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}}
+[3] TP-S0-NUM-001: PASS {'production': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}, 'oracle': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}}
+[3] TP-S0-ZH-003: PASS {'production': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}, 'oracle': {'ok': True, 'problems': [], 'verdict': 'MISMATCH', 'error_count': 1}}
+[2] parity fixed fixtures: 300/300 (PASS)
+[2] edge battery (diagnostic): 13/26 match; differing: ['empty_expected_empty_ocr', 'empty_expected_one_ocr', 'low_conf_match', 'low_conf_diff', 'missing_line', 'extra_line', 'high_cost_pair', 'confusion_lower_o', 'confusion_upper_O', 'trailing_newline', 'same_row_two_boxes_x_order', 'same_row_diff_centre', 'multi_sub_mixed_types']
+reusing cached live OCR results: task_handoffs/T009/s0_rerun/live_ocr_results.jsonl (300 records)
+[4] recall: 100.00% (per class: substitution 100.00%, omission 100.00%, numeric_change 100.00%) threshold >=95% / >=90% each: PASS
+[5] clean FPR: 0.00% (0/100) threshold <=8%: PASS
+[6] schema legality: 100.0% (PASS); CER: 0.0008 (reported separately, §8.3)
+[I] IoU: min 0.829 mean 0.938 below 0.80: 0 (PASS); blind min 0.835
+[7] ONNX providers: {"det": ["CPUExecutionProvider"], "cls": ["CPUExecutionProvider"], "rec": ["CPUExecutionProvider"]} (PASS)
+[9] evidence written to task_handoffs/T009/s0_rerun (s0_metrics.json, parity_report.json, live_ocr_results.jsonl, schema_validation.log)
+S0 VERDICT: PASS
+NOTE: item 8 (independent_verify.py) is a separate script and is not run by this runner; see S0_REPORT.md.

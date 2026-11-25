@@ -1,0 +1,64 @@
+# T014 test commands (run from ~/workspace/p033-textproof-t014-pkg unless noted)
+# Main venv is always the main tree's: ~/workspace/p033-textproof/.venv/bin/python
+# TMPDIR=$PWD/tmp for every pytest/pip/OCR invocation (see task note on headless Chrome exit 21).
+
+# 1. Dictionary rebuild (fresh checkout first step)
+.venv/bin/python scripts/setup_dictionary.py
+# (main-tree venv path used in this worktree: ~/workspace/p033-textproof/.venv/bin/python scripts/setup_dictionary.py)
+
+# 2. Full pytest (final re-run; log task_handoffs/T014/pkg/test_stdout.log)
+mkdir -p tmp task_handoffs/T014/pkg
+TMPDIR=$PWD/tmp ~/workspace/p033-textproof/.venv/bin/python -m pytest -q -p no:cacheprovider > task_handoffs/T014/pkg/test_stdout.log 2> task_handoffs/T014/pkg/test_stderr.log; echo "pytest exit=$?" | tee task_handoffs/T014/pkg/exit_codes.txt
+
+# 3. T010 static gate with the new scripts present (separate run)
+mkdir -p tmp
+TMPDIR=$PWD/tmp ~/workspace/p033-textproof/.venv/bin/python -m pytest -q -p no:cacheprovider "tests/privacy/test_no_persistence.py::test_forbidden_token_absent_from_sources" "tests/privacy/test_no_persistence.py::test_no_network_client_import_in_sources"
+
+# 4. Banned-token grep over the new scripts (expect exit 1 = zero hits)
+grep -nE "urlopen|urlretrieve|os\.system|shell=True|requests|httpx|urllib|http\.client|socket" scripts/verify_release.py scripts/verify_review_pack.py
+
+# 5. R-31 lock recount
+grep -cE '^[a-z0-9_.-]+==[0-9]' requirements.lock
+grep -c 'sha256:' requirements.lock
+sha256sum requirements.lock
+
+# 6. DOCX sync check (stdlib only; script /tmp/docx_check.py)
+python3 /tmp/docx_check.py
+git diff 394d507 HEAD -- PROJECT_BOOK.md | grep -c "^+"
+git diff 394d507 HEAD -- IMPLEMENTATION_PLAN.md | wc -l
+
+# 7. Review-pack verification
+~/workspace/p033-textproof/.venv/bin/python scripts/verify_review_pack.py review/REVIEW_INDEX.md
+
+# 8. Release preflight + full verification
+~/workspace/p033-textproof/.venv/bin/python scripts/verify_release.py --preflight
+~/workspace/p033-textproof/.venv/bin/python scripts/verify_release.py > task_handoffs/T014/pkg/verify_release.log 2>&1
+
+# 9. Clean-directory verification (fresh clone + copied release/review/evidence)
+rm -rf /tmp/t014-clean && git clone -q ~/workspace/p033-textproof-t014-pkg /tmp/t014-clean
+cp -r release review /tmp/t014-clean/ && mkdir -p /tmp/t014-clean/task_handoffs/T014 && cp -r task_handoffs/T014/pkg /tmp/t014-clean/task_handoffs/T014/pkg
+~/workspace/p033-textproof/.venv/bin/python /tmp/t014-clean/scripts/verify_release.py --root /tmp/t014-clean > task_handoffs/T014/pkg/verify_release_clean_dir.log 2>&1
+
+# 10. source.zip / wheel builds (from freeze commit 167594e)
+git archive 167594e0442090c057baba7c067c323dd88cf530 --format=zip --output release/source.zip
+git archive 167594e0442090c057baba7c067c323dd88cf530 | tar -x -C tmp/wheelbuild
+cd tmp/wheelbuild && ~/workspace/p033-textproof/.venv/bin/python -m build --wheel --no-isolation --outdir ~/workspace/p033-textproof-t014-pkg/release
+# (tmp/wheelbuild deleted afterwards: a full-tree copy under tmp/ breaks pytest collection)
+
+# 11. Wheelhouse download
+mkdir -p tmp/pip-cache
+TMPDIR=$PWD/tmp PIP_CACHE_DIR=$PWD/tmp/pip-cache ~/workspace/p033-textproof/.venv/bin/python -m pip download --no-deps --dest release/wheelhouse -r requirements.lock
+
+# 12. Offline install + smoke (fresh venv tmp/venv-offline)
+python3 -m venv tmp/venv-offline
+TMPDIR=$PWD/tmp PIP_CACHE_DIR=$PWD/tmp/pip-cache tmp/venv-offline/bin/python -m pip install --no-index --find-links release/wheelhouse release/textproof-1.0.0-py3-none-any.whl
+tmp/venv-offline/bin/textproof --help
+tmp/venv-offline/bin/textproof version
+printf '限时优惠' > tmp/smoke_expected.txt
+TMPDIR=$PWD/tmp tmp/venv-offline/bin/textproof check --image tests/fixtures/s0/TP-S0-ZH-001.png --expected-file tmp/smoke_expected.txt --json task_handoffs/T014/pkg/smoke_report_standalone.json
+TMPDIR=$PWD/tmp timeout 20 tmp/venv-offline/bin/textproof serve --host 127.0.0.1 --port 8792
+
+# 13. Diagnosis / control runs for U-01
+ln -sfn $PWD/assets/ocr tmp/venv-offline/lib/python3.12/assets/ocr
+TMPDIR=$PWD/tmp PYTHONPATH=$PWD tmp/venv-offline/bin/textproof check --image tests/fixtures/s0/TP-S0-ZH-001.png --expected-file tmp/smoke_expected.txt --json tmp/smoke_report_wpp.json
+TMPDIR=$PWD/tmp PYTHONPATH=$PWD/src ~/workspace/p033-textproof/.venv/bin/python -m textproof.cli check --image tests/fixtures/s0/TP-S0-ZH-001.png --expected-file tmp/smoke_expected.txt --json tmp/smoke_report_repo.json

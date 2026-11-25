@@ -1,0 +1,31 @@
+{
+  "cases": [
+    {
+      "fixture_id": "TP-S0-ZH-002",
+      "filename": "TP-S0-ZH-002.png",
+      "expected_text": "新品上市",
+      "drawn_text": "新口上市",
+      "verdicts": {
+        "api": "MISMATCH",
+        "cli": "MISMATCH",
+        "ui": "MISMATCH"
+      },
+      "identical": true,
+      "differences": []
+    },
+    {
+      "fixture_id": "TP-CLN-001",
+      "filename": "TP-CLN-001.png",
+      "expected_text": "全场优惠10元",
+      "drawn_text": "全场优惠10元",
+      "verdicts": {
+        "api": "MATCH",
+        "cli": "MATCH",
+        "ui": "MATCH"
+      },
+      "identical": true,
+      "differences": []
+    }
+  ],
+  "all_identical": true
+}

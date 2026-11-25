@@ -1,0 +1,11 @@
+=== TP-S0-ZH-002 ===
+  API verdict=MISMATCH
+  CLI verdict=MISMATCH
+  UI  verdict=MISMATCH
+  -> IDENTICAL
+=== TP-CLN-001 ===
+  API verdict=MATCH
+  CLI verdict=MATCH
+  UI  verdict=MATCH
+  -> IDENTICAL
+all identical: True

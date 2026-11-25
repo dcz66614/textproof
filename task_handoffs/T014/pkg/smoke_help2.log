@@ -1,0 +1,15 @@
+usage: textproof [-h] {check,serve,verify-s0,version} ...
+
+TextProof (字证): deterministic AI-image text verification, local CPU-only OCR.
+
+positional arguments:
+  {check,serve,verify-s0,version}
+    check               Check one image against expected text; print or write
+                        a textproof.report/v1 JSON report.
+    serve               Serve the local API (loopback only, 127.0.0.1).
+    verify-s0           Run the S0 gate (scripts/verify_s0.py) and pass
+                        through its exit code.
+    version             Print frozen versions as JSON.
+
+options:
+  -h, --help            show this help message and exit

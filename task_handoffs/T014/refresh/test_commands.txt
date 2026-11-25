@@ -1,0 +1,54 @@
+# T014R2 test commands (run from ~/workspace/p033-textproof-t014-refresh unless noted)
+# Main venv is always the main tree's: ~/workspace/p033-textproof/.venv/bin/python
+# TMPDIR=$PWD/tmp for every pytest/pip/OCR invocation (headless Chrome exit 21 lesson).
+# NOTE: /tmp is a 512M tmpfs (159M free at run time) — the clean-directory check
+# uses `git worktree add` on persistent disk (~/workspace/t014r2-clean), NOT
+# `git clone` into /tmp (clone died with "No space left on device").
+
+# 1. Dictionary rebuild (fresh worktree first step)
+~/workspace/p033-textproof/.venv/bin/python scripts/setup_dictionary.py
+
+# 2. Full pytest (log task_handoffs/T014/pkg/test_stdout.log)
+mkdir -p tmp task_handoffs/T014/pkg
+TMPDIR=$PWD/tmp ~/workspace/p033-textproof/.venv/bin/python -m pytest -q -p no:cacheprovider > task_handoffs/T014/pkg/test_stdout.log 2> task_handoffs/T014/pkg/test_stderr.log; echo "pytest exit=$?" | tee task_handoffs/T014/pkg/exit_codes.txt
+
+# 3. Review index regeneration + verification
+python3 /tmp/gen_review_index_r2.py
+~/workspace/p033-textproof/.venv/bin/python scripts/verify_review_pack.py review/REVIEW_INDEX.md
+
+# 4. source.zip rebuild (from freeze commit 1f02358)
+git archive 1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6 --format=zip --output release/source.zip
+sha256sum release/source.zip
+
+# 5. Wheel rebuild (from a clean `git archive 1f02358` export; tmp/wheelbuild removed after)
+rm -rf tmp/wheelbuild && mkdir -p tmp/wheelbuild && git archive 1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6 | tar -x -C tmp/wheelbuild
+cd tmp/wheelbuild && ~/workspace/p033-textproof/.venv/bin/python -m build --wheel --no-isolation --outdir /home/hatch/workspace/p033-textproof-t014-refresh/release; cd ..
+rm -rf tmp/wheelbuild
+sha256sum release/textproof-1.0.0-py3-none-any.whl
+
+# 6. Wheelhouse vs lock (independent re-check; no re-download, no upgrades)
+# (inline python: parse requirements.lock, compare each wheelhouse wheel version + SHA-256)
+
+# 7. SHA256SUMS.txt regeneration + independent recompute
+cd release && sha256sum source.zip textproof-1.0.0-py3-none-any.whl wheelhouse/*.whl > SHA256SUMS.txt && cd ..
+
+# 8. SBOM re-verification (inline python: SBOM rows vs venv installed metadata + lock versions)
+
+# 9. Offline smoke with the NEW release wheel (script /tmp/smoke_run_r2.sh,
+#    copy saved as task_handoffs/T014/refresh/smoke_run.sh)
+bash /tmp/smoke_run_r2.sh
+
+# 10. Release preflight + full verification
+~/workspace/p033-textproof/.venv/bin/python scripts/verify_release.py --preflight
+~/workspace/p033-textproof/.venv/bin/python scripts/verify_release.py > task_handoffs/T014/pkg/verify_release.log 2>&1
+
+# 11. Clean-directory verification (detached worktree on persistent disk + copied artifacts)
+git worktree add --detach ~/workspace/t014r2-clean 1f02358f1c44b4de4a7d6e0b80dd97bef633a5b6
+cp -r release review ~/workspace/t014r2-clean/ && mkdir -p ~/workspace/t014r2-clean/task_handoffs/T014 && cp -r task_handoffs/T014/pkg ~/workspace/t014r2-clean/task_handoffs/T014/pkg
+~/workspace/p033-textproof/.venv/bin/python ~/workspace/t014r2-clean/scripts/verify_release.py --root ~/workspace/t014r2-clean > task_handoffs/T014/pkg/verify_release_clean_dir.log 2>&1
+git worktree remove --force ~/workspace/t014r2-clean
+
+# 12. Ban compliance proofs
+git diff 1f02358 -- src tests schemas tests/fixtures/s0/manifest.json requirements.lock PROJECT_BOOK.md IMPLEMENTATION_PLAN.md PROJECT_BOOK.docx IMPLEMENTATION_PLAN.docx review/REVIEW_PACK_T014.md review/REVIEW_FINDINGS_T012.md review/REVIEW_INDEX_T012.md | wc -l
+git ls-files | grep -c ppocrv6_dict
+grep -nE "urlopen|urlretrieve|os\.system|shell=True|requests|httpx|urllib|http\.client|socket" scripts/verify_release.py scripts/verify_review_pack.py

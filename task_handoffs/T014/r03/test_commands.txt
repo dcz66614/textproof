@@ -1,0 +1,32 @@
+# T014/R-03 test commands (venv = ~/workspace/p033-textproof/.venv/bin/python; worktree = ~/workspace/p033-textproof-t014-r03)
+# 1. Forbidden-token grep on the new script (expect no hits, grep exit 1):
+grep -n -E "urlopen|urlretrieve|os\.system|shell=True|requests|httpx|urllib|http\.client|socket|tempfile|sqlite3|telemetry|sentry|UploadFile|multipart|create_connection|getaddrinfo|NamedTemporaryFile|mkstemp|TemporaryFile|subprocess" scripts/setup_dictionary.py
+# 2. Clean-state rebuild (dict deleted first; expect exit 0, SHA b5f2bfe2..., 18708 lines, byte-identical to frozen file):
+rm assets/ocr/dictionaries/ppocrv6_dict.txt
+~/workspace/p033-textproof/.venv/bin/python scripts/setup_dictionary.py
+sha256sum assets/ocr/dictionaries/ppocrv6_dict.txt
+wc -l assets/ocr/dictionaries/ppocrv6_dict.txt
+# 3. Idempotence + --check (expect exit 0 each):
+~/workspace/p033-textproof/.venv/bin/python scripts/setup_dictionary.py
+~/workspace/p033-textproof/.venv/bin/python scripts/setup_dictionary.py --check
+# 4. Differing-dict refusal (append a line first; expect exit 3 without --force, exit 3 for --check, exit 0 with --force):
+printf 'X\n' >> assets/ocr/dictionaries/ppocrv6_dict.txt
+~/workspace/p033-textproof/.venv/bin/python scripts/setup_dictionary.py
+~/workspace/p033-textproof/.venv/bin/python scripts/setup_dictionary.py --check
+~/workspace/p033-textproof/.venv/bin/python scripts/setup_dictionary.py --force
+# 5. Adapter + dict-asserting tests (expect 29 passed):
+mkdir -p tmp && TMPDIR=$PWD/tmp ~/workspace/p033-textproof/.venv/bin/python -m pytest tests/integration/test_ocr_adapter.py tests/privacy/test_local_assets.py tests/offline/test_offline_static.py -q -p no:cacheprovider
+# 6. Real OCR smoke (expect verdict MISMATCH for TP-S0-ZH-001 omission sample; CLI exit 1 is the MISMATCH verdict code):
+printf '限时优惠' > tmp/smoke-expected.txt
+TMPDIR=$PWD/tmp PYTHONPATH=$PWD/src ~/workspace/p033-textproof/.venv/bin/python -m textproof.cli check --image tests/fixtures/s0/TP-S0-ZH-001.png --expected-file tmp/smoke-expected.txt --json tmp/smoke-report.json
+# 7. Full suite (expect 489 passed, exit 0; logs in task_handoffs/T014/r03/test_stdout.log):
+mkdir -p tmp task_handoffs/T014/r03
+TMPDIR=$PWD/tmp ~/workspace/p033-textproof/.venv/bin/python -m pytest -q -p no:cacheprovider > task_handoffs/T014/r03/test_stdout.log 2> task_handoffs/T014/r03/test_stderr.log; echo $? > task_handoffs/T014/r03/exit_codes.txt
+# 8. Snapshot exclusion proof (expect no hits):
+git archive e38b6d7 | tar -t | grep -F "dictionaries/ppocrv6_dict.txt"
+git ls-files | grep dict
+# 9. Fresh-clone end-to-end (clone t014-r03 elsewhere; dict absent; 2 dict tests FAIL before setup; setup exit 0; 21 tests pass after):
+git clone -q --branch t014-r03 ~/workspace/p033-textproof-t014-r03 <clone-dir>
+cd <clone-dir> && mkdir -p tmp && TMPDIR=$PWD/tmp ~/workspace/p033-textproof/.venv/bin/python -m pytest tests/offline/test_offline_static.py::test_model_assets_present_locally tests/privacy/test_local_assets.py::test_model_files_are_local_with_frozen_hashes -q -p no:cacheprovider
+~/workspace/p033-textproof/.venv/bin/python scripts/setup_dictionary.py
+TMPDIR=$PWD/tmp ~/workspace/p033-textproof/.venv/bin/python -m pytest tests/offline/test_offline_static.py::test_model_assets_present_locally tests/privacy/test_local_assets.py::test_model_files_are_local_with_frozen_hashes tests/integration/test_ocr_adapter.py -q -p no:cacheprovider

@@ -1,0 +1,37 @@
+# Offline wheelhouse smoke evidence (T014R3 re-freeze, supersedes T014R2 evidence)
+# — values extracted from the committed raw logs in this directory, not hand-typed.
+# Wheel: the NEW release wheel, built from freeze commit
+#   93d1b7c65036bb16f596117f26a48f6ee62f99e1 with
+#   python -m build --wheel --no-isolation --outdir release
+#   (from a clean `git archive 93d1b7c` export)
+#   wheel SHA-256 9c880b88e401c618c91426c3009b3153c7da682fe461e42eb9802a55f33372a1
+#   size 27,176,403 B
+#   (32 entries: UI + 3 models + validator + setup module, no dictionary).
+# Venv: fresh python3 -m venv tmp/venv-offline; install:
+#   pip install --no-index --find-links release/wheelhouse
+#     release/textproof-1.0.0-py3-none-any.whl
+# Then: python -m textproof.setup_dictionary (rebuilt into the installed
+# package; log setup_dictionary_install.log). No checkout on the path
+# (PYTHONPATH unset for every venv invocation).
+# Serve probe transcript: smoke_serve_probe.txt (health 200 + UI 200).
+# NOTE: smoke_serve.log is the superseded T014 failure log (U-01 serve
+# crash); the passing serve run for this wheel is smoke_serve2.log +
+# smoke_serve_probe.txt. verify-s0 exits 3 by design (see below).
+offline_install_exit=0
+textproof_help_exit=0
+textproof_version_exit=0
+textproof_version_tool=0.1.0
+textproof_version_package=1.0.0
+textproof_version_spec=1.0.0
+setup_dictionary_exit=0
+setup_dictionary_sha256=b5f2bfe2bdd9448429e3e82b51c789775d9b42f2403d082b00662eb77e401c5d
+setup_dictionary_lines=18708
+standalone_check_exit=1
+standalone_check_report_produced=YES
+standalone_check_verdict=MISMATCH
+standalone_check_error=E001 MISSING_CHARACTER
+serve_health_status=200
+serve_ui_status=200
+serve_probe_exit=0
+verify_s0_default_exit=3
+verify_s0_manifest_exit=3

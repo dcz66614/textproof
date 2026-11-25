@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "/home/hatch/workspace/p033-textproof-t014-pkg/tmp/venv-offline/bin/textproof", line 8, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/hatch/workspace/p033-textproof-t014-pkg/tmp/venv-offline/lib/python3.12/site-packages/textproof/cli.py", line 333, in main
+    return _serve(args)
+           ^^^^^^^^^^^^
+  File "/home/hatch/workspace/p033-textproof-t014-pkg/tmp/venv-offline/lib/python3.12/site-packages/textproof/cli.py", line 264, in _serve
+    serve(host=args.host, port=args.port)
+  File "/home/hatch/workspace/p033-textproof-t014-pkg/tmp/venv-offline/lib/python3.12/site-packages/textproof/api/app.py", line 162, in serve
+    uvicorn.run(create_app(), host=host, port=port, log_level="warning")
+                ^^^^^^^^^^^^
+  File "/home/hatch/workspace/p033-textproof-t014-pkg/tmp/venv-offline/lib/python3.12/site-packages/textproof/api/app.py", line 95, in create_app
+    app.mount("/", StaticFiles(directory=str(ui_dir), html=True), name="ui")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/hatch/workspace/p033-textproof-t014-pkg/tmp/venv-offline/lib/python3.12/site-packages/starlette/staticfiles.py", line 57, in __init__
+    raise RuntimeError(f"Directory '{directory}' does not exist")
+RuntimeError: Directory '/home/hatch/workspace/p033-textproof-t014-pkg/tmp/venv-offline/lib/python3.12/site-packages/textproof/ui' does not exist

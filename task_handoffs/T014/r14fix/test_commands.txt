@@ -1,0 +1,62 @@
+# T014R3 test commands (run from ~/workspace/p033-textproof-t014-r14fix unless noted)
+# Main venv is always the main tree's: ~/workspace/p033-textproof/.venv/bin/python
+# TMPDIR=$PWD/tmp for every pytest/pip/OCR invocation (headless Chrome exit 21 lesson).
+# NOTE: /tmp is a 512M tmpfs — the clean-directory check uses
+# `git worktree add` on persistent disk (~/workspace/t014r3-clean), NOT
+# `git clone` into /tmp.
+
+# 0. README fix (R14-01) + freeze commit
+#    edit README.md L61-64 (stale U-01 sentence) -> commit 93d1b7c65036bb16f596117f26a48f6ee62f99e1
+
+# 1. Dictionary rebuild (fresh worktree first step)
+~/workspace/p033-textproof/.venv/bin/python scripts/setup_dictionary.py
+
+# 2. Full pytest (log task_handoffs/T014/pkg/test_stdout.log)
+mkdir -p tmp task_handoffs/T014/pkg
+TMPDIR=$PWD/tmp ~/workspace/p033-textproof/.venv/bin/python -m pytest -q -p no:cacheprovider > task_handoffs/T014/pkg/test_stdout.log 2> task_handoffs/T014/pkg/test_stderr.log; echo "pytest exit=$?" | tee task_handoffs/T014/pkg/exit_codes.txt
+
+# 3. Review index regeneration + verification
+python3 /tmp/gen_review_index_r3.py
+~/workspace/p033-textproof/.venv/bin/python scripts/verify_review_pack.py review/REVIEW_INDEX.md
+
+# 4. source.zip rebuild (from freeze commit 93d1b7c)
+git archive 93d1b7c65036bb16f596117f26a48f6ee62f99e1 --format=zip --output release/source.zip
+sha256sum release/source.zip
+
+# 5. Wheel rebuild (from a clean `git archive 93d1b7c` export; tmp/wheelbuild removed after)
+rm -rf tmp/wheelbuild && mkdir -p tmp/wheelbuild && git archive 93d1b7c65036bb16f596117f26a48f6ee62f99e1 | tar -x -C tmp/wheelbuild
+cd tmp/wheelbuild && ~/workspace/p033-textproof/.venv/bin/python -m build --wheel --no-isolation --outdir /home/hatch/workspace/p033-textproof-t014-r14fix/release; cd ..
+rm -rf tmp/wheelbuild
+sha256sum release/textproof-1.0.0-py3-none-any.whl
+
+# 6. Wheelhouse vs lock (independent re-check; no re-download, no upgrades)
+# (inline python: parse requirements.lock, compare each wheelhouse wheel version + SHA-256)
+
+# 7. SHA256SUMS.txt regeneration + independent recompute
+cd release && sha256sum source.zip textproof-1.0.0-py3-none-any.whl wheelhouse/*.whl > SHA256SUMS.txt && cd ..
+cd release && sha256sum -c SHA256SUMS.txt && cd ..
+
+# 8. SBOM re-verification (inline python: SBOM rows vs smoke-venv installed metadata + lock versions)
+# NOTE: use the venv python path UNRESOLVED (tmp/venv-offline/bin/python);
+# Path.resolve() follows the symlink to /usr/bin/python3.12 and reads the
+# system environment instead (first attempt failed exactly this way).
+
+# 9. Offline smoke with the NEW release wheel (script task_handoffs/T014/r14fix/smoke_run.sh)
+bash task_handoffs/T014/r14fix/smoke_run.sh > task_handoffs/T014/r14fix/smoke_stdout.txt 2> task_handoffs/T014/r14fix/smoke_stderr.txt
+~/workspace/p033-textproof/.venv/bin/python scripts/validate_report_schema.py task_handoffs/T014/pkg/smoke_report_standalone.json
+
+# 10. Release preflight + full verification
+~/workspace/p033-textproof/.venv/bin/python scripts/verify_release.py --preflight
+~/workspace/p033-textproof/.venv/bin/python scripts/verify_release.py > task_handoffs/T014/pkg/verify_release.log 2>&1
+
+# 11. Clean-directory verification (detached worktree on persistent disk + copied artifacts)
+git worktree add --detach ~/workspace/t014r3-clean 93d1b7c65036bb16f596117f26a48f6ee62f99e1
+cp -r release review ~/workspace/t014r3-clean/ && mkdir -p ~/workspace/t014r3-clean/task_handoffs/T014 && cp -r task_handoffs/T014/pkg ~/workspace/t014r3-clean/task_handoffs/T014/pkg
+~/workspace/p033-textproof/.venv/bin/python ~/workspace/t014r3-clean/scripts/verify_release.py --root ~/workspace/t014r3-clean > task_handoffs/T014/pkg/verify_release_clean_dir.log 2>&1
+git worktree remove --force ~/workspace/t014r3-clean
+
+# 12. Ban compliance proofs
+git diff 3f02b32 -- src tests schemas tests/fixtures/s0/manifest.json requirements.lock PROJECT_BOOK.md IMPLEMENTATION_PLAN.md PROJECT_BOOK.docx IMPLEMENTATION_PLAN.docx review/REVIEW_PACK_T014.md review/REVIEW_PACK_T014R2.md review/REVIEW_FINDINGS_T012.md review/REVIEW_INDEX_T012.md | wc -l
+git ls-files | grep -c ppocrv6_dict
+grep -nE "urlopen|urlretrieve|os\.system|shell=True|requests|httpx|urllib|http\.client|socket" scripts/verify_release.py scripts/verify_review_pack.py
+grep -n "require a source checkout" README.md

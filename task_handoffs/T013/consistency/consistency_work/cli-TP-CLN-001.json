@@ -1,0 +1,53 @@
+{
+  "schema": "textproof.report/v1",
+  "tool_version": "0.1.0",
+  "verdict": "MATCH",
+  "image": {
+    "sha256": "f9ab179837b0e248e5130dd89d7829aadecd80373c75a9fb658d2e285ef46590",
+    "format": "PNG",
+    "width": 1200,
+    "height": 480,
+    "coordinate_system": "oriented_image_px_top_left"
+  },
+  "expected_text": "全场优惠10元",
+  "recognized_text": "全场优惠10元",
+  "ocr_lines": [
+    {
+      "line_index": 0,
+      "text": "全场优惠10元",
+      "confidence": 0.99984,
+      "bbox_xyxy": [
+        393.0,
+        197.0,
+        806.0,
+        283.0
+      ],
+      "quad": [
+        [
+          393.0,
+          197.0
+        ],
+        [
+          806.0,
+          197.0
+        ],
+        [
+          806.0,
+          283.0
+        ],
+        [
+          393.0,
+          283.0
+        ]
+      ]
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "summary": {
+    "expected_lines": 1,
+    "ocr_lines": 1,
+    "error_count": 0,
+    "warning_count": 0
+  }
+}
