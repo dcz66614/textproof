@@ -1,0 +1,6805 @@
+{
+  "schema": "textproof.fixture-expected-output/v1",
+  "fixtures": {
+    "TP-S0-ZH-001": {
+      "expected_text": "限时优惠",
+      "drawn_text": "限时优",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "惠",
+          "recognized_fragment": "",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-S0-ZH-002": {
+      "expected_text": "新品上市",
+      "drawn_text": "新口上市",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "品",
+          "recognized_fragment": "口",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-S0-NUM-001": {
+      "expected_text": "￥28.80",
+      "drawn_text": "￥28.00",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "8",
+          "recognized_fragment": "0",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-S0-ZH-003": {
+      "expected_text": "新客立减20元",
+      "drawn_text": "新客立减元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "20",
+          "recognized_fragment": "",
+          "expected_span": [
+            4,
+            6
+          ],
+          "recognized_span": [
+            4,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-001": {
+      "expected_text": "全场优惠10元",
+      "drawn_text": "全场优惠10元",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-002": {
+      "expected_text": "人气好礼",
+      "drawn_text": "人气好礼",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-003": {
+      "expected_text": "今日上市免单",
+      "drawn_text": "今日上市免单",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-004": {
+      "expected_text": "精选上市20元",
+      "drawn_text": "精选上市20元",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-005": {
+      "expected_text": "周年尝鲜50元",
+      "drawn_text": "周年尝鲜50元",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-006": {
+      "expected_text": "开学好礼",
+      "drawn_text": "开学好礼",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-007": {
+      "expected_text": "热销直降",
+      "drawn_text": "热销直降",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-008": {
+      "expected_text": "当季上市免单",
+      "drawn_text": "当季上市免单",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-009": {
+      "expected_text": "秋季尝鲜大礼包",
+      "drawn_text": "秋季尝鲜大礼包",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-010": {
+      "expected_text": "今日直降88元",
+      "drawn_text": "今日直降88元",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-011": {
+      "expected_text": "首单好礼20元",
+      "drawn_text": "首单好礼20元",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-012": {
+      "expected_text": "春季尝鲜",
+      "drawn_text": "春季尝鲜",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-013": {
+      "expected_text": "品牌礼遇",
+      "drawn_text": "品牌礼遇",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-014": {
+      "expected_text": "当季预售",
+      "drawn_text": "当季预售",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-015": {
+      "expected_text": "会员加购好礼相送",
+      "drawn_text": "会员加购好礼相送",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-016": {
+      "expected_text": "首单首发好礼相送",
+      "drawn_text": "首单首发好礼相送",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-017": {
+      "expected_text": "开学尝鲜",
+      "drawn_text": "开学尝鲜",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-018": {
+      "expected_text": "首单加购5折",
+      "drawn_text": "首单加购5折",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-019": {
+      "expected_text": "春季立减20元",
+      "drawn_text": "春季立减20元",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-020": {
+      "expected_text": "精选加购88元",
+      "drawn_text": "精选加购88元",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-021": {
+      "expected_text": "会员秒杀",
+      "drawn_text": "会员秒杀",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-022": {
+      "expected_text": "新品直降100元",
+      "drawn_text": "新品直降100元",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-023": {
+      "expected_text": "限时包邮惊喜价",
+      "drawn_text": "限时包邮惊喜价",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-024": {
+      "expected_text": "春季立减大礼包",
+      "drawn_text": "春季立减大礼包",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-025": {
+      "expected_text": "首单满减",
+      "drawn_text": "首单满减",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-026": {
+      "expected_text": "品牌首发10元",
+      "drawn_text": "品牌首发10元",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-027": {
+      "expected_text": "经典预售惊喜价",
+      "drawn_text": "经典预售惊喜价",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-028": {
+      "expected_text": "首单好礼惊喜价",
+      "drawn_text": "首单好礼惊喜价",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-029": {
+      "expected_text": "新品秒杀100元",
+      "drawn_text": "新品秒杀100元",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-030": {
+      "expected_text": "新客尝鲜免单",
+      "drawn_text": "新客尝鲜免单",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-031": {
+      "expected_text": "春季立减免单",
+      "drawn_text": "春季立减免单",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-032": {
+      "expected_text": "新品预售",
+      "drawn_text": "新品预售",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-033": {
+      "expected_text": "爆款好礼100元",
+      "drawn_text": "爆款好礼100元",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-034": {
+      "expected_text": "全场满减",
+      "drawn_text": "全场满减",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-035": {
+      "expected_text": "秋季满减大礼包",
+      "drawn_text": "秋季满减大礼包",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-036": {
+      "expected_text": "首单尝鲜",
+      "drawn_text": "首单尝鲜",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-037": {
+      "expected_text": "爆款特惠50元",
+      "drawn_text": "爆款特惠50元",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-038": {
+      "expected_text": "周年专享",
+      "drawn_text": "周年专享",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-039": {
+      "expected_text": "经典包邮",
+      "drawn_text": "经典包邮",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-040": {
+      "expected_text": "新客秒杀5元",
+      "drawn_text": "新客秒杀5元",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-041": {
+      "expected_text": "SUPER 50% OFF",
+      "drawn_text": "SUPER 50% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-042": {
+      "expected_text": "BIG 2 FOR 1",
+      "drawn_text": "BIG 2 FOR 1",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-043": {
+      "expected_text": "FREE FREE SHIPPING",
+      "drawn_text": "FREE FREE SHIPPING",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-044": {
+      "expected_text": "MEGA EXTRA 10% OFF",
+      "drawn_text": "MEGA EXTRA 10% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-045": {
+      "expected_text": "HALF PRICE",
+      "drawn_text": "HALF PRICE",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-046": {
+      "expected_text": "MEGA 2 FOR 1",
+      "drawn_text": "MEGA 2 FOR 1",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-047": {
+      "expected_text": "LIMITED 50% OFF",
+      "drawn_text": "LIMITED 50% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-048": {
+      "expected_text": "SUPER 40% OFF",
+      "drawn_text": "SUPER 40% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-049": {
+      "expected_text": "NEW 70% OFF",
+      "drawn_text": "NEW 70% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-050": {
+      "expected_text": "BIG SAVE 20%",
+      "drawn_text": "BIG SAVE 20%",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-051": {
+      "expected_text": "BEST 50% OFF",
+      "drawn_text": "BEST 50% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-052": {
+      "expected_text": "BEST BUY 1 GET 1",
+      "drawn_text": "BEST BUY 1 GET 1",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-053": {
+      "expected_text": "SALE NEW ARRIVAL",
+      "drawn_text": "SALE NEW ARRIVAL",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-054": {
+      "expected_text": "TOP 2 FOR 1",
+      "drawn_text": "TOP 2 FOR 1",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-055": {
+      "expected_text": "LIMITED 2 FOR 1",
+      "drawn_text": "LIMITED 2 FOR 1",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-056": {
+      "expected_text": "MEMBERS ONLY",
+      "drawn_text": "MEMBERS ONLY",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-057": {
+      "expected_text": "SALE TODAY ONLY",
+      "drawn_text": "SALE TODAY ONLY",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-058": {
+      "expected_text": "NEW 2 FOR 1",
+      "drawn_text": "NEW 2 FOR 1",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-059": {
+      "expected_text": "NEW 50% OFF",
+      "drawn_text": "NEW 50% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-060": {
+      "expected_text": "TOP TODAY ONLY",
+      "drawn_text": "TOP TODAY ONLY",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-061": {
+      "expected_text": "¥28.95",
+      "drawn_text": "¥28.95",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-062": {
+      "expected_text": "20% OFF",
+      "drawn_text": "20% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-063": {
+      "expected_text": "¥199.30",
+      "drawn_text": "¥199.30",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-064": {
+      "expected_text": "¥19.30",
+      "drawn_text": "¥19.30",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-065": {
+      "expected_text": "¥9.20",
+      "drawn_text": "¥9.20",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-066": {
+      "expected_text": "80% OFF",
+      "drawn_text": "80% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-067": {
+      "expected_text": "¥899.90",
+      "drawn_text": "¥899.90",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-068": {
+      "expected_text": "¥158.90",
+      "drawn_text": "¥158.90",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-069": {
+      "expected_text": "¥128.99",
+      "drawn_text": "¥128.99",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-070": {
+      "expected_text": "¥59.90",
+      "drawn_text": "¥59.90",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-071": {
+      "expected_text": "¥69.50",
+      "drawn_text": "¥69.50",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-072": {
+      "expected_text": "¥88.99",
+      "drawn_text": "¥88.99",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-073": {
+      "expected_text": "¥599.00",
+      "drawn_text": "¥599.00",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-074": {
+      "expected_text": "10% OFF",
+      "drawn_text": "10% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-075": {
+      "expected_text": "¥599.30",
+      "drawn_text": "¥599.30",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-076": {
+      "expected_text": "¥128.10",
+      "drawn_text": "¥128.10",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-077": {
+      "expected_text": "¥899.10",
+      "drawn_text": "¥899.10",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-078": {
+      "expected_text": "30% OFF",
+      "drawn_text": "30% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-079": {
+      "expected_text": "满200减50",
+      "drawn_text": "满200减50",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-080": {
+      "expected_text": "买1送2",
+      "drawn_text": "买1送2",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-081": {
+      "expected_text": "¥59.50 经典满减100元",
+      "drawn_text": "¥59.50 经典满减100元",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-082": {
+      "expected_text": "限时狂欢50元 NEW",
+      "drawn_text": "限时狂欢50元 NEW",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-083": {
+      "expected_text": "¥899.88 首单立减",
+      "drawn_text": "¥899.88 首单立减",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-084": {
+      "expected_text": "FREE 周年好礼半价",
+      "drawn_text": "FREE 周年好礼半价",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-085": {
+      "expected_text": "秋季包邮20元 50% OFF",
+      "drawn_text": "秋季包邮20元 50% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-086": {
+      "expected_text": "SALE 新客大促",
+      "drawn_text": "SALE 新客大促",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-087": {
+      "expected_text": "FREE 当季折扣好礼相送",
+      "drawn_text": "FREE 当季折扣好礼相送",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-088": {
+      "expected_text": "春季上市免单 30% OFF",
+      "drawn_text": "春季上市免单 30% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-089": {
+      "expected_text": "开学特惠100元 FREE",
+      "drawn_text": "开学特惠100元 FREE",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-090": {
+      "expected_text": "经典优惠30元 70% OFF",
+      "drawn_text": "经典优惠30元 70% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-091": {
+      "expected_text": "¥9.10 热销秒杀",
+      "drawn_text": "¥9.10 热销秒杀",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-092": {
+      "expected_text": "BIG 春季包邮好礼相送",
+      "drawn_text": "BIG 春季包邮好礼相送",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-093": {
+      "expected_text": "秋季狂欢100元 NEW",
+      "drawn_text": "秋季狂欢100元 NEW",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-094": {
+      "expected_text": "LIMITED 春季直降",
+      "drawn_text": "LIMITED 春季直降",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-095": {
+      "expected_text": "会员优惠 BIG",
+      "drawn_text": "会员优惠 BIG",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-096": {
+      "expected_text": "全场清仓 10% OFF",
+      "drawn_text": "全场清仓 10% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-097": {
+      "expected_text": "SPECIAL 新品满减半价",
+      "drawn_text": "SPECIAL 新品满减半价",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-098": {
+      "expected_text": "会员上市50元 NEW",
+      "drawn_text": "会员上市50元 NEW",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-099": {
+      "expected_text": "FREE 爆款预售100元",
+      "drawn_text": "FREE 爆款预售100元",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-CLN-100": {
+      "expected_text": "人气优惠5元 40% OFF",
+      "drawn_text": "人气优惠5元 40% OFF",
+      "verdict": "MATCH",
+      "errors": [],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 0,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-001": {
+      "expected_text": "周末首发20元",
+      "drawn_text": "周末首520元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "发",
+          "recognized_fragment": "5",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-002": {
+      "expected_text": "新客直降30元",
+      "drawn_text": "新全直降30元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "客",
+          "recognized_fragment": "全",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-003": {
+      "expected_text": "首单上市",
+      "drawn_text": "清单上市",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "首",
+          "recognized_fragment": "清",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-004": {
+      "expected_text": "开学加购30元",
+      "drawn_text": "开学加购30典",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "元",
+          "recognized_fragment": "典",
+          "expected_span": [
+            6,
+            7
+          ],
+          "recognized_span": [
+            6,
+            7
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-005": {
+      "expected_text": "开学直降大礼包",
+      "drawn_text": "开学直降大礼1",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "包",
+          "recognized_fragment": "1",
+          "expected_span": [
+            6,
+            7
+          ],
+          "recognized_span": [
+            6,
+            7
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-006": {
+      "expected_text": "人气特惠",
+      "drawn_text": "人客特惠",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "气",
+          "recognized_fragment": "客",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-007": {
+      "expected_text": "精选专享5折",
+      "drawn_text": "精加专享5折",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "选",
+          "recognized_fragment": "加",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-008": {
+      "expected_text": "新品回馈100元",
+      "drawn_text": "惊品回馈100元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "新",
+          "recognized_fragment": "惊",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-009": {
+      "expected_text": "品牌大促50元",
+      "drawn_text": "品牌大150元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "促",
+          "recognized_fragment": "1",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-010": {
+      "expected_text": "品牌礼遇5元",
+      "drawn_text": "品杀礼遇5元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "牌",
+          "recognized_fragment": "杀",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-011": {
+      "expected_text": "热销包邮8折",
+      "drawn_text": "热销包邮8限",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "折",
+          "recognized_fragment": "限",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-012": {
+      "expected_text": "人气特惠5元",
+      "drawn_text": "人员特惠5元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "气",
+          "recognized_fragment": "员",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-013": {
+      "expected_text": "人气大促10元",
+      "drawn_text": "人加大促10元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "气",
+          "recognized_fragment": "加",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-014": {
+      "expected_text": "限时大促10元",
+      "drawn_text": "限享大促10元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "时",
+          "recognized_fragment": "享",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-015": {
+      "expected_text": "人气首发20元",
+      "drawn_text": "人气直发20元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "首",
+          "recognized_fragment": "直",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-016": {
+      "expected_text": "人气折扣好礼相送",
+      "drawn_text": "人气折扣好促相送",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "礼",
+          "recognized_fragment": "促",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-017": {
+      "expected_text": "新品优惠惊喜价",
+      "drawn_text": "新品优惠惊学价",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "喜",
+          "recognized_fragment": "学",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-018": {
+      "expected_text": "新品尝鲜20元",
+      "drawn_text": "新专尝鲜20元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "品",
+          "recognized_fragment": "专",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-019": {
+      "expected_text": "品牌优惠10元",
+      "drawn_text": "品牌优惊10元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "惠",
+          "recognized_fragment": "惊",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-020": {
+      "expected_text": "新品立减5元",
+      "drawn_text": "新品免减5元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "立",
+          "recognized_fragment": "免",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-021": {
+      "expected_text": "周年大促10元",
+      "drawn_text": "周年0促10元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "大",
+          "recognized_fragment": "0",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-022": {
+      "expected_text": "招牌满减20元",
+      "drawn_text": "招牌折减20元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "满",
+          "recognized_fragment": "折",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-023": {
+      "expected_text": "精选满减好礼相送",
+      "drawn_text": "新选满减好礼相送",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "精",
+          "recognized_fragment": "新",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-024": {
+      "expected_text": "今日专享",
+      "drawn_text": "今日享享",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "专",
+          "recognized_fragment": "享",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-025": {
+      "expected_text": "春季秒杀",
+      "drawn_text": "降季秒杀",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "春",
+          "recognized_fragment": "降",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-026": {
+      "expected_text": "周末尝鲜20元",
+      "drawn_text": "品末尝鲜20元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "周",
+          "recognized_fragment": "品",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-027": {
+      "expected_text": "全场首发",
+      "drawn_text": "降场首发",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "全",
+          "recognized_fragment": "降",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-028": {
+      "expected_text": "限时专享5折",
+      "drawn_text": "尝时专享5折",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "限",
+          "recognized_fragment": "尝",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-029": {
+      "expected_text": "今日直降",
+      "drawn_text": "今今直降",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "日",
+          "recognized_fragment": "今",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-030": {
+      "expected_text": "秋季礼遇",
+      "drawn_text": "秋开礼遇",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "季",
+          "recognized_fragment": "开",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-031": {
+      "expected_text": "招牌狂欢",
+      "drawn_text": "招狂狂欢",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "牌",
+          "recognized_fragment": "狂",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-032": {
+      "expected_text": "开学首发半价",
+      "drawn_text": "选学首发半价",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "开",
+          "recognized_fragment": "选",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-033": {
+      "expected_text": "首单专享10元",
+      "drawn_text": "降单专享10元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "首",
+          "recognized_fragment": "降",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-034": {
+      "expected_text": "秋季首发",
+      "drawn_text": "秋季品发",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "首",
+          "recognized_fragment": "品",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-035": {
+      "expected_text": "秋季折扣",
+      "drawn_text": "秋季元扣",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "折",
+          "recognized_fragment": "元",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-036": {
+      "expected_text": "新品满减",
+      "drawn_text": "预品满减",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "新",
+          "recognized_fragment": "预",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-037": {
+      "expected_text": "新品专享惊喜价",
+      "drawn_text": "新品专享惊1价",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "喜",
+          "recognized_fragment": "1",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-038": {
+      "expected_text": "秋季满减",
+      "drawn_text": "秋季销减",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "满",
+          "recognized_fragment": "销",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-039": {
+      "expected_text": "秋季上市免单",
+      "drawn_text": "好季上市免单",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "秋",
+          "recognized_fragment": "好",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-040": {
+      "expected_text": "FLASH 10% OFF",
+      "drawn_text": "FLAYH 10% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "S",
+          "recognized_fragment": "Y",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-041": {
+      "expected_text": "SALE 30% OFF",
+      "drawn_text": "SAZE 30% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "L",
+          "recognized_fragment": "Z",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-042": {
+      "expected_text": "FREE 50% OFF",
+      "drawn_text": "FLEE 50% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "R",
+          "recognized_fragment": "L",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-043": {
+      "expected_text": "NEW ARRIVAL",
+      "drawn_text": "NEW ARRIVAA",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "L",
+          "recognized_fragment": "A",
+          "expected_span": [
+            10,
+            11
+          ],
+          "recognized_span": [
+            10,
+            11
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-044": {
+      "expected_text": "BEST EXTRA 10% OFF",
+      "drawn_text": "BEDT EXTRA 10% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "S",
+          "recognized_fragment": "D",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-045": {
+      "expected_text": "SPECIAL MEMBERS ONLY",
+      "drawn_text": "SPEFIAL MEMBERS ONLY",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "C",
+          "recognized_fragment": "F",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-046": {
+      "expected_text": "BIG FREE SHIPPING",
+      "drawn_text": "BIG MREE SHIPPING",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "F",
+          "recognized_fragment": "M",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-047": {
+      "expected_text": "SPECIAL 70% OFF",
+      "drawn_text": "SPECINL 70% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "A",
+          "recognized_fragment": "N",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-048": {
+      "expected_text": "BEST MEMBERS ONLY",
+      "drawn_text": "BIST MEMBERS ONLY",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "E",
+          "recognized_fragment": "I",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-049": {
+      "expected_text": "BIG HALF PRICE",
+      "drawn_text": "BIG HALF PRICZ",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "E",
+          "recognized_fragment": "Z",
+          "expected_span": [
+            13,
+            14
+          ],
+          "recognized_span": [
+            13,
+            14
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-050": {
+      "expected_text": "SALE SAVE 20%",
+      "drawn_text": "SELE SAVE 20%",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "A",
+          "recognized_fragment": "E",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-051": {
+      "expected_text": "FLASH 50% OFF",
+      "drawn_text": "FIASH 50% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "L",
+          "recognized_fragment": "I",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-052": {
+      "expected_text": "TODAY ONLY",
+      "drawn_text": "TOEAY ONLY",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "D",
+          "recognized_fragment": "E",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-053": {
+      "expected_text": "LIMITED TIME",
+      "drawn_text": "LIMITED UIME",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "T",
+          "recognized_fragment": "U",
+          "expected_span": [
+            8,
+            9
+          ],
+          "recognized_span": [
+            8,
+            9
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-054": {
+      "expected_text": "FREE SHIPPING",
+      "drawn_text": "FREE SHIPPINF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "G",
+          "recognized_fragment": "F",
+          "expected_span": [
+            12,
+            13
+          ],
+          "recognized_span": [
+            12,
+            13
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-055": {
+      "expected_text": "TOP 当季上市",
+      "drawn_text": "TOP 当季上馈",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "市",
+          "recognized_fragment": "馈",
+          "expected_span": [
+            7,
+            8
+          ],
+          "recognized_span": [
+            7,
+            8
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-056": {
+      "expected_text": "新客特惠50元 SALE",
+      "drawn_text": "新客特时50元 SALE",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "惠",
+          "recognized_fragment": "时",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-057": {
+      "expected_text": "周年秒杀10元 FREE",
+      "drawn_text": "周品秒杀10元 FREE",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "年",
+          "recognized_fragment": "品",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-058": {
+      "expected_text": "经典折扣30元 FLASH",
+      "drawn_text": "经典折市30元 FLASH",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "扣",
+          "recognized_fragment": "市",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-059": {
+      "expected_text": "BIG 招牌特惠",
+      "drawn_text": "BCG 招牌特惠",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "I",
+          "recognized_fragment": "C",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-060": {
+      "expected_text": "周年大促大礼包 10% OFF",
+      "drawn_text": "回年大促大礼包 10% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "周",
+          "recognized_fragment": "回",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-061": {
+      "expected_text": "首单加购 BEST",
+      "drawn_text": "首单市购 BEST",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "加",
+          "recognized_fragment": "市",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-062": {
+      "expected_text": "春季礼遇20元 HOT",
+      "drawn_text": "鲜季礼遇20元 HOT",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "春",
+          "recognized_fragment": "鲜",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-063": {
+      "expected_text": "周末清仓20元 30% OFF",
+      "drawn_text": "0末清仓20元 30% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "周",
+          "recognized_fragment": "0",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-064": {
+      "expected_text": "当季预售 SALE",
+      "drawn_text": "当季秋售 SALE",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "预",
+          "recognized_fragment": "秋",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-065": {
+      "expected_text": "¥128.00 开学专享半价",
+      "drawn_text": "¥128.00 限学专享半价",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "开",
+          "recognized_fragment": "限",
+          "expected_span": [
+            8,
+            9
+          ],
+          "recognized_span": [
+            8,
+            9
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-066": {
+      "expected_text": "LIMITED 热销礼遇",
+      "drawn_text": "LEMITED 热销礼遇",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "I",
+          "recognized_fragment": "E",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-067": {
+      "expected_text": "限时立减50元 SPECIAL",
+      "drawn_text": "限时狂减50元 SPECIAL",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "立",
+          "recognized_fragment": "狂",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-068": {
+      "expected_text": "今日礼遇免单 SALE",
+      "drawn_text": "今日礼遇免单 SADE",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "L",
+          "recognized_fragment": "D",
+          "expected_span": [
+            9,
+            10
+          ],
+          "recognized_span": [
+            9,
+            10
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-SUB-069": {
+      "expected_text": "FLASH 全场狂欢",
+      "drawn_text": "FLACH 全场狂欢",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "SUBSTITUTION",
+          "expected_fragment": "S",
+          "recognized_fragment": "C",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-001": {
+      "expected_text": "周末尝鲜",
+      "drawn_text": "周尝鲜",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "末",
+          "recognized_fragment": "",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-002": {
+      "expected_text": "当季大促半价",
+      "drawn_text": "当大促半价",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "季",
+          "recognized_fragment": "",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-003": {
+      "expected_text": "新品大促20元",
+      "drawn_text": "新品大促20",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "元",
+          "recognized_fragment": "",
+          "expected_span": [
+            6,
+            7
+          ],
+          "recognized_span": [
+            6,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-004": {
+      "expected_text": "周年上市50元",
+      "drawn_text": "周年上50元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "市",
+          "recognized_fragment": "",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-005": {
+      "expected_text": "经典首发100元",
+      "drawn_text": "经典发100元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "首",
+          "recognized_fragment": "",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-006": {
+      "expected_text": "新客好礼",
+      "drawn_text": "新客好",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "礼",
+          "recognized_fragment": "",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-007": {
+      "expected_text": "会员首发大礼包",
+      "drawn_text": "会员发大礼包",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "首",
+          "recognized_fragment": "",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-008": {
+      "expected_text": "限时好礼",
+      "drawn_text": "时好礼",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "限",
+          "recognized_fragment": "",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            0
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-009": {
+      "expected_text": "春季清仓50元",
+      "drawn_text": "春清仓50元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "季",
+          "recognized_fragment": "",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-010": {
+      "expected_text": "周末优惠",
+      "drawn_text": "周优惠",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "末",
+          "recognized_fragment": "",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-011": {
+      "expected_text": "周年预售",
+      "drawn_text": "周年售",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "预",
+          "recognized_fragment": "",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-012": {
+      "expected_text": "秋季大促",
+      "drawn_text": "秋季促",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "大",
+          "recognized_fragment": "",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-013": {
+      "expected_text": "精选首发8折",
+      "drawn_text": "精选首发8",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "折",
+          "recognized_fragment": "",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-014": {
+      "expected_text": "经典秒杀5元",
+      "drawn_text": "经秒杀5元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "典",
+          "recognized_fragment": "",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-015": {
+      "expected_text": "周年上市30元",
+      "drawn_text": "周年市30元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "上",
+          "recognized_fragment": "",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-016": {
+      "expected_text": "热销大促",
+      "drawn_text": "热销大",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "促",
+          "recognized_fragment": "",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-017": {
+      "expected_text": "会员上市10元",
+      "drawn_text": "会员上市0元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "1",
+          "recognized_fragment": "",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-018": {
+      "expected_text": "周年大促",
+      "drawn_text": "周大促",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "年",
+          "recognized_fragment": "",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-019": {
+      "expected_text": "周末上市50元",
+      "drawn_text": "周末市50元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "上",
+          "recognized_fragment": "",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-020": {
+      "expected_text": "全场秒杀8折",
+      "drawn_text": "全场秒杀8",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "折",
+          "recognized_fragment": "",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-021": {
+      "expected_text": "经典加购",
+      "drawn_text": "典加购",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "经",
+          "recognized_fragment": "",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            0
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-022": {
+      "expected_text": "爆款好礼",
+      "drawn_text": "爆款礼",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "好",
+          "recognized_fragment": "",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-023": {
+      "expected_text": "限时加购",
+      "drawn_text": "限时购",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "加",
+          "recognized_fragment": "",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-024": {
+      "expected_text": "周年回馈半价",
+      "drawn_text": "周年回半价",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "馈",
+          "recognized_fragment": "",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-025": {
+      "expected_text": "热销礼遇20元",
+      "drawn_text": "热销礼遇0元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "2",
+          "recognized_fragment": "",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-026": {
+      "expected_text": "开学立减50元",
+      "drawn_text": "开学立减50",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "元",
+          "recognized_fragment": "",
+          "expected_span": [
+            6,
+            7
+          ],
+          "recognized_span": [
+            6,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-027": {
+      "expected_text": "今日折扣",
+      "drawn_text": "今日扣",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "折",
+          "recognized_fragment": "",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-028": {
+      "expected_text": "爆款好礼88元",
+      "drawn_text": "爆款礼88元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "好",
+          "recognized_fragment": "",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-029": {
+      "expected_text": "首单折扣",
+      "drawn_text": "单折扣",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "首",
+          "recognized_fragment": "",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            0
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-030": {
+      "expected_text": "周年立减",
+      "drawn_text": "周立减",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "年",
+          "recognized_fragment": "",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-031": {
+      "expected_text": "招牌大促50元",
+      "drawn_text": "牌大促50元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "招",
+          "recognized_fragment": "",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            0
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-032": {
+      "expected_text": "新品优惠",
+      "drawn_text": "品优惠",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "新",
+          "recognized_fragment": "",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            0
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-033": {
+      "expected_text": "春季尝鲜半价",
+      "drawn_text": "季尝鲜半价",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "春",
+          "recognized_fragment": "",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            0
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-034": {
+      "expected_text": "新客上市",
+      "drawn_text": "客上市",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "新",
+          "recognized_fragment": "",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            0
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-035": {
+      "expected_text": "FREE 30% OFF",
+      "drawn_text": "FREE 3% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "0",
+          "recognized_fragment": "",
+          "expected_span": [
+            6,
+            7
+          ],
+          "recognized_span": [
+            6,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-036": {
+      "expected_text": "SALE HALF PRICE",
+      "drawn_text": "SALE HALF PRIE",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "C",
+          "recognized_fragment": "",
+          "expected_span": [
+            13,
+            14
+          ],
+          "recognized_span": [
+            13,
+            13
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-037": {
+      "expected_text": "MEGA 50% OFF",
+      "drawn_text": "MGA 50% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "E",
+          "recognized_fragment": "",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-038": {
+      "expected_text": "BEST 40% OFF",
+      "drawn_text": "BST 40% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "E",
+          "recognized_fragment": "",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-039": {
+      "expected_text": "NEW LIMITED TIME",
+      "drawn_text": "NEW LIMITED TIE",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "M",
+          "recognized_fragment": "",
+          "expected_span": [
+            14,
+            15
+          ],
+          "recognized_span": [
+            14,
+            14
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-040": {
+      "expected_text": "NEW ONLY TODAY",
+      "drawn_text": "NEW OLY TODAY",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "N",
+          "recognized_fragment": "",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-041": {
+      "expected_text": "MEGA 80% OFF",
+      "drawn_text": "MEA 80% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "G",
+          "recognized_fragment": "",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-042": {
+      "expected_text": "SUPER LIMITED TIME",
+      "drawn_text": "SUPER LIMITD TIME",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "E",
+          "recognized_fragment": "",
+          "expected_span": [
+            11,
+            12
+          ],
+          "recognized_span": [
+            11,
+            11
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-043": {
+      "expected_text": "BIG ONLY TODAY",
+      "drawn_text": "BIG OLY TODAY",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "N",
+          "recognized_fragment": "",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-044": {
+      "expected_text": "MEGA 20% OFF",
+      "drawn_text": "MEGA 2% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "0",
+          "recognized_fragment": "",
+          "expected_span": [
+            6,
+            7
+          ],
+          "recognized_span": [
+            6,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-045": {
+      "expected_text": "MEGA LIMITED TIME",
+      "drawn_text": "MEGA LIMTED TIME",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "I",
+          "recognized_fragment": "",
+          "expected_span": [
+            8,
+            9
+          ],
+          "recognized_span": [
+            8,
+            8
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-046": {
+      "expected_text": "NEW BUY 1 GET 1",
+      "drawn_text": "NEW BUY 1 GT 1",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "E",
+          "recognized_fragment": "",
+          "expected_span": [
+            11,
+            12
+          ],
+          "recognized_span": [
+            11,
+            11
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-047": {
+      "expected_text": "SPECIAL HALF PRICE",
+      "drawn_text": "SPECIAL HALF PRIC",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "E",
+          "recognized_fragment": "",
+          "expected_span": [
+            17,
+            18
+          ],
+          "recognized_span": [
+            17,
+            17
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-048": {
+      "expected_text": "FREE 10% OFF",
+      "drawn_text": "FEE 10% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "R",
+          "recognized_fragment": "",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-049": {
+      "expected_text": "FREE ONLY TODAY",
+      "drawn_text": "FREE OLY TODAY",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "N",
+          "recognized_fragment": "",
+          "expected_span": [
+            6,
+            7
+          ],
+          "recognized_span": [
+            6,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-050": {
+      "expected_text": "满100减10",
+      "drawn_text": "100减10",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "满",
+          "recognized_fragment": "",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            0
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-051": {
+      "expected_text": "买2送2",
+      "drawn_text": "买送2",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "2",
+          "recognized_fragment": "",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-052": {
+      "expected_text": "¥39.80",
+      "drawn_text": "¥39.0",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "8",
+          "recognized_fragment": "",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-053": {
+      "expected_text": "¥399.30",
+      "drawn_text": "¥39930",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": ".",
+          "recognized_fragment": "",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-054": {
+      "expected_text": "¥88.90",
+      "drawn_text": "¥88.0",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "9",
+          "recognized_fragment": "",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-055": {
+      "expected_text": "¥259.80",
+      "drawn_text": "¥59.80",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "2",
+          "recognized_fragment": "",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-056": {
+      "expected_text": "CODE 7664",
+      "drawn_text": "COE 7664",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "D",
+          "recognized_fragment": "",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-057": {
+      "expected_text": "¥59.10",
+      "drawn_text": "¥59.0",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "1",
+          "recognized_fragment": "",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-058": {
+      "expected_text": "买3送2",
+      "drawn_text": "买32",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "送",
+          "recognized_fragment": "",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-059": {
+      "expected_text": "FREE 会员秒杀50元",
+      "drawn_text": "FEE 会员秒杀50元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "R",
+          "recognized_fragment": "",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-060": {
+      "expected_text": "¥299.30 秋季首发10元",
+      "drawn_text": "¥299.30 秋季首10元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "发",
+          "recognized_fragment": "",
+          "expected_span": [
+            11,
+            12
+          ],
+          "recognized_span": [
+            11,
+            11
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-061": {
+      "expected_text": "SALE 周年预售",
+      "drawn_text": "SALE 周年预",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "售",
+          "recognized_fragment": "",
+          "expected_span": [
+            8,
+            9
+          ],
+          "recognized_span": [
+            8,
+            8
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-062": {
+      "expected_text": "BEST 限时秒杀5折",
+      "drawn_text": "BEST 限时秒杀折",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "5",
+          "recognized_fragment": "",
+          "expected_span": [
+            9,
+            10
+          ],
+          "recognized_span": [
+            9,
+            9
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-063": {
+      "expected_text": "人气秒杀 BEST",
+      "drawn_text": "人秒杀 BEST",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "气",
+          "recognized_fragment": "",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-064": {
+      "expected_text": "SALE 新客首发",
+      "drawn_text": "SALE 新首发",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "客",
+          "recognized_fragment": "",
+          "expected_span": [
+            6,
+            7
+          ],
+          "recognized_span": [
+            6,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-065": {
+      "expected_text": "LIMITED 周末预售",
+      "drawn_text": "LIMTED 周末预售",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "I",
+          "recognized_fragment": "",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-066": {
+      "expected_text": "经典加购 FREE",
+      "drawn_text": "经加购 FREE",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "典",
+          "recognized_fragment": "",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-067": {
+      "expected_text": "新客好礼 FLASH",
+      "drawn_text": "新客好礼 FASH",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "L",
+          "recognized_fragment": "",
+          "expected_span": [
+            6,
+            7
+          ],
+          "recognized_span": [
+            6,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-OMI-068": {
+      "expected_text": "今日优惠 LIMITED",
+      "drawn_text": "今日优惠 LIMITE",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "MISSING_CHARACTER",
+          "expected_fragment": "D",
+          "recognized_fragment": "",
+          "expected_span": [
+            11,
+            12
+          ],
+          "recognized_span": [
+            11,
+            11
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-001": {
+      "expected_text": "¥39.99",
+      "drawn_text": "¥39.94",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "9",
+          "recognized_fragment": "4",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-002": {
+      "expected_text": "¥899.30",
+      "drawn_text": "¥899.37",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "7",
+          "expected_span": [
+            6,
+            7
+          ],
+          "recognized_span": [
+            6,
+            7
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-003": {
+      "expected_text": "40% OFF",
+      "drawn_text": "00% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "4",
+          "recognized_fragment": "0",
+          "expected_span": [
+            0,
+            1
+          ],
+          "recognized_span": [
+            0,
+            1
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-004": {
+      "expected_text": "¥99.95",
+      "drawn_text": "¥69.95",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "9",
+          "recognized_fragment": "6",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-005": {
+      "expected_text": "¥199.90",
+      "drawn_text": "¥399.90",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "1",
+          "recognized_fragment": "3",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-006": {
+      "expected_text": "¥199.00",
+      "drawn_text": "¥899.00",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "1",
+          "recognized_fragment": "8",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-007": {
+      "expected_text": "¥9.30",
+      "drawn_text": "¥9.36",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "6",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-008": {
+      "expected_text": "¥88.30",
+      "drawn_text": "¥88.20",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "3",
+          "recognized_fragment": "2",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-009": {
+      "expected_text": "¥9.00",
+      "drawn_text": "¥9.40",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "4",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-010": {
+      "expected_text": "¥49.20",
+      "drawn_text": "¥49.70",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "2",
+          "recognized_fragment": "7",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-011": {
+      "expected_text": "¥259.90",
+      "drawn_text": "¥259.93",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "3",
+          "expected_span": [
+            6,
+            7
+          ],
+          "recognized_span": [
+            6,
+            7
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-012": {
+      "expected_text": "¥899.00",
+      "drawn_text": "¥899.50",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "5",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-013": {
+      "expected_text": "¥28.50",
+      "drawn_text": "¥28.40",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "5",
+          "recognized_fragment": "4",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-014": {
+      "expected_text": "¥128.88",
+      "drawn_text": "¥125.88",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "8",
+          "recognized_fragment": "5",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-015": {
+      "expected_text": "¥28.20",
+      "drawn_text": "¥28.30",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "2",
+          "recognized_fragment": "3",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-016": {
+      "expected_text": "¥69.30",
+      "drawn_text": "¥69.60",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "3",
+          "recognized_fragment": "6",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-017": {
+      "expected_text": "满500减100",
+      "drawn_text": "满507减100",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "7",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-018": {
+      "expected_text": "¥399.50",
+      "drawn_text": "¥399.53",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "3",
+          "expected_span": [
+            6,
+            7
+          ],
+          "recognized_span": [
+            6,
+            7
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-019": {
+      "expected_text": "¥128.00",
+      "drawn_text": "¥128.40",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "4",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-020": {
+      "expected_text": "¥88.20",
+      "drawn_text": "¥18.20",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "8",
+          "recognized_fragment": "1",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-021": {
+      "expected_text": "¥259.00",
+      "drawn_text": "¥359.00",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "2",
+          "recognized_fragment": "3",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-022": {
+      "expected_text": "¥599.95",
+      "drawn_text": "¥299.95",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "5",
+          "recognized_fragment": "2",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-023": {
+      "expected_text": "¥899.50",
+      "drawn_text": "¥879.50",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "9",
+          "recognized_fragment": "7",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-024": {
+      "expected_text": "¥899.95",
+      "drawn_text": "¥999.95",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "8",
+          "recognized_fragment": "9",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-025": {
+      "expected_text": "¥88.50",
+      "drawn_text": "¥88.52",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "2",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-026": {
+      "expected_text": "¥9.95",
+      "drawn_text": "¥9.15",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "9",
+          "recognized_fragment": "1",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-027": {
+      "expected_text": "¥19.20",
+      "drawn_text": "¥89.20",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "1",
+          "recognized_fragment": "8",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-028": {
+      "expected_text": "满300减50",
+      "drawn_text": "满306减50",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "6",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-029": {
+      "expected_text": "¥69.20",
+      "drawn_text": "¥99.20",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "6",
+          "recognized_fragment": "9",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-030": {
+      "expected_text": "¥299.50",
+      "drawn_text": "¥799.50",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "2",
+          "recognized_fragment": "7",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-031": {
+      "expected_text": "经典特惠10元",
+      "drawn_text": "经典特惠80元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "1",
+          "recognized_fragment": "8",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-032": {
+      "expected_text": "春季礼遇5元",
+      "drawn_text": "春季礼遇7元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "5",
+          "recognized_fragment": "7",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-033": {
+      "expected_text": "今日预售100元",
+      "drawn_text": "今日预售104元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "4",
+          "expected_span": [
+            6,
+            7
+          ],
+          "recognized_span": [
+            6,
+            7
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-034": {
+      "expected_text": "精选回馈10元",
+      "drawn_text": "精选回馈12元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "2",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-035": {
+      "expected_text": "新品加购50元",
+      "drawn_text": "新品加购52元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "2",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-036": {
+      "expected_text": "热销特惠10元",
+      "drawn_text": "热销特惠70元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "1",
+          "recognized_fragment": "7",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-037": {
+      "expected_text": "招牌预售10元",
+      "drawn_text": "招牌预售40元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "1",
+          "recognized_fragment": "4",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-038": {
+      "expected_text": "当季直降50元",
+      "drawn_text": "当季直降53元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "3",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-039": {
+      "expected_text": "全场回馈10元",
+      "drawn_text": "全场回馈13元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "3",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-040": {
+      "expected_text": "开学上市10元",
+      "drawn_text": "开学上市40元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "1",
+          "recognized_fragment": "4",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-041": {
+      "expected_text": "全场回馈30元",
+      "drawn_text": "全场回馈00元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "3",
+          "recognized_fragment": "0",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-042": {
+      "expected_text": "全场狂欢50元",
+      "drawn_text": "全场狂欢51元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "1",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-043": {
+      "expected_text": "今日优惠88元",
+      "drawn_text": "今日优惠48元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "8",
+          "recognized_fragment": "4",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-044": {
+      "expected_text": "秋季大促30元",
+      "drawn_text": "秋季大促00元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "3",
+          "recognized_fragment": "0",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-045": {
+      "expected_text": "经典清仓50元",
+      "drawn_text": "经典清仓52元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "2",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-046": {
+      "expected_text": "经典清仓88元 BEST",
+      "drawn_text": "经典清仓89元 BEST",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "8",
+          "recognized_fragment": "9",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-047": {
+      "expected_text": "爆款大促10元 SALE",
+      "drawn_text": "爆款大促14元 SALE",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "4",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-048": {
+      "expected_text": "¥9.99 周年清仓",
+      "drawn_text": "¥6.99 周年清仓",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "9",
+          "recognized_fragment": "6",
+          "expected_span": [
+            1,
+            2
+          ],
+          "recognized_span": [
+            1,
+            2
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-049": {
+      "expected_text": "¥399.99 热销狂欢",
+      "drawn_text": "¥398.99 热销狂欢",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "9",
+          "recognized_fragment": "8",
+          "expected_span": [
+            3,
+            4
+          ],
+          "recognized_span": [
+            3,
+            4
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-050": {
+      "expected_text": "爆款特惠50元 FREE",
+      "drawn_text": "爆款特惠56元 FREE",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "6",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-051": {
+      "expected_text": "¥9.88 品牌尝鲜10元",
+      "drawn_text": "¥9.88 品牌尝鲜16元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "6",
+          "expected_span": [
+            11,
+            12
+          ],
+          "recognized_span": [
+            11,
+            12
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-052": {
+      "expected_text": "¥399.95 当季直降88元",
+      "drawn_text": "¥349.95 当季直降88元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "9",
+          "recognized_fragment": "4",
+          "expected_span": [
+            2,
+            3
+          ],
+          "recognized_span": [
+            2,
+            3
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-053": {
+      "expected_text": "限时清仓100元 10% OFF",
+      "drawn_text": "限时清仓100元 16% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "6",
+          "expected_span": [
+            10,
+            11
+          ],
+          "recognized_span": [
+            10,
+            11
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-054": {
+      "expected_text": "周末折扣 10% OFF",
+      "drawn_text": "周末折扣 30% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "1",
+          "recognized_fragment": "3",
+          "expected_span": [
+            5,
+            6
+          ],
+          "recognized_span": [
+            5,
+            6
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-055": {
+      "expected_text": "限时回馈100元 20% OFF",
+      "drawn_text": "限时回馈100元 28% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "0",
+          "recognized_fragment": "8",
+          "expected_span": [
+            10,
+            11
+          ],
+          "recognized_span": [
+            10,
+            11
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-056": {
+      "expected_text": "经典专享20元 SPECIAL",
+      "drawn_text": "经典专享80元 SPECIAL",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "2",
+          "recognized_fragment": "8",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-057": {
+      "expected_text": "新品清仓5元 40% OFF",
+      "drawn_text": "新品清仓6元 40% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "5",
+          "recognized_fragment": "6",
+          "expected_span": [
+            4,
+            5
+          ],
+          "recognized_span": [
+            4,
+            5
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-058": {
+      "expected_text": "春季狂欢惊喜价 60% OFF",
+      "drawn_text": "春季狂欢惊喜价 80% OFF",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "6",
+          "recognized_fragment": "8",
+          "expected_span": [
+            8,
+            9
+          ],
+          "recognized_span": [
+            8,
+            9
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    },
+    "TP-NMC-059": {
+      "expected_text": "SPECIAL 秋季立减10元",
+      "drawn_text": "SPECIAL 秋季立减70元",
+      "verdict": "MISMATCH",
+      "errors": [
+        {
+          "type": "NUMERIC_CHANGE",
+          "expected_fragment": "1",
+          "recognized_fragment": "7",
+          "expected_span": [
+            12,
+            13
+          ],
+          "recognized_span": [
+            12,
+            13
+          ],
+          "bbox_scope": "ocr_line",
+          "bbox_rule": "bbox_xyxy equals the OCR line bbox containing the error; IoU(ocr_bbox, target_region_xyxy) >= 0.80"
+        }
+      ],
+      "summary": {
+        "expected_lines": 1,
+        "ocr_lines": 1,
+        "error_count": 1,
+        "warning_count": 0
+      }
+    }
+  }
+}
