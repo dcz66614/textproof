@@ -1,0 +1,2 @@
+online pytest exit=0
+full-suite pytest exit=0

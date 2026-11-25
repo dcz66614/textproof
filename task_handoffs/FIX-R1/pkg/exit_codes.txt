@@ -1,0 +1,2 @@
+pytest exit=0
+verify_s0 not re-run (product code unchanged since 93d1b7c; parity re-run separately, see fix-r1-04-verification.md)

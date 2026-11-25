@@ -1,0 +1,12 @@
+# T002 test commands (run from /home/hatch/workspace/p033-textproof-t002 unless noted)
+# Acceptance command (logs in test_stdout.log / test_stderr.log, exit code in exit_codes.txt):
+/home/hatch/workspace/p033-textproof/.venv/bin/python -m pytest tests/unit/test_image_loader.py -q
+# Verification commands (all exit 0):
+git -C /home/hatch/workspace/p033-textproof worktree add /home/hatch/workspace/p033-textproof-t002 -b t002-input-contracts 394d507
+git status --short
+git diff 394d507 HEAD -- PROJECT_BOOK.md PROJECT_BOOK.docx IMPLEMENTATION_PLAN.md IMPLEMENTATION_PLAN.docx requirements.lock pyproject.toml
+git add src tests
+git commit -m "T002: input contracts and image validation (PROJECT_BOOK §4.2, §5)"
+git show --name-only --pretty=format: HEAD
+git diff 394d507 HEAD
+sha256sum src/textproof/__init__.py src/textproof/contracts.py src/textproof/io/__init__.py src/textproof/io/image_loader.py tests/conftest.py tests/unit/test_image_loader.py task_handoffs/T002/TASK_RESULT.md task_handoffs/T002/changed_files.txt task_handoffs/T002/git_diff.patch task_handoffs/T002/test_commands.txt task_handoffs/T002/test_stdout.log task_handoffs/T002/test_stderr.log task_handoffs/T002/exit_codes.txt

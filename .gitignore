@@ -1,0 +1,18 @@
+# T001: local-only, never committed.
+.venv/
+.venv-verify/
+.tmp/
+__pycache__/
+*.pyc
+# T014/R-03: recognition dictionary licence is UNVERIFIED;
+# the file is rebuilt locally (scripts/setup_dictionary.py)
+# and must not enter any public snapshot.
+assets/ocr/dictionaries/ppocrv6_dict.txt
+# T013-U01: the same file rebuilt into the installed package
+# (python -m textproof.setup_dictionary) must not be tracked either.
+src/textproof/assets/ocr/dictionaries/ppocrv6_dict.txt
+# FIX-R1: release products are build outputs, never committed again
+# (R1 P3: nesting release/ into the freeze tree made source.zip 512MB).
+release/
+# FIX-R1: the 93d1b7c git bundle (457MB) lives on Drive, never in git.
+task_handoffs/FIX-R1/TextProof-93d1b7c.bundle

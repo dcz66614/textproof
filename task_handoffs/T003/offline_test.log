@@ -1,0 +1,7 @@
+--- net check inside namespace (must fail) ---
+curl: (7) Failed to connect to hatch-egress-proxy port 3128 after 1 ms: Couldn't connect to server
+000
+curl exit=0
+--- offline pytest ---
+...................                                                      [100%]
+19 passed in 24.73s

@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "textproof"
+version = "1.0.0"
+description = "TextProof (字证): deterministic AI-image text verification, local CPU-only OCR."
+requires-python = ">=3.12,<3.13"
+license = { text = "MIT" }
+dependencies = [
+    # Frozen by PROJECT_BOOK.md §6.2: RapidOCR exact version.
+    # NOTE (T001, verified 2026-11-25 against PyPI): "RapidOCR 3.10.0" is the
+    # current `rapidocr` package (latest 3.10.0, released 2026-10-08). The
+    # legacy `rapidocr-onnxruntime` package stops at 1.4.4 and has no 3.10.0
+    # release, so it cannot satisfy the frozen version. `rapidocr` does not
+    # declare onnxruntime as a dependency, so the CPU engine is installed
+    # explicitly below, per the spec ("需显式安装推理引擎，只用 CPU").
+    "rapidocr==3.10.0",
+    # ONNX Runtime CPU package only. onnxruntime-gpu is explicitly forbidden.
+    "onnxruntime>=1.20,<2",
+    "Pillow>=10,<12",
+    "fastapi>=0.115,<1",
+    "uvicorn>=0.30,<1",
+    "pydantic>=2.9,<3",
+    "pytest>=8.3,<9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pip-tools>=7.4",
+]
+
+[project.scripts]
+textproof = "textproof.cli:main"
+
+# T013-U01: ship the local UI and the frozen ONNX models inside the
+# wheel, so an installed ``textproof`` runs with no source checkout.
+# The recognition dictionary is NOT listed here on purpose: its
+# licence is UNVERIFIED (THIRD_PARTY_NOTICES.md §4) and it is rebuilt
+# locally by ``python -m textproof.setup_dictionary`` after install.
+# Only the three model files match the glob; a dictionary file sitting
+# in ``assets/ocr/dictionaries/`` on the build machine is never
+# included.
+[tool.setuptools.package-data]
+textproof = [
+  "ui/*",
+  "assets/ocr/models/*.onnx",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

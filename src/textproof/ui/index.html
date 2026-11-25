@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TextProof（字证）— 本地图片文字核对</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <h1>TextProof（字证）</h1>
+    <span class="tag" id="status-offline">离线 / 本机运行</span>
+  </div>
+  <div class="version" id="version">版本：加载中…</div>
+</header>
+
+<main class="layout">
+  <!-- 左栏：输入 -->
+  <section class="col col-left" aria-label="输入">
+    <h2>图片与期望文本</h2>
+    <label class="field-label" for="file-input">选择图片（PNG / JPEG / WebP）</label>
+    <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp">
+    <p class="hint" id="image-info">尚未选择图片。</p>
+
+    <label class="field-label" for="expected-text">期望文本（每行代表一个期望视觉文本行）</label>
+    <textarea id="expected-text" rows="6" placeholder="粘贴期望文本，例如：限时优惠"></textarea>
+
+    <div class="btn-row">
+      <button type="button" id="btn-check" disabled>开始核对</button>
+      <button type="button" id="btn-recheck" disabled>重新核对</button>
+    </div>
+    <p class="hint" id="status" role="status">先上传图片，再输入期望文本。</p>
+    <p class="error-banner" id="error-banner" hidden></p>
+  </section>
+
+  <!-- 中央：预览与行框 -->
+  <section class="col col-center" aria-label="图片预览">
+    <h2>图片预览</h2>
+    <div class="preview" id="preview">
+      <p class="empty-state" id="empty-state">先上传图片，再输入期望文本；此处不展示任何虚构的检测结果。</p>
+      <div class="preview-stage" id="preview-stage" hidden>
+        <img id="preview-img" alt="待核对图片预览" hidden>
+        <div class="overlay" id="overlay" hidden></div>
+      </div>
+    </div>
+    <p class="hint">矩形框为 OCR 文本行框；点击右侧错误清单中的一项，高亮其对应行框。</p>
+  </section>
+
+  <!-- 右栏：结果 -->
+  <section class="col col-right" aria-label="核对结果">
+    <h2>核对结果</h2>
+    <div id="verdict" class="verdict verdict-empty">尚未核对</div>
+    <p class="hint" id="error-count">错误数量：—</p>
+
+    <h3>错误清单</h3>
+    <ol class="error-list" id="error-list">
+      <li class="empty-item">暂无错误清单。</li>
+    </ol>
+
+    <h3>复核提示</h3>
+    <ul class="warning-list" id="warning-list">
+      <li class="empty-item">暂无复核提示。</li>
+    </ul>
+
+    <h3>选中错误详情</h3>
+    <div id="error-detail" class="error-detail">未选中任何错误项。</div>
+  </section>
+</main>
+
+<footer class="bottombar">
+  <button type="button" id="btn-download" disabled>下载 JSON</button>
+  <button type="button" id="btn-copy" disabled>复制报告摘要</button>
+  <button type="button" id="btn-clear">清除</button>
+  <span class="hint" id="copy-status" role="status"></span>
+  <p class="hint" id="export-warning">下载的 JSON 报告包含期望文本与 OCR 结果，可能包含敏感文字，请妥善保存，不要随意转发。</p>
+</footer>
+
+<details class="report-json">
+  <summary>原始 JSON 报告</summary>
+  <pre id="report-json">尚未生成报告。</pre>
+</details>
+
+<script src="/app.js"></script>
+</body>
+</html>

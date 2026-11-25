@@ -1,0 +1,13 @@
+src/textproof/core/__init__.py
+src/textproof/core/align_lines.py
+src/textproof/core/classify.py
+src/textproof/core/line_order.py
+src/textproof/core/normalize.py
+src/textproof/core/report.py
+src/textproof/core/weighted_edit.py
+tests/unit/test_core/test_align_lines.py
+tests/unit/test_core/test_classify.py
+tests/unit/test_core/test_line_order.py
+tests/unit/test_core/test_normalize.py
+tests/unit/test_core/test_report.py
+tests/unit/test_core/test_weighted_edit.py

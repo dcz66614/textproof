@@ -1,0 +1,5 @@
+acceptance verify-manifest exit=0
+fixture tests (tests/unit/test_fixtures_s0.py) exit=0
+full-suite pytest exit=0
+independent regeneration (/tmp/t005-regen3) exit=0
+SHA comparison run1-vs-run2 (300/300 identical) exit=0

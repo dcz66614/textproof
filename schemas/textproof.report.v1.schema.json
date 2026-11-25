@@ -1,0 +1,482 @@
+{
+  "$defs": {
+    "bbox": {
+      "description": "bbox_xyxy = [x1, y1, x2, y2] in oriented image pixels, x1 <= x2, y1 <= y2, inside the image bounds (§4.6, §5.4). Ordering and bounds are enforced by the handwritten validator.",
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "type": "array"
+    },
+    "span": {
+      "description": "Half-open code-point span [start, end) into the normalised line text (§4.3.6); null only when that side has no line (MISSING_LINE / EXTRA_LINE / AMBIGUOUS_ALIGNMENT — see the per-type rules above). start <= end and end <= line length are enforced by the handwritten validator.",
+      "items": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "span_required": {
+      "items": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "type": "array"
+    }
+  },
+  "$id": "https://textproof.local/schemas/textproof.report.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Frozen JSON Schema for textproof.report/v1 (PROJECT_BOOK.md §5, frozen by T009). This file is the machine-readable form of §5.4; the handwritten validator scripts/validate_report_schema.py enforces the same rules plus the cross-field checks JSON Schema cannot express (span start <= end, spans inside their line text, sequential E001... ids, summary counts equal to array lengths). The two must agree: a report is valid only if it passes BOTH. The report schema field value is the name textproof.report/v1 (§5.1); this $id is only this file resource identifier.",
+  "properties": {
+    "errors": {
+      "items": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "description": "FROZEN (T009, finding F-03): a MISSING_LINE has no OCR side at all — recognised span, bbox and scope are null, ocr_line_index is null. The absent-side span is null, NOT [0, 0]: [0, 0] is a real empty span at position 0 (e.g. a MISSING_CHARACTER at the start of a line has recognised_span [0, 0]), so it cannot also mean 'no side'. T013 (finding R-15): it does have an expected line, so expected_line_index is a non-null integer — a null present-side index is rejected.",
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "MISSING_LINE"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "bbox_scope": {
+                  "type": "null"
+                },
+                "bbox_xyxy": {
+                  "type": "null"
+                },
+                "confidence": {
+                  "type": "null"
+                },
+                "expected_line_index": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "ocr_line_index": {
+                  "type": "null"
+                },
+                "recognized_span": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "description": "FROZEN (T009, finding F-03): an EXTRA_LINE has no expected side — expected span is null, NOT [0, 0], for the same reason as MISSING_LINE. It does have an OCR line, so its bbox is present with scope 'ocr_line'. T013 (finding R-15): ocr_line_index is a non-null integer — a null present-side index is rejected.",
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "EXTRA_LINE"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "bbox_scope": {
+                  "const": "ocr_line"
+                },
+                "bbox_xyxy": {
+                  "$ref": "#/$defs/bbox"
+                },
+                "expected_line_index": {
+                  "type": "null"
+                },
+                "expected_span": {
+                  "type": "null"
+                },
+                "ocr_line_index": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          {
+            "description": "FROZEN (T009, finding F-03): an AMBIGUOUS_ALIGNMENT is a property of the whole alignment (§7.2 forbids deterministic character conclusions), so it has no line indices, no spans, no bbox and no confidence — all null.",
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "AMBIGUOUS_ALIGNMENT"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "bbox_scope": {
+                  "type": "null"
+                },
+                "bbox_xyxy": {
+                  "type": "null"
+                },
+                "confidence": {
+                  "type": "null"
+                },
+                "expected_line_index": {
+                  "type": "null"
+                },
+                "expected_span": {
+                  "type": "null"
+                },
+                "ocr_line_index": {
+                  "type": "null"
+                },
+                "recognized_span": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "description": "Character errors (SUBSTITUTION, MISSING_CHARACTER, EXTRA_CHARACTER, NUMERIC_CHANGE) always carry both spans (an empty side is the empty span [x, x] at a real position, never null) and their OCR line box with scope 'ocr_line'. T013 (finding R-15): both line indices are non-null integers — a null present-side index is rejected.",
+            "if": {
+              "properties": {
+                "type": {
+                  "enum": [
+                    "SUBSTITUTION",
+                    "MISSING_CHARACTER",
+                    "EXTRA_CHARACTER",
+                    "NUMERIC_CHANGE"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "bbox_scope": {
+                  "const": "ocr_line"
+                },
+                "bbox_xyxy": {
+                  "$ref": "#/$defs/bbox"
+                },
+                "expected_line_index": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "expected_span": {
+                  "$ref": "#/$defs/span_required"
+                },
+                "ocr_line_index": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "recognized_span": {
+                  "$ref": "#/$defs/span_required"
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "bbox_scope": {
+            "description": "FROZEN (T009, finding F-03): 'ocr_line' iff bbox_xyxy is present; null iff bbox_xyxy is null. The value 'none' is NOT allowed: §5.4 defines no scope value other than 'ocr_line', and null is the form the production report already emits for a missing box, consistent with the other absent-side fields (line indices, spans, confidence) which are all null. See task_handoffs/T009/TASK_RESULT.md.",
+            "enum": [
+              "ocr_line",
+              null
+            ]
+          },
+          "bbox_xyxy": {
+            "description": "Containing OCR line box (§4.6); null only when there is no OCR line (MISSING_LINE, AMBIGUOUS_ALIGNMENT). Never a fabricated box.",
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 4,
+            "minItems": 4,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "confidence": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "expected_fragment": {
+            "type": "string"
+          },
+          "expected_line_index": {
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "expected_span": {
+            "$ref": "#/$defs/span"
+          },
+          "expected_text": {
+            "description": "Normalised expected line text; spans index into it (§4.3.6).",
+            "type": "string"
+          },
+          "id": {
+            "description": "Sequential E001... in deterministic order; sequentiality itself is enforced by the handwritten validator.",
+            "pattern": "^E[0-9]{3}$",
+            "type": "string"
+          },
+          "ocr_line_index": {
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "recognized_fragment": {
+            "type": "string"
+          },
+          "recognized_span": {
+            "$ref": "#/$defs/span"
+          },
+          "recognized_text": {
+            "description": "Normalised recognised line text; spans index into it (§4.3.6).",
+            "type": "string"
+          },
+          "type": {
+            "description": "§5.3 error type enumeration.",
+            "enum": [
+              "SUBSTITUTION",
+              "MISSING_CHARACTER",
+              "EXTRA_CHARACTER",
+              "NUMERIC_CHANGE",
+              "MISSING_LINE",
+              "EXTRA_LINE",
+              "AMBIGUOUS_ALIGNMENT"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "expected_line_index",
+          "ocr_line_index",
+          "expected_text",
+          "recognized_text",
+          "expected_span",
+          "recognized_span",
+          "expected_fragment",
+          "recognized_fragment",
+          "bbox_xyxy",
+          "bbox_scope",
+          "confidence"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "expected_text": {
+      "description": "Raw user expected text (§4.3.6).",
+      "type": "string"
+    },
+    "image": {
+      "additionalProperties": false,
+      "properties": {
+        "coordinate_system": {
+          "const": "oriented_image_px_top_left",
+          "description": "§5.1 coordinate system."
+        },
+        "format": {
+          "enum": [
+            "PNG",
+            "JPEG",
+            "WEBP"
+          ]
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        "sha256": {
+          "description": "SHA-256 of the original input bytes, lowercase hex.",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "sha256",
+        "format",
+        "width",
+        "height",
+        "coordinate_system"
+      ],
+      "type": "object"
+    },
+    "ocr_lines": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "bbox_xyxy": {
+            "$ref": "#/$defs/bbox"
+          },
+          "confidence": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "line_index": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "quad": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "maxItems": 4,
+            "minItems": 4,
+            "type": "array"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "line_index",
+          "text",
+          "confidence",
+          "bbox_xyxy",
+          "quad"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "recognized_text": {
+      "description": "Raw OCR text in reading order, lines joined with LF (§4.3.6).",
+      "type": "string"
+    },
+    "schema": {
+      "const": "textproof.report/v1",
+      "description": "§5.1 schema identifier."
+    },
+    "summary": {
+      "additionalProperties": false,
+      "description": "Counts must equal the lengths of the arrays they count; that cross-field check is enforced by the handwritten validator, not expressible here.",
+      "properties": {
+        "error_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "expected_lines": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "ocr_lines": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "warning_count": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "expected_lines",
+        "ocr_lines",
+        "error_count",
+        "warning_count"
+      ],
+      "type": "object"
+    },
+    "tool_version": {
+      "const": "0.1.0",
+      "description": "Product version (IMPLEMENTATION_PLAN.md §0.3 '产品版本初始目标：0.1.0'; PROJECT_BOOK.md §5.4 sample). Distinct from the packaging version in pyproject.toml (1.0.0) and from the spec version (1.0.0); see task_handoffs/T009/TASK_RESULT.md."
+    },
+    "verdict": {
+      "description": "§5.2 verdict enumeration.",
+      "enum": [
+        "MATCH",
+        "MISMATCH",
+        "REVIEW_REQUIRED",
+        "OCR_FAILED"
+      ]
+    },
+    "warnings": {
+      "description": "FROZEN (T009, finding F-03): a warning is exactly {code, message} plus, only for LOW_OCR_CONFIDENCE, ocr_line_index. There is NO 'confidence' field: the line confidence already lives on the ocr_lines entry (and on the error objects), and a per-warning confidence has no defined meaning in §5.3, which fixes only the warning codes. Message text is human-readable and not semantically compared.",
+      "items": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "description": "ocr_line_index is carried only by LOW_OCR_CONFIDENCE (one warning per affected line); other warnings have no line to point at.",
+            "if": {
+              "properties": {
+                "code": {
+                  "not": {
+                    "const": "LOW_OCR_CONFIDENCE"
+                  }
+                }
+              }
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "ocr_line_index"
+                ]
+              }
+            }
+          }
+        ],
+        "properties": {
+          "code": {
+            "description": "§5.3 warning code enumeration.",
+            "enum": [
+              "LOW_OCR_CONFIDENCE",
+              "POSSIBLE_MULTI_COLUMN",
+              "ROTATED_TEXT_NOT_SUPPORTED",
+              "OCR_EMPTY"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "ocr_line_index": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema",
+    "tool_version",
+    "verdict",
+    "image",
+    "expected_text",
+    "recognized_text",
+    "ocr_lines",
+    "errors",
+    "warnings",
+    "summary"
+  ],
+  "title": "TextProof report v1",
+  "type": "object"
+}

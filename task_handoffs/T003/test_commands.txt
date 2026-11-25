@@ -1,0 +1,4 @@
+cd ~/workspace/p033-textproof-t003
+/home/hatch/workspace/p033-textproof/.venv/bin/python -m pytest tests/integration/test_ocr_adapter.py -q
+/home/hatch/workspace/p033-textproof/.venv/bin/python -m pytest -q
+unshare -n bash -c 'curl -sS -m 5 https://www.modelscope.cn/ -o /dev/null -w "%{http_code}\n"; /home/hatch/workspace/p033-textproof/.venv/bin/python -m pytest tests/integration/test_ocr_adapter.py -q'

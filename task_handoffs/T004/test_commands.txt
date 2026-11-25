@@ -1,0 +1,3 @@
+cd ~/workspace/p033-textproof-t004
+/home/hatch/workspace/p033-textproof/.venv/bin/python -m pytest tests/unit/test_core -q
+/home/hatch/workspace/p033-textproof/.venv/bin/python -m pytest -q

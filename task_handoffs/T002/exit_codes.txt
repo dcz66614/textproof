@@ -1,0 +1,9 @@
+/home/hatch/workspace/p033-textproof/.venv/bin/python -m pytest tests/unit/test_image_loader.py -q: 0
+git worktree add (t002-input-contracts @ 394d507): 0
+git status --short: 0
+git diff 394d507 HEAD -- specs/lock/pyproject (empty, unmodified): 0
+git add src tests: 0
+git commit (c1c45ebef606551e119908efe685fb6487260d01): 0
+git show --name-only --pretty=format: HEAD: 0
+git diff 394d507 HEAD: 0
+sha256sum (SHA256SUMS.txt generation): 0

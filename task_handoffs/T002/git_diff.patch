@@ -1,0 +1,1077 @@
+diff --git a/src/textproof/__init__.py b/src/textproof/__init__.py
+new file mode 100644
+index 0000000..4979e65
+--- /dev/null
++++ b/src/textproof/__init__.py
+@@ -0,0 +1,8 @@
++"""TextProof (字证): deterministic AI-image text verification."""
++
++from textproof.contracts import (
++    ERROR_CODE_INVALID_INPUT,
++    InvalidInputError,
++)
++
++__all__ = ["ERROR_CODE_INVALID_INPUT", "InvalidInputError"]
+diff --git a/src/textproof/contracts.py b/src/textproof/contracts.py
+new file mode 100644
+index 0000000..658b54b
+--- /dev/null
++++ b/src/textproof/contracts.py
+@@ -0,0 +1,170 @@
++"""Frozen input contracts for TextProof (P033).
++
++Single source of truth for the input limits frozen in
++``PROJECT_BOOK.md`` §4.2 and the report coordinate basis frozen in §5.1.
++No other module may redefine these limits: T002's loader, T004's core and
++T005's fixtures must all import them from here, so a limit change fails
++loudly in one place instead of drifting silently across modules.
++
++Privacy (PROJECT_BOOK.md §4.2 / §9): nothing in this module carries a
++file path, an EXIF blob, a user comment or GPS data.  ``ImageInput`` holds
++only the validated image bytes plus oriented dimensions; the EXIF
++orientation tag is the *only* EXIF value the loader ever reads, and the
++decoded image handed downstream has all EXIF / text metadata stripped
++(see :mod:`textproof.io.image_loader`).
++"""
++
++from __future__ import annotations
++
++from dataclasses import dataclass, field
++from hashlib import sha256
++from typing import Final
++
++# ---------------------------------------------------------------------------
++# Frozen report identity (PROJECT_BOOK.md §5.1)
++# ---------------------------------------------------------------------------
++
++SCHEMA_ID: Final[str] = "textproof.report/v1"
++COORDINATE_SYSTEM: Final[str] = "oriented_image_px_top_left"
++
++# ---------------------------------------------------------------------------
++# Frozen input limits (PROJECT_BOOK.md §4.2).  Do not relax.
++# ---------------------------------------------------------------------------
++
++#: Maximum accepted image file size: 25 MiB.
++MAX_FILE_SIZE_BYTES: Final[int] = 25 * 1024 * 1024
++#: Maximum accepted width or height, in pixels (after EXIF orientation).
++MAX_DIMENSION_PX: Final[int] = 8192
++#: Maximum accepted total pixel count.
++MAX_PIXELS: Final[int] = 40_000_000
++#: Maximum expected-text length, in Unicode code points.
++MAX_EXPECTED_CODEPOINTS: Final[int] = 5_000
++#: Maximum expected-text line count.
++MAX_EXPECTED_LINES: Final[int] = 100
++
++#: Accepted image formats (Pillow ``Image.format`` names).
++ACCEPTED_FORMATS: Final[frozenset[str]] = frozenset({"PNG", "JPEG", "WEBP"})
++
++#: MIME type per accepted format.
++MIME_BY_FORMAT: Final[dict[str, str]] = {
++    "PNG": "image/png",
++    "JPEG": "image/jpeg",
++    "WEBP": "image/webp",
++}
++
++# ---------------------------------------------------------------------------
++# Unified error code (IMPLEMENTATION_PLAN.md T002 completion definition:
++# "所有输入错误使用统一错误码").  Every input rejection raised by the
++# loader carries exactly this code, whatever the underlying reason.
++# The short ``reason`` string distinguishes cases for logs/tests; it is
++# never a file path and never contains user text or EXIF content.
++# ---------------------------------------------------------------------------
++
++ERROR_CODE_INVALID_INPUT: Final[str] = "INVALID_INPUT"
++
++
++class InvalidInputError(ValueError):
++    """An input that fails the frozen §4.2 contract.
++
++    Attributes:
++        code: always :data:`ERROR_CODE_INVALID_INPUT`.
++        reason: short machine-readable snake_case reason, e.g.
++            ``"file_too_large"``, ``"animated_webp"``,
++            ``"expected_text_too_long"``.  Contains no paths, no user
++            text and no EXIF content.
++    """
++
++    def __init__(self, reason: str, message: str) -> None:
++        self.code: str = ERROR_CODE_INVALID_INPUT
++        self.reason: str = reason
++        super().__init__(message)
++
++    def __str__(self) -> str:  # keep logs free of anything but code+reason
++        return f"{self.code}: {self.reason}"
++
++
++def invalid_input(reason: str, message: str) -> InvalidInputError:
++    """Build an :class:`InvalidInputError` (single construction point)."""
++    return InvalidInputError(reason, message)
++
++
++# ---------------------------------------------------------------------------
++# Core interfaces (IMPLEMENTATION_PLAN.md §5.1)
++# ---------------------------------------------------------------------------
++
++
++@dataclass(frozen=True)
++class ImageInput:
++    """A validated, decoded image ready for OCR / comparison.
++
++    Fields (per §5.1: bytes, MIME, width, height, oriented flag):
++
++    * ``data``: the original validated input bytes.  This is the byte
++      string whose SHA-256 goes into the report ``image.sha256`` field
++      (PROJECT_BOOK.md §5.4); it is never re-encoded, so the hash is
++      stable across runs.
++    * ``mime``: ``image/png`` / ``image/jpeg`` / ``image/webp``.
++    * ``format``: Pillow format name (``PNG`` / ``JPEG`` / ``WEBP``),
++      as used by the report ``image.format`` field (§5.4).
++    * ``width`` / ``height``: dimensions **after** EXIF orientation is
++      applied.  All coordinates (§5.1 ``oriented_image_px_top_left``)
++      use this oriented frame as their basis.
++    * ``oriented``: ``True`` iff an EXIF orientation tag (values 2-8)
++      was present and applied; ``False`` for orientation 1 / no EXIF.
++    * ``pil_image``: the decoded, EXIF-transposed Pillow image with
++      all EXIF / text metadata stripped (no UserComment, no GPS, no
++      embedded paths).  Downstream stages (T003 OCR) consume pixels
++      from here and must not re-apply orientation.
++
++    ``data`` and ``pil_image`` are excluded from ``repr`` so logs can
++    never leak image bytes or user content.
++    """
++
++    data: bytes = field(repr=False)
++    mime: str
++    format: str
++    width: int
++    height: int
++    oriented: bool
++    pil_image: object = field(repr=False)  # PIL.Image.Image, metadata-stripped
++
++    def sha256_hex(self) -> str:
++        """SHA-256 of the original input bytes (report ``image.sha256``)."""
++        return sha256(self.data).hexdigest()
++
++    def image_report_fields(self) -> dict[str, object]:
++        """The ``image`` block of a ``textproof.report/v1`` report,
++        minus ``sha256`` (callers add :meth:`sha256_hex`).
++
++        Contains no path, no EXIF content and no user text.
++        """
++        return {
++            "format": self.format,
++            "width": self.width,
++            "height": self.height,
++            "coordinate_system": COORDINATE_SYSTEM,
++        }
++
++
++@dataclass(frozen=True)
++class ExpectedTextInput:
++    """A validated expected text (PROJECT_BOOK.md §4.2, FR-02).
++
++    * ``raw``: the user's text exactly as supplied.
++    * ``normalized_lines``: the text split into lines after unifying
++      ``CRLF`` / ``CR`` to ``LF`` only.  Full §4.3 normalisation (NFC,
++      full-width mapping, whitespace folding) is **T004's**
++      ``core/normalize.py`` and is deliberately *not* done here, so
++      there is exactly one owner of §4.3.
++    * ``codepoint_count`` / ``line_count``: the frozen §4.2 counts
++      (Python ``len`` == Unicode code points; line count == number of
++      ``LF``-separated segments).
++
++    ``raw`` and ``normalized_lines`` are excluded from ``repr`` so logs
++    can never record user text (PROJECT_BOOK.md §9).
++    """
++
++    raw: str = field(repr=False)
++    normalized_lines: tuple[str, ...] = field(repr=False)
++    codepoint_count: int
++    line_count: int
+diff --git a/src/textproof/io/__init__.py b/src/textproof/io/__init__.py
+new file mode 100644
+index 0000000..54e7172
+--- /dev/null
++++ b/src/textproof/io/__init__.py
+@@ -0,0 +1,15 @@
++"""Input / IO layer: image loading and validation (T002)."""
++
++from textproof.io.image_loader import (
++    InvalidInputError,
++    detect_format,
++    load_image,
++    validate_expected_text,
++)
++
++__all__ = [
++    "InvalidInputError",
++    "detect_format",
++    "load_image",
++    "validate_expected_text",
++]
+diff --git a/src/textproof/io/image_loader.py b/src/textproof/io/image_loader.py
+new file mode 100644
+index 0000000..254eb92
+--- /dev/null
++++ b/src/textproof/io/image_loader.py
+@@ -0,0 +1,304 @@
++"""Image loading and input validation (T002).
++
++Implements ``PROJECT_BOOK.md`` §4.2:
++
++* only PNG / JPEG / WebP, checked by **magic bytes**, never by file
++  extension (this module takes ``bytes`` only -- it has no path
++  parameter at all, so there is no arbitrary-path read or write);
++* 25 MiB / 8192 px / 40,000,000 px limits, checked on the image header
++  *before* full decode so an oversized file cannot force a large
++  allocation (decompression-bomb defence);
++* animated WebP, corrupt/truncated files, magic/format mismatches and
++  decode errors all fail closed with the unified ``INVALID_INPUT`` code;
++* EXIF orientation is applied; width/height and every coordinate use
++  the oriented frame (``oriented_image_px_top_left``, §5.1);
++* expected text: at most 5,000 Unicode code points, at most 100 lines,
++  blank input rejected.
++
++Privacy (§4.2 / §9): the loader reads exactly one EXIF value -- the
++orientation tag (274).  EXIF UserComment (0x9286), GPS tags (0x8825)
++and PNG text chunks are never read, never copied and never returned:
++the decoded image handed downstream is stripped of all EXIF / text
++metadata.  No error message contains a path, user text or EXIF content.
++"""
++
++from __future__ import annotations
++
++from io import BytesIO
++
++from PIL import Image, ImageOps
++
++from textproof.contracts import (
++    ACCEPTED_FORMATS,
++    ERROR_CODE_INVALID_INPUT,
++    MAX_DIMENSION_PX,
++    MAX_EXPECTED_CODEPOINTS,
++    MAX_EXPECTED_LINES,
++    MAX_FILE_SIZE_BYTES,
++    MAX_PIXELS,
++    MIME_BY_FORMAT,
++    ExpectedTextInput,
++    ImageInput,
++    InvalidInputError,
++    invalid_input,
++)
++
++__all__ = [
++    "ERROR_CODE_INVALID_INPUT",
++    "InvalidInputError",
++    "detect_format",
++    "load_image",
++    "validate_expected_text",
++]
++
++# Defence in depth: Pillow itself must refuse absurd pixel counts even if
++# a caller bypasses the header check below.  The explicit header check
++# remains primary (it runs before any decode).
++Image.MAX_IMAGE_PIXELS = MAX_PIXELS
++
++_EXIF_ORIENTATION_TAG = 274  # the only EXIF tag this module ever reads
++
++# Magic-byte prefixes (PROJECT_BOOK.md §4.2 / §9: never trust extension).
++_PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
++_JPEG_MAGIC = b"\xff\xd8\xff"
++_RIFF_MAGIC = b"RIFF"
++_WEBP_MARKER = b"WEBP"
++
++# Metadata keys that are safe to keep on the decoded image (colour /
++# resolution hints).  Everything else in ``Image.info`` -- EXIF blob,
++# PNG text chunks, comments -- is dropped.
++_SAFE_INFO_KEYS = frozenset({"icc_profile", "dpi"})
++
++
++def detect_format(data: bytes) -> str | None:
++    """Sniff the image format from magic bytes only.
++
++    Returns ``"PNG"`` / ``"JPEG"`` / ``"WEBP"``, or ``None`` when the
++    bytes match no accepted format.  Never looks at a file name: the
++    loader has no file-name input at all.
++    """
++    if data.startswith(_PNG_MAGIC):
++        return "PNG"
++    if data.startswith(_JPEG_MAGIC):
++        return "JPEG"
++    if (
++        len(data) >= 12
++        and data[:4] == _RIFF_MAGIC
++        and data[8:12] == _WEBP_MARKER
++    ):
++        return "WEBP"
++    return None
++
++
++def _webp_has_animation_flag(data: bytes) -> bool:
++    """True iff a WebP VP8X extended chunk carries the animation bit.
++
++    VP8X layout: ``"VP8X"`` + 4-byte chunk size + 1 flag byte whose
++    bit ``0x02`` marks an animated image.  A static (lossy / lossless)
++    WebP has no VP8X chunk at all, or a VP8X chunk without that bit.
++    This raw-byte check catches animated files even if a decoder
++    reports only one frame.
++    """
++    idx = data.find(b"VP8X", 0, 32)
++    if idx < 0 or len(data) < idx + 9:
++        return False
++    return bool(data[idx + 8] & 0x02)
++
++
++def _strip_private_metadata(image: Image.Image) -> Image.Image:
++    """Return a copy of *image* with all EXIF / text metadata removed.
++
++    Keeps only colour/resolution hints (``icc_profile``, ``dpi``).
++    Drops the EXIF blob (UserComment, GPS, ...), PNG text chunks and
++    any other ``info`` entries, so downstream code cannot accidentally
++    read or leak them.  Pixel data is unchanged.
++    """
++    clean = image.copy()
++    kept = {k: v for k, v in clean.info.items() if k in _SAFE_INFO_KEYS}
++    clean.info.clear()
++    clean.info.update(kept)
++    text = getattr(clean, "text", None)
++    if isinstance(text, dict):
++        text.clear()
++    return clean
++
++
++def _check_dimensions(width: int, height: int) -> None:
++    """Enforce the frozen 8192 px / 40 MP limits on a (w, h) pair."""
++    if width <= 0 or height <= 0:
++        raise invalid_input(
++            "invalid_dimensions", "Image dimensions must be positive."
++        )
++    if width > MAX_DIMENSION_PX or height > MAX_DIMENSION_PX:
++        raise invalid_input(
++            "image_dimension_exceeded",
++            "Image width or height exceeds the 8192 px limit.",
++        )
++    if width * height > MAX_PIXELS:
++        raise invalid_input(
++            "too_many_pixels",
++            "Image pixel count exceeds the 40,000,000 px limit.",
++        )
++
++
++def load_image(data: bytes | bytearray | memoryview) -> ImageInput:
++    """Validate and decode one image from in-memory bytes.
++
++    Args:
++        data: raw image bytes (PNG / JPEG / WebP).  No file path is
++            accepted, by design -- see module docstring.
++
++    Returns:
++        An :class:`ImageInput` whose ``width``/``height`` are the
++        EXIF-oriented dimensions and whose ``pil_image`` is the
++        decoded, oriented, metadata-stripped image.
++
++    Raises:
++        InvalidInputError: with code ``INVALID_INPUT`` for every
++            rejection (oversize, unsupported format, animated WebP,
++            corrupt/truncated data, magic/format mismatch, decode
++            failure).  Fail-closed: any unexpected decode exception is
++            converted to ``INVALID_INPUT`` instead of propagating.
++    """
++    if isinstance(data, (bytearray, memoryview)):
++        data = bytes(data)
++    if not isinstance(data, bytes):
++        raise invalid_input("not_bytes", "Image input must be bytes.")
++    if len(data) == 0:
++        raise invalid_input("empty_file", "Image input is empty.")
++    if len(data) > MAX_FILE_SIZE_BYTES:
++        raise invalid_input(
++            "file_too_large", "Image file exceeds the 25 MiB limit."
++        )
++
++    fmt = detect_format(data)
++    if fmt is None or fmt not in ACCEPTED_FORMATS:
++        raise invalid_input(
++            "unsupported_format",
++            "Only PNG, JPEG and WebP images are accepted.",
++        )
++
++    # Raw-byte animation check first: cheap, decoder-independent.
++    if fmt == "WEBP" and _webp_has_animation_flag(data):
++        raise invalid_input(
++            "animated_webp", "Animated WebP images are not accepted."
++        )
++
++    try:
++        image = Image.open(BytesIO(data))
++    except Exception as exc:  # noqa: BLE001 -- fail-closed by contract
++        raise invalid_input(
++            "decode_failed", "Image could not be decoded."
++        ) from exc
++
++    # Magic bytes and decoded format must agree (extension disguise /
++    # magic spoofing is rejected here, not by file name).
++    if image.format != fmt:
++        raise invalid_input(
++            "format_magic_mismatch",
++            "Image content does not match its format signature.",
++        )
++
++    # Header dimensions are checked before full decode (bomb defence).
++    width, height = image.size
++    _check_dimensions(width, height)
++
++    # Animated WebP, second check via the decoder's frame count.
++    if fmt == "WEBP":
++        try:
++            n_frames = getattr(image, "n_frames", 1) or 1
++            is_animated = bool(getattr(image, "is_animated", False))
++        except Exception:  # noqa: BLE001 -- unreadable frame info: reject
++            raise invalid_input(
++                "animated_webp", "Animated WebP images are not accepted."
++            ) from None
++        if n_frames > 1 or is_animated:
++            raise invalid_input(
++                "animated_webp", "Animated WebP images are not accepted."
++            )
++
++    # EXIF orientation only (tag 274).  No other EXIF tag is read.
++    oriented = False
++    try:
++        exif = image.getexif()
++        orientation = exif.get(_EXIF_ORIENTATION_TAG) if exif else None
++        oriented = orientation in (2, 3, 4, 5, 6, 7, 8)
++    except Exception:  # noqa: BLE001 -- unreadable EXIF: treat as none
++        oriented = False
++
++    try:
++        oriented_image = ImageOps.exif_transpose(image)
++        if oriented_image is None:
++            oriented_image = image
++        oriented_image.load()  # full decode; truncated data fails here
++    except InvalidInputError:
++        raise
++    except Exception as exc:  # noqa: BLE001 -- fail-closed by contract
++        raise invalid_input(
++            "decode_failed", "Image could not be decoded."
++        ) from exc
++
++    # Re-check dimensions after orientation (transpose swaps w/h) and
++    # after full decode, in case a header lied about the true size.
++    width, height = oriented_image.size
++    _check_dimensions(width, height)
++
++    clean_image = _strip_private_metadata(oriented_image)
++
++    return ImageInput(
++        data=data,
++        mime=MIME_BY_FORMAT[fmt],
++        format=fmt,
++        width=width,
++        height=height,
++        oriented=oriented,
++        pil_image=clean_image,
++    )
++
++
++def validate_expected_text(text: object) -> ExpectedTextInput:
++    """Validate the user's expected text (PROJECT_BOOK.md §4.2, FR-02).
++
++    * at most 5,000 Unicode code points (``len`` counts code points);
++    * at most 100 lines (``CRLF`` / ``CR`` unified to ``LF`` first);
++    * blank input (empty or whitespace-only) is rejected.
++
++    Only newline unification is done here; full §4.3 normalisation
++    (NFC, full-width mapping, whitespace folding) belongs to T004's
++    ``core/normalize.py``.
++
++    Raises:
++        InvalidInputError: with code ``INVALID_INPUT`` for every
++            rejection.  The error carries no user text.
++    """
++    if not isinstance(text, str):
++        raise invalid_input(
++            "expected_text_not_string", "Expected text must be a string."
++        )
++    if text.strip() == "":
++        raise invalid_input(
++            "expected_text_empty", "Expected text must not be blank."
++        )
++    if len(text) > MAX_EXPECTED_CODEPOINTS:
++        raise invalid_input(
++            "expected_text_too_long",
++            "Expected text exceeds the 5,000 code point limit.",
++        )
++    if any(0xD800 <= ord(ch) <= 0xDFFF for ch in text):
++        raise invalid_input(
++            "expected_text_invalid_unicode",
++            "Expected text contains unpaired surrogates.",
++        )
++    unified = text.replace("\r\n", "\n").replace("\r", "\n")
++    lines = tuple(unified.split("\n"))
++    if len(lines) > MAX_EXPECTED_LINES:
++        raise invalid_input(
++            "expected_text_too_many_lines",
++            "Expected text exceeds the 100 line limit.",
++        )
++    return ExpectedTextInput(
++        raw=text,
++        normalized_lines=lines,
++        codepoint_count=len(text),
++        line_count=len(lines),
++    )
+diff --git a/tests/conftest.py b/tests/conftest.py
+new file mode 100644
+index 0000000..3fd2c1a
+--- /dev/null
++++ b/tests/conftest.py
+@@ -0,0 +1,15 @@
++"""Make the ``src/`` layout importable without an installed package.
++
++T002's tests run against the worktree source directly
++(``.venv/bin/python -m pytest tests/unit/test_image_loader.py``);
++the package is not installed into the shared venv, so ``src`` is put
++on ``sys.path`` here.  This conftest ships with the repo so the
++acceptance command works from a clean checkout.
++"""
++
++import sys
++from pathlib import Path
++
++_SRC = Path(__file__).resolve().parent.parent / "src"
++if str(_SRC) not in sys.path:
++    sys.path.insert(0, str(_SRC))
+diff --git a/tests/unit/test_image_loader.py b/tests/unit/test_image_loader.py
+new file mode 100644
+index 0000000..3cf923e
+--- /dev/null
++++ b/tests/unit/test_image_loader.py
+@@ -0,0 +1,529 @@
++"""Unit tests for T002: input contracts + image loader.
++
++Acceptance mapping (IMPLEMENTATION_PLAN.md T002 card):
++
++1. PNG/JPEG/WebP only, magic-byte checked, extension-independent --
++   ``test_*_accepted``, ``test_*_rejected``, ``test_*_disguise*``.
++2. 25 MiB / 8192 px / 40 MP boundaries, positive and negative --
++   ``test_file_size_*``, ``test_*dimension*``, ``test_pixels_*``.
++3. Animated WebP, corrupt files, extension disguise, over-pixel and
++   decode failures fail closed -- ``test_animated_*``,
++   ``test_truncated_*``, ``test_*_rejected``.
++4. EXIF orientation applied, oriented width/height, §5 coordinate
++   basis -- ``test_exif_orientation_*``, ``test_report_fields_*``.
++5. Expected text 5,000 code points / 100 lines boundaries; blank
++   rejected -- ``test_expected_text_*``.
++6. No absolute path, EXIF UserComment or GPS in any output --
++   ``test_privacy_*``, ``test_error_messages_contain_no_paths``,
++   ``test_loader_takes_bytes_only``.
++
++All test images are synthetic, generated in-memory with Pillow.
++No real user images, no network images, no network access.
++"""
++
++from __future__ import annotations
++
++import hashlib
++import inspect
++
++import pytest
++from PIL import Image
++from PIL.PngImagePlugin import PngInfo
++
++from textproof.contracts import (
++    COORDINATE_SYSTEM,
++    ERROR_CODE_INVALID_INPUT,
++    MAX_DIMENSION_PX,
++    MAX_EXPECTED_CODEPOINTS,
++    MAX_EXPECTED_LINES,
++    MAX_FILE_SIZE_BYTES,
++    MAX_PIXELS,
++    SCHEMA_ID,
++    InvalidInputError,
++)
++from textproof.io.image_loader import detect_format, load_image, validate_expected_text
++
++
++# ---------------------------------------------------------------------------
++# Synthetic image builders (in-memory only)
++# ---------------------------------------------------------------------------
++
++
++def _png_bytes(size=(64, 48), color="white", mode="RGB", **kwargs) -> bytes:
++    from io import BytesIO
++
++    img = Image.new(mode, size, color)
++    buf = BytesIO()
++    img.save(buf, "PNG", **kwargs)
++    return buf.getvalue()
++
++
++def _jpeg_bytes(size=(64, 48), color="white", exif=None) -> bytes:
++    from io import BytesIO
++
++    img = Image.new("RGB", size, color)
++    buf = BytesIO()
++    kwargs = {"format": "JPEG"}
++    if exif is not None:
++        kwargs["exif"] = exif
++    img.save(buf, **kwargs)
++    return buf.getvalue()
++
++
++def _webp_bytes(size=(64, 48), color="white", mode="RGB", **kwargs) -> bytes:
++    from io import BytesIO
++
++    img = Image.new(mode, size, color)
++    buf = BytesIO()
++    img.save(buf, "WEBP", **kwargs)
++    return buf.getvalue()
++
++
++def _exif_with_orientation(value: int) -> Image.Exif:
++    exif = Image.Exif()
++    exif[274] = value
++    return exif
++
++
++def _assert_invalid(data_or_text, func, reason=None):
++    """Assert *func* fails closed with the unified INVALID_INPUT code."""
++    with pytest.raises(InvalidInputError) as excinfo:
++        func(data_or_text)
++    err = excinfo.value
++    assert err.code == ERROR_CODE_INVALID_INPUT == "INVALID_INPUT"
++    assert isinstance(err, ValueError)
++    if reason is not None:
++        assert err.reason == reason
++    return err
++
++
++# ---------------------------------------------------------------------------
++# 0. Frozen limits are pinned here so any drift fails loudly.
++# ---------------------------------------------------------------------------
++
++
++def test_frozen_limits_match_project_book_4_2():
++    assert MAX_FILE_SIZE_BYTES == 25 * 1024 * 1024
++    assert MAX_DIMENSION_PX == 8192
++    assert MAX_PIXELS == 40_000_000
++    assert MAX_EXPECTED_CODEPOINTS == 5_000
++    assert MAX_EXPECTED_LINES == 100
++    assert SCHEMA_ID == "textproof.report/v1"
++    assert COORDINATE_SYSTEM == "oriented_image_px_top_left"
++
++
++# ---------------------------------------------------------------------------
++# 1. Accepted formats, magic-byte detection, extension independence.
++#    (The loader takes bytes only, so "extension" can never influence it;
++#    these tests prove acceptance is decided by magic bytes + content.)
++# ---------------------------------------------------------------------------
++
++
++def test_png_accepted():
++    data = _png_bytes((120, 80))
++    assert detect_format(data) == "PNG"
++    img = load_image(data)
++    assert img.format == "PNG"
++    assert img.mime == "image/png"
++    assert (img.width, img.height) == (120, 80)
++    assert img.oriented is False
++    assert img.data == data
++    assert img.sha256_hex() == hashlib.sha256(data).hexdigest()
++    assert img.pil_image.size == (120, 80)
++
++
++def test_jpeg_accepted():
++    data = _jpeg_bytes((120, 80))
++    assert detect_format(data) == "JPEG"
++    img = load_image(data)
++    assert img.format == "JPEG"
++    assert img.mime == "image/jpeg"
++    assert (img.width, img.height) == (120, 80)
++    assert img.oriented is False
++
++
++def test_webp_accepted():
++    data = _webp_bytes((120, 80))
++    assert detect_format(data) == "WEBP"
++    img = load_image(data)
++    assert img.format == "WEBP"
++    assert img.mime == "image/webp"
++    assert (img.width, img.height) == (120, 80)
++    assert img.oriented is False
++
++
++def test_webp_lossless_and_rgba_accepted():
++    assert load_image(_webp_bytes((32, 32), mode="RGBA", lossless=True)).format == "WEBP"
++    assert load_image(_webp_bytes((32, 32), mode="RGBA")).format == "WEBP"
++
++
++def test_magic_detection_ignores_would_be_extension():
++    # Same PNG bytes would be "a .jpg file" to a name-based checker;
++    # the loader has no name input, so magic alone decides.
++    data = _png_bytes()
++    assert detect_format(data) == "PNG"
++    assert load_image(data).format == "PNG"
++
++
++# ---------------------------------------------------------------------------
++# 1b. Unsupported / corrupt input fails closed.
++# ---------------------------------------------------------------------------
++
++
++@pytest.mark.parametrize(
++    "data",
++    [
++        b"",
++        b"not an image at all",
++        b"GIF89a" + b"\x00" * 100,  # GIF is not accepted
++        b"\x89PNG\r\n\x1a\n" + b"\x00" * 10,  # PNG magic, no valid chunks
++        b"\xff\xd8\xff" + b"\x00" * 10,  # JPEG magic, no valid segments
++        bytes(range(256)),
++    ],
++)
++def test_unsupported_or_garbage_bytes_rejected(data):
++    _assert_invalid(data, load_image)
++
++
++def test_non_bytes_input_rejected():
++    for bad in (None, 123, "image.png", ["bytes"]):
++        _assert_invalid(bad, load_image)
++
++
++def test_truncated_png_rejected():
++    data = _png_bytes((64, 64))
++    _assert_invalid(data[: len(data) // 2], load_image, reason="decode_failed")
++
++
++def test_truncated_jpeg_rejected():
++    data = _jpeg_bytes((64, 64))
++    _assert_invalid(data[: len(data) // 2], load_image, reason="decode_failed")
++
++
++def test_truncated_webp_rejected():
++    data = _webp_bytes((64, 64))
++    _assert_invalid(data[: len(data) // 2], load_image)
++
++
++def test_magic_content_mismatch_rejected():
++    # PNG magic bytes glued onto JPEG content: magic says PNG, the
++    # decoder cannot read it as PNG -> rejected, not mis-accepted.
++    jpeg = _jpeg_bytes((32, 32))
++    spoofed = b"\x89PNG\r\n\x1a\n" + jpeg[8:]
++    assert detect_format(spoofed) == "PNG"
++    _assert_invalid(spoofed, load_image)
++
++    # JPEG magic glued onto PNG content.
++    png = _png_bytes((32, 32))
++    spoofed2 = b"\xff\xd8\xff" + png[3:]
++    assert detect_format(spoofed2) == "JPEG"
++    _assert_invalid(spoofed2, load_image)
++
++
++# ---------------------------------------------------------------------------
++# 2. Size / dimension / pixel boundaries: positive and negative each.
++# ---------------------------------------------------------------------------
++
++
++def test_file_size_exactly_25_mib_accepted():
++    # Exact boundary: a valid small PNG padded with trailing NUL bytes
++    # to exactly MAX_FILE_SIZE_BYTES.  Pillow tolerates trailing bytes
++    # after IEND; the loader's size check is on len(data), so this
++    # exercises the boundary precisely.
++    data = _png_bytes((16, 16))
++    padded = data + b"\x00" * (MAX_FILE_SIZE_BYTES - len(data))
++    assert len(padded) == MAX_FILE_SIZE_BYTES
++    img = load_image(padded)
++    assert img.format == "PNG"
++    assert (img.width, img.height) == (16, 16)
++
++
++def test_file_size_25_mib_plus_1_rejected():
++    data = _png_bytes((16, 16))
++    padded = data + b"\x00" * (MAX_FILE_SIZE_BYTES - len(data) + 1)
++    assert len(padded) == MAX_FILE_SIZE_BYTES + 1
++    _assert_invalid(padded, load_image, reason="file_too_large")
++
++
++def test_width_8192_accepted():
++    img = load_image(_png_bytes((8192, 1)))
++    assert (img.width, img.height) == (8192, 1)
++
++
++def test_width_8193_rejected():
++    _assert_invalid(
++        _png_bytes((8193, 1)), load_image, reason="image_dimension_exceeded"
++    )
++
++
++def test_height_8192_accepted():
++    img = load_image(_png_bytes((1, 8192)))
++    assert (img.width, img.height) == (1, 8192)
++
++
++def test_height_8193_rejected():
++    _assert_invalid(
++        _png_bytes((1, 8193)), load_image, reason="image_dimension_exceeded"
++    )
++
++
++def test_pixels_exactly_40m_accepted():
++    # 8000 x 5000 = 40,000,000 px, both dimensions <= 8192.
++    # Mode "L" keeps the in-memory image at 40 MB.
++    img = load_image(_png_bytes((8000, 5000), color=128, mode="L"))
++    assert (img.width, img.height) == (8000, 5000)
++    assert img.width * img.height == MAX_PIXELS
++
++
++def test_pixels_over_40m_rejected():
++    # 8000 x 5001 = 40,008,000 px > 40,000,000, dimensions in range,
++    # so the rejection must come from the pixel-count rule alone.
++    _assert_invalid(
++        _png_bytes((8000, 5001), color=128, mode="L"),
++        load_image,
++        reason="too_many_pixels",
++    )
++
++
++# ---------------------------------------------------------------------------
++# 3. Animated WebP and decode failures fail closed.
++# ---------------------------------------------------------------------------
++
++
++def test_animated_webp_rejected():
++    from io import BytesIO
++
++    f1 = Image.new("RGB", (32, 32), "red")
++    f2 = Image.new("RGB", (32, 32), "blue")
++    buf = BytesIO()
++    f1.save(buf, "WEBP", save_all=True, append_images=[f2], duration=100, loop=0)
++    data = buf.getvalue()
++    assert detect_format(data) == "WEBP"
++    _assert_invalid(data, load_image, reason="animated_webp")
++
++
++def test_animated_webp_vp8x_flag_rejected_even_with_one_frame():
++    # Take a static extended (RGBA) WebP, which carries a VP8X chunk,
++    # and set only the VP8X animation bit.  The raw-byte check must
++    # reject it before any decoder runs.
++    # Semi-transparent pixels force the extended (VP8X) form.
++    data = _webp_bytes((32, 32), color=(255, 0, 0, 128), mode="RGBA")
++    idx = data.find(b"VP8X")
++    assert idx >= 0
++    tampered = bytearray(data)
++    tampered[idx + 8] |= 0x02  # VP8X animation flag
++    _assert_invalid(bytes(tampered), load_image, reason="animated_webp")
++
++
++def test_static_webp_with_vp8x_but_no_animation_flag_accepted():
++    # The RGBA WebP above has a VP8X chunk (alpha flag 0x10) without
++    # the animation bit: it must stay accepted.
++    data = _webp_bytes((32, 32), color=(255, 0, 0, 128), mode="RGBA")
++    idx = data.find(b"VP8X")
++    assert idx >= 0
++    assert not (data[idx + 8] & 0x02)
++    assert load_image(data).format == "WEBP"
++
++
++# ---------------------------------------------------------------------------
++# 4. EXIF orientation: oriented dimensions, oriented flag, §5 basis.
++# ---------------------------------------------------------------------------
++
++
++def test_exif_orientation_6_swaps_dimensions():
++    # 100x50 stored, orientation 6 (rotate 90 CW) -> displayed 50x100.
++    data = _jpeg_bytes((100, 50), exif=_exif_with_orientation(6))
++    img = load_image(data)
++    assert img.oriented is True
++    assert (img.width, img.height) == (50, 100)
++    assert img.pil_image.size == (50, 100)
++
++
++def test_exif_orientation_8_swaps_dimensions():
++    data = _jpeg_bytes((100, 50), exif=_exif_with_orientation(8))
++    img = load_image(data)
++    assert img.oriented is True
++    assert (img.width, img.height) == (50, 100)
++
++
++def test_exif_orientation_3_keeps_dimensions_but_marks_oriented():
++    data = _jpeg_bytes((100, 50), exif=_exif_with_orientation(3))
++    img = load_image(data)
++    assert img.oriented is True
++    assert (img.width, img.height) == (100, 50)
++
++
++def test_exif_orientation_1_not_oriented():
++    data = _jpeg_bytes((100, 50), exif=_exif_with_orientation(1))
++    img = load_image(data)
++    assert img.oriented is False
++    assert (img.width, img.height) == (100, 50)
++
++
++def test_no_exif_not_oriented():
++    img = load_image(_jpeg_bytes((100, 50)))
++    assert img.oriented is False
++    assert (img.width, img.height) == (100, 50)
++
++
++def test_exif_orientation_png():
++    # PNG eXIf chunk carrying orientation 6.
++    data = _png_bytes((100, 50), exif=_exif_with_orientation(6))
++    img = load_image(data)
++    assert img.oriented is True
++    assert (img.width, img.height) == (50, 100)
++
++
++def test_report_fields_use_oriented_frame_and_section_5_basis():
++    data = _jpeg_bytes((100, 50), exif=_exif_with_orientation(6))
++    img = load_image(data)
++    fields = img.image_report_fields()
++    assert fields == {
++        "format": "JPEG",
++        "width": 50,
++        "height": 100,
++        "coordinate_system": "oriented_image_px_top_left",
++    }
++
++
++# ---------------------------------------------------------------------------
++# 5. Expected text boundaries (5,000 code points / 100 lines; blank out).
++# ---------------------------------------------------------------------------
++
++
++def test_expected_text_simple_lines():
++    out = validate_expected_text("限时优惠\n新品上市")
++    assert out.raw == "限时优惠\n新品上市"
++    assert out.normalized_lines == ("限时优惠", "新品上市")
++    assert out.codepoint_count == 9
++    assert out.line_count == 2
++
++
++def test_expected_text_crlf_and_cr_unified_to_lines():
++    out = validate_expected_text("a\r\nb\rc")
++    assert out.normalized_lines == ("a", "b", "c")
++    assert out.line_count == 3
++
++
++def test_expected_text_exactly_5000_codepoints_accepted():
++    text = "限" * 2500 + "a" * 2500  # 5,000 code points, mixed scripts
++    assert len(text) == 5_000
++    out = validate_expected_text(text)
++    assert out.codepoint_count == 5_000
++
++
++def test_expected_text_5001_codepoints_rejected():
++    _assert_invalid(
++        "a" * 5_001, validate_expected_text, reason="expected_text_too_long"
++    )
++
++
++def test_expected_text_exactly_100_lines_accepted():
++    text = "\n".join(f"line{i}" for i in range(100))
++    out = validate_expected_text(text)
++    assert out.line_count == 100
++
++
++def test_expected_text_101_lines_rejected():
++    text = "\n".join(f"line{i}" for i in range(101))
++    _assert_invalid(
++        text, validate_expected_text, reason="expected_text_too_many_lines"
++    )
++
++
++@pytest.mark.parametrize("blank", ["", "   ", "\n\n", "\t \r\n  ", "　　"])
++def test_expected_text_blank_rejected(blank):
++    _assert_invalid(blank, validate_expected_text, reason="expected_text_empty")
++
++
++def test_expected_text_non_string_rejected():
++    for bad in (None, 123, b"bytes", ["a"]):
++        _assert_invalid(
++            bad, validate_expected_text, reason="expected_text_not_string"
++        )
++
++
++def test_expected_text_lone_surrogate_rejected():
++    _assert_invalid(
++        "a\ud800b",
++        validate_expected_text,
++        reason="expected_text_invalid_unicode",
++    )
++
++
++# ---------------------------------------------------------------------------
++# 6. Privacy: no paths, no EXIF UserComment, no GPS anywhere in output.
++# ---------------------------------------------------------------------------
++
++
++def test_privacy_exif_comment_and_gps_not_exposed():
++    exif = Image.Exif()
++    exif[274] = 1
++    exif[0x9286] = b"SECRET_USER_COMMENT"  # EXIF UserComment
++    exif[0x8825] = {  # GPS IFD: lat 25N, lon 121E
++        0: b"\x02\x03\x00\x00",
++        1: "N",
++        2: (25.0, 3.0, 0.0),
++        3: "E",
++        4: (121.0, 33.0, 0.0),
++    }
++    data = _jpeg_bytes((64, 48), exif=exif)
++    img = load_image(data)
++    # The load still succeeds (orientation was readable) ...
++    assert img.format == "JPEG"
++    # ... but no output carries the comment, the GPS values, or any
++    # EXIF blob: repr, report fields, and the stripped decoded image.
++    assert "SECRET_USER_COMMENT" not in repr(img)
++    assert "SECRET_USER_COMMENT" not in str(img.image_report_fields())
++    stripped_exif = img.pil_image.getexif()
++    assert 0x9286 not in stripped_exif
++    assert 0x8825 not in stripped_exif
++    assert len(stripped_exif) == 0
++    assert "exif" not in img.pil_image.info
++
++
++def test_privacy_png_text_chunk_not_exposed():
++    from io import BytesIO
++
++    info = PngInfo()
++    info.add_text("Comment", "SECRET_PNG_COMMENT")
++    img = Image.new("RGB", (32, 32), "white")
++    buf = BytesIO()
++    img.save(buf, "PNG", pnginfo=info)
++    loaded = load_image(buf.getvalue())
++    assert "SECRET_PNG_COMMENT" not in repr(loaded)
++    assert "SECRET_PNG_COMMENT" not in str(loaded.image_report_fields())
++    assert "Comment" not in loaded.pil_image.info
++    assert not getattr(loaded.pil_image, "text", None)
++
++
++def test_error_messages_contain_no_paths_or_user_text():
++    err = _assert_invalid(b"garbage", load_image)
++    assert "/" not in str(err)
++    assert "home" not in str(err).lower()
++    err2 = _assert_invalid("a" * 5_001, validate_expected_text)
++    assert "a" * 10 not in str(err2)  # user text never echoed
++
++
++def test_loader_takes_bytes_only():
++    # No path parameter exists, so there is no arbitrary-path read or
++    # write surface by construction (PROJECT_BOOK.md §9).
++    params = inspect.signature(load_image).parameters
++    assert list(params) == ["data"]
++    assert "path" not in params and "filename" not in params
++    params2 = inspect.signature(validate_expected_text).parameters
++    assert list(params2) == ["text"]
++
++
++def test_all_rejections_share_the_unified_code():
++    bad_inputs = [
++        b"",
++        b"GIF89a" + b"\x00" * 20,
++        _png_bytes((8193, 1)),
++        _png_bytes((8000, 5001), color=128, mode="L"),
++    ]
++    for bad in bad_inputs:
++        with pytest.raises(InvalidInputError) as excinfo:
++            load_image(bad)
++        assert excinfo.value.code == "INVALID_INPUT"
++        assert str(excinfo.value).startswith("INVALID_INPUT: ")

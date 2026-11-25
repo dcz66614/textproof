@@ -1,0 +1,6 @@
+src/textproof/__init__.py
+src/textproof/contracts.py
+src/textproof/io/__init__.py
+src/textproof/io/image_loader.py
+tests/conftest.py
+tests/unit/test_image_loader.py

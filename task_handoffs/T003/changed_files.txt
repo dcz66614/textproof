@@ -1,0 +1,11 @@
+THIRD_PARTY_NOTICES.md
+assets/ocr/SHA256SUMS.txt
+assets/ocr/dictionaries/ppocrv6_dict.txt
+assets/ocr/models/PP-OCRv6_det_small.onnx
+assets/ocr/models/PP-OCRv6_rec_small.onnx
+assets/ocr/models/ch_ppocr_mobile_v2.0_cls_mobile.onnx
+conftest.py
+src/textproof/__init__.py
+src/textproof/ocr/__init__.py
+src/textproof/ocr/rapidocr_adapter.py
+tests/integration/test_ocr_adapter.py

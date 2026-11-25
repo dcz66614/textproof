@@ -1,0 +1,44 @@
+benchmark image: tests/fixtures/performance/perf_1920x1080.png 1920x1080 sha256=2bd4573f286c4d3c14a0f93351264511fff7f85919f4e9fbc858a3693c5f8f03
+expected text: '限时优惠 全场5折\n新品上市 会员专享\n新客立减20元\nSALE 50% OFF ￥28.80'
+warmup 1/3: 4.114s verdict=MISMATCH
+warmup 2/3: 2.388s verdict=MISMATCH
+warmup 3/3: 2.698s verdict=MISMATCH
+run 1/30: 2.712s verdict=MISMATCH
+run 2/30: 2.673s verdict=MISMATCH
+run 3/30: 2.837s verdict=MISMATCH
+run 4/30: 2.394s verdict=MISMATCH
+run 5/30: 1.804s verdict=MISMATCH
+run 6/30: 2.282s verdict=MISMATCH
+run 7/30: 2.203s verdict=MISMATCH
+run 8/30: 2.782s verdict=MISMATCH
+run 9/30: 1.922s verdict=MISMATCH
+run 10/30: 2.082s verdict=MISMATCH
+run 11/30: 2.419s verdict=MISMATCH
+run 12/30: 2.879s verdict=MISMATCH
+run 13/30: 2.498s verdict=MISMATCH
+run 14/30: 2.934s verdict=MISMATCH
+run 15/30: 2.765s verdict=MISMATCH
+run 16/30: 2.233s verdict=MISMATCH
+run 17/30: 3.182s verdict=MISMATCH
+run 18/30: 4.585s verdict=MISMATCH
+run 19/30: 4.420s verdict=MISMATCH
+run 20/30: 4.488s verdict=MISMATCH
+run 21/30: 4.202s verdict=MISMATCH
+run 22/30: 3.001s verdict=MISMATCH
+run 23/30: 2.711s verdict=MISMATCH
+run 24/30: 3.407s verdict=MISMATCH
+run 25/30: 3.575s verdict=MISMATCH
+run 26/30: 2.998s verdict=MISMATCH
+run 27/30: 2.896s verdict=MISMATCH
+run 28/30: 3.505s verdict=MISMATCH
+run 29/30: 2.815s verdict=MISMATCH
+run 30/30: 2.809s verdict=MISMATCH
+{
+  "p50": 2.8115884950000236,
+  "p95": 4.457670171749851,
+  "mean": 2.9338241943999797,
+  "min": 1.8038439540000581,
+  "max": 4.585492044000148
+}
+P95 4.458s vs threshold 5.0s -> PASS
+BENCH_EXIT=0
